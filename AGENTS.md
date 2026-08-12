@@ -8,8 +8,11 @@ first** — it documents project conventions that are easy to get wrong.
 - **What:** an RPG game built as a generator on the **Perchance** platform
   (https://perchance.org), using the platform's AI plugins for text and image
   generation.
-- **Stack:** plain HTML/CSS/JS for the game itself. Perchance's list syntax
-  (pjs) is used only at the platform boundary (see "Technology Decisions").
+- **Stack:** **not yet defined.** The minimum requirement is **TypeScript**;
+  framework and tooling decisions are still pending and will be made with the
+  project owner. Do not assume a specific framework, bundler, or runtime.
+  Perchance's list syntax (pjs) is used only at the platform boundary (see
+  "Technology Decisions").
 - **Platform reference:** `PERCHANCE-GUIDE.md` at the repo root is the in-depth
   guide to how the Perchance platform works. Read it when you need platform
   details (load order, plugins, pjs syntax, gotchas).
@@ -29,7 +32,7 @@ The local repo root mirrors the Perchance generator root. Two kinds of content:
 | --- | --- |
 | `main.pjs` | **Symbolic file.** Its content is copy-pasted into the Perchance *Lists* panel. Holds only plugin imports. |
 | `index.html` | **Symbolic file.** Its content is copy-pasted into the Perchance *HTML* panel. Minimal shell that references the built app. |
-| `rpg/` | The actual game app (plain web code). Maps to the `src/rpg/` tree on the platform. |
+| `rpg/` | The actual game app (typed codebase; stack TBD). Maps to the `src/rpg/` tree on the platform. |
 | `PERCHANCE-GUIDE.md`, `AGENTS.md`, docs | Local documentation. |
 
 **How the symbolic files work:** edit them in this repo (so they are version
@@ -46,10 +49,13 @@ and only resolve on the platform.
 
 ## Technology Decisions
 
-- **Plain JS over pjs lists.** Everything the Perchance list syntax can do
-  (weighted random selection, alternation, ranges, templates) is implemented
-  with ordinary JavaScript inside `rpg/`. Perchance syntax is not valid `.js`,
-  and reproducing the engine in local mocks is impractical.
+- **TypeScript-first; stack TBD.** The game is built as a normal, typed
+  codebase — TypeScript at minimum. The framework and tooling are **not yet
+  decided**; confirm with the project owner before assuming one. Perchance's
+  list syntax is avoided inside the app because it is not valid TS/JS and
+  reproducing the engine in local mocks is impractical; anything pjs can do
+  (weighted random selection, alternation, ranges, templates) is done in the
+  app codebase instead.
 - **Perchance layer = plugin imports only.** `main.pjs` should contain nothing
   beyond the plugin imports:
   ```
@@ -68,8 +74,8 @@ and only resolve on the platform.
 
 ## Development Workflow
 
-- **Game code (`rpg/`):** plain web code — develop and test locally with any
-  static server.
+- **Game code (`rpg/`):** developed locally as a typed codebase (stack TBD).
+  The local dev/test setup will be defined once the stack is chosen.
 - **Platform files (`main.pjs`, `index.html`):** edit in the repo, copy-paste
   into the Perchance editor panels, and verify in the platform preview. Only the
   platform runs the pjs engine and resolves platform-relative paths.

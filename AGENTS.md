@@ -26,14 +26,15 @@ first** — it documents project conventions that are easy to get wrong.
 
 ## Repository Structure (read before adding files)
 
-The local repo root mirrors the Perchance generator root. Two kinds of content:
+The local repo root mirrors the Perchance generator root. Content types:
 
 | Path | Role |
 | --- | --- |
 | `main.pjs` | **Symbolic file.** Its content is copy-pasted into the Perchance *Lists* panel. Holds only plugin imports. |
-| `index.html` | **Symbolic file.** Its content is copy-pasted into the Perchance *HTML* panel. Minimal shell that references the built app. |
+| `index.html` | **Symbolic file.** Its content is copy-pasted into the Perchance *HTML* panel. **The current content is example/placeholder only** — do not treat it as the real project; the real shell is written later. |
 | `rpg/` | The actual game app (typed codebase; stack TBD). Maps to the `src/rpg/` tree on the platform. |
 | `PERCHANCE-GUIDE.md`, `AGENTS.md`, docs | Local documentation. |
+| `test-prompt.txt` | **Transient handoff artifact** (English, generated on demand): the runtime-test prompt handed to the Perchance AI agent. See "Development Workflow". |
 
 **How the symbolic files work:** edit them in this repo (so they are version
 controlled), then copy their content into the matching Perchance editor panel.
@@ -74,13 +75,47 @@ and only resolve on the platform.
 
 ## Development Workflow
 
-- **Game code (`rpg/`):** developed locally as a typed codebase (stack TBD).
-  The local dev/test setup will be defined once the stack is chosen.
+**Two validation phases.** Local development + CI validate everything that can
+be validated without the Perchance runtime; the platform handles the rest.
+
+### Phase 1 — Local development & CI (this repo)
+
+- **Game code (`rpg/`):** typed codebase (stack TBD). Developed and tested
+  locally; the dev/test setup is defined once the stack is chosen. CI validates
+  build, typecheck, unit tests, and lint.
 - **Platform files (`main.pjs`, `index.html`):** edit in the repo, copy-paste
-  into the Perchance editor panels, and verify in the platform preview. Only the
-  platform runs the pjs engine and resolves platform-relative paths.
-- **AI generation** can take up to a minute: always show a loading indicator and
-  cache results where sensible.
+  into the Perchance editor panels. Only the platform runs the pjs engine and
+  resolves platform-relative paths.
+
+### Phase 2 — Runtime validation on Perchance
+
+The Perchance platform ships an **embedded AI agent** with full access to the
+deployed project. It can run integration and runtime tests that are impossible
+locally, but it has **no development tooling** (no `tsc`, no `vite`, no
+bundlers) — it runs tests, it does not build.
+
+**Why runtime tests cannot be done locally or via browser automation:**
+
+- The AI plugins (`generateImage`, `generateText`) are **not APIs** — they only
+  execute inside Perchance; there is no local equivalent.
+- Driving the live generator from outside (e.g. CDP / browser automation) is
+  **not viable**: the generator runs inside a cross-origin iframe that is not
+  the top frame, so its frame, console, and logs are unreachable from outside.
+  Confirmed by the project owner.
+
+**Handoff protocol (`test-prompt.txt`):**
+
+1. When local tests and CI give the green light, write a prompt file at the
+   **repo root**: `test-prompt.txt` (English).
+2. The prompt tells the Perchance agent exactly which runtime tests to perform
+   (what to check, click, measure, or log) and what to report back.
+3. The project owner pastes the file's content into the Perchance AI agent,
+   which runs the tests and reports the results.
+4. Results feed back into local fixes and CI; regenerate `test-prompt.txt` for
+   each new test round.
+
+**AI generation** can take up to a minute: always show a loading indicator and
+cache results where sensible.
 
 ## Conventions
 

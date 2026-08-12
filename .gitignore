@@ -1,0 +1,25 @@
+# Infraestrutura do ambiente (Freebuff) — não faz parte do projeto
+# (contém perfil de navegador, chaves de API e config MCP)
+.agents/
+
+# Perchance — artefatos efêmeros / auto-baixados
+scratch/
+imports/
+
+# Node
+node_modules/
+
+# Build
+dist/
+*.tsbuildinfo
+
+# Segredos
+.env
+.env.*
+!.env.example
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -33,7 +33,8 @@ The local repo root mirrors the Perchance generator root. Content types:
 | `main.pjs` | **Symbolic file.** Its content is copy-pasted into the Perchance *Lists* panel. Holds only plugin imports. |
 | `index.html` | **Symbolic file.** Its content is copy-pasted into the Perchance *HTML* panel. **The current content is example/placeholder only** — do not treat it as the real project; the real shell is written later. |
 | `rpg/` | The actual game app (typed codebase; stack TBD). Maps to the `src/rpg/` tree on the platform. |
-| `PERCHANCE-GUIDE.md`, `AGENTS.md`, docs | Local documentation. |
+| `README.md` | **Ships to Perchance** (platform-facing orientation doc). See "Ship Policy" below. |
+| `PERCHANCE-GUIDE.md`, `AGENTS.md`, docs | **Local-only** documentation (never uploaded). |
 | `test-prompt.txt` | **Transient handoff artifact** (English, generated on demand): the runtime-test prompt handed to the Perchance AI agent. See "Development Workflow". |
 
 **How the symbolic files work:** edit them in this repo (so they are version
@@ -47,6 +48,28 @@ tree on the platform; a local `src/` folder would end up uploaded as
 **local `rpg/` ↔ platform `src/rpg/`**. Relative paths inside
 `main.pjs`/`index.html` are platform-relative (e.g. `src/rpg/build/rpg.js`)
 and only resolve on the platform.
+
+## Ship Policy (what goes to Perchance)
+
+Git tracks **everything** (code, configs, CI, tests, docs). But only a minimal,
+curated set is ever uploaded to Perchance:
+
+| Ships to Perchance | Where it lands | Purpose |
+| --- | --- | --- |
+| App code (local `rpg/`) | platform `src/rpg/` | The shipped runtime app. |
+| `README.md` | platform `src/README.md` | Orientation doc for the Perchance AI agent: what the project is, the repo↔platform mapping, how to run runtime tests. |
+
+**Everything else stays local-only** (still git-tracked, never uploaded):
+`AGENTS.md`, `PERCHANCE-GUIDE.md`, config files (`package.json`, `tsconfig.json`,
+CI, linters), tests, and any other dev documentation.
+
+Why:
+
+- The Perchance AI agent reads whatever is in the project; dev/config files
+  would only waste its context. It does **not** edit code — it only runs tests.
+- `AGENTS.md` is guidance for agents that *edit* the code; the Perchance agent
+  never does, so it must not ship.
+- Keep `README.md` lean: it is the agent's orientation doc, not a dev manual.
 
 ## Technology Decisions
 
@@ -92,7 +115,9 @@ be validated without the Perchance runtime; the platform handles the rest.
 The Perchance platform ships an **embedded AI agent** with full access to the
 deployed project. It can run integration and runtime tests that are impossible
 locally, but it has **no development tooling** (no `tsc`, no `vite`, no
-bundlers) — it runs tests, it does not build.
+bundlers) — it runs tests, it does not build. It orients itself through
+`src/README.md` (see "Ship Policy"); that is the only documentation uploaded to
+the platform.
 
 **Why runtime tests cannot be done locally or via browser automation:**
 

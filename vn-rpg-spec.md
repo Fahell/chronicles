@@ -83,6 +83,65 @@ later).
 - Code-built (per-scene functions/classes)
 - Hybrid (declarative data + special scenes in code)
 
+### 3.6 Scene type A — known challenges (scale & floor)
+
+The first and most complicated challenge of scene type A is **making
+characters have a realistic size inside an AI-generated scene**.
+
+Every generated backdrop (a garden, a room, a hall, a forest) carries two
+intrinsic problems:
+
+1. **Floor boundary** — where the ground actually is: how far into the scene a
+   character can stand, and at what height the character's feet should land.
+2. **Scale** — the size relationship between the character and the environment
+   elements in the image.
+
+**Angle consistency (the intended lever):** the image prompt can enforce a
+strict angle in the format we request, and the prompt can be iteratively
+"trained" until generations become consistent. This helps — but it does not, by
+itself, solve realism.
+
+**The realism trap (populated empty scenes):** the concept is a **static, empty
+scene to be filled with generated assets**. That is what makes the scene
+different — and potentially error-prone. Example: generate a scene with a front
+view and depth, empty in the center, with pillars at the edges. The center is
+where NPCs, objects, and everything else are placed. But different images, with
+different angles, can make the same objects **too large or too small for the
+scene**.
+
+**The invalidation risk:** the same character, with no change in its own
+height, can end up looking like a dwarf in a closed scene with depth and large
+objects (e.g., a room), yet look normal in an open-air scene. Aligning
+**floor** (how far into the scene the character can stand) and **scale** is the
+main complexity — and potentially the main **invalidator** of scene type A in
+this project.
+
+> **Status:** flagged as the top technical risk for type A. Mitigations are to
+> be discovered through experiments (see §10).
+
+### 3.7 Character presence in scenes (type A)
+
+Characters appear in two distinct ways:
+
+**NPCs — in the scene:**
+
+- Static, but able to **change places with different poses** — e.g., fade out
+  and appear in another position with a different pose.
+- The user never appears this way.
+
+**User — first person:**
+
+- The user is in **first person**: not placed in the scene.
+- The user only appears when **dialogue boxes** show on their own turn to
+  speak — the classic VN arrangement where characters appear **behind and
+  above the dialogue box**.
+- Classic alternation: **when one speaks, the other dims** (the active speaker
+  is highlighted).
+
+Open detail: how NPCs are represented during dialogue (their in-scene sprite
+vs a dedicated portrait beside the dialogue box) — to be decided in the
+prototype.
+
 ## 4. Assets & AI Generation Pipeline
 
 ### 4.1 Asset policy
@@ -159,6 +218,8 @@ on the Perchance platform.
 | Scene definition format | Data-driven vs code vs hybrid — via experiments |
 | Final scene approach (A/B/C) | Decided by experiments + §6 criteria |
 | Parallax / camera effects | Deferred; can be revisited |
+| Floor/scale alignment strategy (type A) | Main invalidation risk — mitigations to experiment |
+| NPC representation during dialogue | In-scene sprite vs dedicated portrait — prototype decision |
 | Narrative system | Separate spec (text plugin) |
 | Audio (music/SFX) | Future phase; out of scope now |
 | Stack, tooling, framework | Decided after this ideation phase |
@@ -172,4 +233,6 @@ on the Perchance platform.
    dev/prod modes and separate caches.
 3. Use the prototype to settle the **scene definition format** (§3.5).
 4. Iterate effects priority (§3.3) on the prototype.
-5. Later: define the narrative spec (separate document).
+5. **De-risk floor/scale early:** experiment with prompt angle consistency and
+   scene layout (floor line, scale anchors) as the top risk for type A (§3.6).
+6. Later: define the narrative spec (separate document).

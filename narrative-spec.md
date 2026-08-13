@@ -9,6 +9,7 @@
 > techniques). Stack/tooling are still TBD.
 > **Owner:** project owner + primary dev agent
 > **Related:** `vn-rpg-spec.md`, `relationships-spec.md`, `gameplay-spec.md`,
+> `day-cycle-spec.md` (day structure, day logs, two-tier summarization),
 > `pending-decisions.md`, `PERCHANCE-GUIDE.md`, `AGENTS.md`, `README.md`.
 
 ---
@@ -189,6 +190,8 @@ Context must be organized into distinct types, with a clear rule for each:
 | **Offered choices (unselected)** | Option texts shown to the player | **Not lore** — filtered out of context |
 | **Selected choice** | The option the player picked | **Lore** — treated as the player's own action (§3.1) |
 | **Memories / exchanged messages** | Past conversation | Summarizable (with recurring summarization) |
+| **Day summaries (daily lore)** | Per-character daily summaries of the day's interactions | **Summarizable** — the daily tier of the two-tier mechanic (§5.6); injected into that character's context |
+| **Time of day (period)** | Morning / Afternoon / Night — from the day system | **Never summarized** — injected as a named section (`day-cycle-spec.md` §3) |
 | **User identity** | The player's story/appearance | Background: **private** (strangers). Appearance (visual description): **shared** with present NPCs |
 
 > **User stats/traits:** the player's gameplay traits enter payloads as
@@ -258,6 +261,27 @@ budgeted one (≤ ~300 chars), while the UI version is not context-bound.
   NPCs share the scene's raw turns but summarize into their own stores.
 - **Session scope:** summaries live in the `memory` table keyed by
   `(voiceId, type)`, session-scoped for now.
+
+### 5.6 Two-tier summarization (daily + window — complementary)
+
+Per the owner, the **daily summary does NOT replace the window summary** —
+they are **two complementary mechanics** (defined in detail in
+`day-cycle-spec.md` §6):
+
+| Mechanic | What it summarizes | When it runs |
+| --- | --- | --- |
+| **Daily summary** | One day of a character's interactions | End of day (same call as the relationship scoring run, `day-cycle-spec.md` §5) |
+| **Window summary** | The pile of daily summaries (and older lore) filling a character's window | When the character's **total context reaches ~22k chars** (safe margin below the ~24k budget) — not a fixed day count |
+
+- The daily summaries populate each character's window day by day; the window
+  summary compresses that pile when space is unavoidable.
+- **Only the lore context is summarized** (the daily summaries / older lore).
+  Every other context piece stays **never-summarized** (§5.3).
+- **Naming:** each piece of information that goes into context is **named** in
+  the taxonomy (§5.3) so there is no confusion about what can and cannot be
+  summarized.
+- Calibration (budgets, the ~22k trigger) happens on-platform via
+  `test-prompt.txt`; the tokenizer gives exact counts locally.
 
 ## 6. Relationship System & NPC Poses
 
@@ -360,7 +384,7 @@ for a missing sibling / sworn to protect a hidden village.
 | Item | Notes |
 | --- | --- |
 | Memory sharing rules (narrator ↔ NPC) | Whether NPCs carry narrator output — must test |
-| Summarization cadence & budget | Baseline split + trigger in §5.5; numbers calibrated on-platform |
+| Summarization cadence & budget | Baseline split + trigger in §5.5; **two-tier (daily + window)** in §5.6/`day-cycle-spec.md` §6 — numbers calibrated on-platform |
 | Narration frequency & scope tuning | Opening / between turns / on-demand mix |
 | Known/unknown mechanic | Future feature — deferred |
 | User identity in NPC payloads | Background: never (strangers). Appearance: shared. May evolve with the known/unknown feat |

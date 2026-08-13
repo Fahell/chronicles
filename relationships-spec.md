@@ -7,7 +7,8 @@
 > that drive relationship levels, and the world-generation vision.
 > **Owner:** project owner + primary dev agent
 > **Related:** `narrative-spec.md` (memory, NPC poses §6), `vn-rpg-spec.md`
-> (scenes & assets), `pending-decisions.md`, `PERCHANCE-GUIDE.md`, `AGENTS.md`.
+> (scenes & assets), `day-cycle-spec.md` (System 1 timing & batching),
+> `pending-decisions.md`, `PERCHANCE-GUIDE.md`, `AGENTS.md`.
 
 ---
 
@@ -68,7 +69,14 @@ Relationship levels are driven by events, initially in two forms:
   friendship, enmity, etc.
 - Based on an **AI judgment system** that **scores the user's dialogue
   interactions** with the NPCs they interact with (actions, choices, tone).
-- Output feeds the user↔NPC edges of the web.
+- **Timing & batching (evolved — `day-cycle-spec.md`):** the judgment runs
+  **once per in-game day, at day end** (when the user sleeps) — **not per
+  interaction**. The LLM analyzes each NPC's **day log** individually
+  (batched up to 2 NPCs per call, bounded re-calls on malformed output) and
+  scores **both directions** (user→NPC and NPC→user), with a small daily
+  delta (−5..+5 baseline, tunable).
+- Output feeds the user↔NPC edges of the web. **Stats are not updated** by
+  System 1 (they grow deterministically — `gameplay-spec.md` §4).
 
 ### 4.2 System 2 — NPCs ↔ World (pure code, no LLM)
 
@@ -178,7 +186,7 @@ survive between play sessions.
 | --- | --- |
 | Concrete web implementation | Data structure, algorithms, best way to model the teia |
 | Bond types beyond the initial 4 | Extensible — future additions |
-| Event model details | What counts as a dialogue event (system 1); world-event catalog (system 2) |
+| Event model details | What counts as a dialogue event (system 1 — day logs, `day-cycle-spec.md` §4–5); world-event catalog (system 2) |
 | Tier thresholds & names | Baseline mapping in §5; thresholds tunable (research-resolutions §4.1) |
 | Relationship ↔ poses | Currently decoupled; may reconnect later |
 | Character stats menu scope | The UI surface gated by relationship level (§6) — contents/format open |

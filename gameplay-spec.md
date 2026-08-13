@@ -10,8 +10,10 @@
 > web, and the LLM context, without redefining those systems.
 > **Owner:** project owner + primary dev agent
 > **Related:** `narrative-spec.md` (dialogue, payload taxonomy), `relationships-spec.md`
-> (web, System 1/2), `vn-rpg-spec.md` (scenes & assets), `tech-spec.md`
-> (architecture, save schema), `pending-decisions.md`, `PERCHANCE-GUIDE.md`, `AGENTS.md`.
+> (web, System 1/2), `vn-rpg-spec.md` (scenes & assets), `day-cycle-spec.md`
+> (day logs — the interaction-history store this idea extends),
+> `tech-spec.md` (architecture, save schema), `pending-decisions.md`,
+> `PERCHANCE-GUIDE.md`, `AGENTS.md`.
 
 ---
 
@@ -209,6 +211,11 @@ LLM itself**, instead of loading everything into the window.
   app fetches it → a second generation pass with the lore injected), the
   feasibility, and the exact retrieval technique are **to be prototyped in a
   later milestone** — complexity is unknown and explicitly flagged.
+- **Extended to interaction history:** the same idea applies to **per-character
+  day logs** (`day-cycle-spec.md` §7) — when an NPC lacks context for something
+  the user mentions (its window was compressed by summaries), it queries the
+  day-log store (its full interaction history with the user) **instead of
+  inventing**. Same mechanics/feasibility caveats apply.
 - **Design note:** the payload builder is being designed **organized** (§5) so
   this mechanism can slot in later without rework.
 

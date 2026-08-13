@@ -9,8 +9,9 @@
 > concrete technical decisions.
 > **Owner:** project owner + primary dev agent
 > **Related:** `vn-rpg-spec.md`, `narrative-spec.md`, `relationships-spec.md`,
-> `gameplay-spec.md`, `pending-decisions.md`, `AGENTS.md` (conventions),
-> `PERCHANCE-GUIDE.md` (platform reference), `README.md` (platform-facing orientation).
+> `gameplay-spec.md`, `day-cycle-spec.md`, `pending-decisions.md`, `AGENTS.md`
+> (conventions), `PERCHANCE-GUIDE.md` (platform reference), `README.md`
+> (platform-facing orientation).
 
 ---
 
@@ -32,6 +33,10 @@ Anything in this spec must respect these platform facts:
 - **Context window:** the text plugin's LLM window is ~6k tokens
   (~≈ 24k characters per payload, at most). The context payload builder must
   respect this budget.
+- **Output limit:** the text plugin's LLM output is ~**3.5k characters** per
+  call (owner-reported — to verify on-platform). Consequences: daily summaries
+  are sized to fit; the end-of-day scoring batch (2 NPCs per call) must be
+  verified against this limit (`day-cycle-spec.md` §5.2/§8).
 - **Generation is slow** (up to ~1 min). Always show loading indicators and
   cache aggressively.
 - **Ship policy:** only the built app code and `README.md` go to Perchance.
@@ -328,6 +333,8 @@ Richer than the guide's minimal stub, deterministic and controllable:
 | `characters` | registry: user identity + NPCs (visual description, background, pose availability) |
 | `relationships` | the web: edges `(from, to, type, intensity, direction)` |
 | `memory` | per-voice memory records (session-scoped initially; summarization later) |
+| `dayLogs` | day-cycle: full interaction transcripts `(dayId, characterId/pair, period, transcript, chars)` — world lore (`day-cycle-spec.md` §4) |
+| `daySummaries` | day-cycle: per-character daily summaries + scores `(dayId, characterId, summary, scoreUserToNpc, scoreNpcToUser, reason)` (`day-cycle-spec.md` §9) |
 
 - Dexie **versioning** migrations from day one; DB name carries the mode
   (`rpg_dev` / `rpg`).
@@ -430,7 +437,9 @@ sampling; targets are documented, not enforced as hard failures for now:
 | --- | --- |
 | Exact versions | Snapshot pinned 2026-08 in `research-resolutions.md` §5.2 (PixiJS 8.19, three 0.185, Vite 8.2, Vitest 4.1, Biome 2.5, i18next 26, Dexie 4.4, Preact 10.29, TS 7.0, etc.) — re-pin at setup |
 | three.js integration | Only when a type B/C scene is prototyped — confirm the Stage abstraction holds |
-| Summarizer implementation | Cadence/budget tuned on-platform via `test-prompt.txt` |
+| Summarizer implementation | Cadence/budget tuned on-platform via `test-prompt.txt`; **two-tier (daily + window)** per `day-cycle-spec.md` §6 |
+| End-of-day scoring run | System 1 batched per day (`day-cycle-spec.md` §5): batch of 2, parseable output, re-call cap, delta application — prototype with mocks |
+| Output-limit verification | ~3.5k chars per call (§1) — confirm 2-NPC batching or fall back to 1 per call |
 | Save slots & schema | First version: single slot vs multiple — decide in MVP |
 | Asset regeneration wiring | Adapter hook exists (§6.1); cache/seed semantics once the UI decision lands (vn-rpg-spec §4.3) |
 | Intro screen flow | New Game / Load / Settings minimum (§8 vn-rpg-spec) — contents open |

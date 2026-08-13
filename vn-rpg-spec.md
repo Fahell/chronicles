@@ -7,6 +7,7 @@
 > **Owner:** project owner + primary dev agent
 > **Related:** `PERCHANCE-GUIDE.md` (platform reference), `narrative-spec.md`,
 > `relationships-spec.md`, `gameplay-spec.md` (stats/inventory/progression),
+> `day-cycle-spec.md` (day structure & time-of-day),
 > `pending-decisions.md`, `AGENTS.md` (conventions),
 > `README.md` (platform-facing orientation).
 
@@ -66,7 +67,10 @@ Must-have first, in the first scene prototype:
 - **Particles** (rain, snow, embers, dust, falling petals)
 - **Fog / haze** (atmospheric depth)
 - **Dynamic lighting** (lights, shadows, glow, torches)
-- **Day/night cycle** (time-of-day variation)
+- **Day/night cycle** (time-of-day variation) — backed by the structural day
+  system (`day-cycle-spec.md` §3): the in-game period (Morning/Afternoon/Night)
+  drives both the visual cycle here and the time-of-day context injected into
+  LLM payloads (`narrative-spec.md` §5.3).
 
 Deferred for now (re-evaluable later): parallax depth, camera
 movement/zoom/shake.

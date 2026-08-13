@@ -34,11 +34,11 @@
 
 | | |
 | --- | --- |
-| **Status** | ⏳ **Open** |
-| **Why it matters** | It is the only game layer with zero definition. It affects the dialogue machine (choice → stat effect), the AI judgment of relationship System 1 (does scoring feed stats?), the save schema (`tech-spec.md` §7.2), and the HUD. |
-| **Owner answer** | **No definition for now** — deliberately left open. It will be defined in a **dedicated turn**. |
-| **Landing spot** | TBD (own spec or a section of `vn-rpg-spec.md`). |
-| **Immediate impact** | The MVP slice (`narrative-spec.md` §9) does **not** include stats; it stays a scene + dialogue slice. |
+| **Status** | ✅ **Answered** (dedicated interview turn) |
+| **Why it matters** | It is the game layer that defines what the player *is* (stats), *carries* (inventory), and how the game *moves forward* (progression) — and how those interact with the dialogue machine, the relationship web, and the LLM context. |
+| **Owner answer** | Defined in **`gameplay-spec.md`** (dedicated turn): hybrid stats (small numeric core + code-derived traits; Emotional/Empathy + Reputation domains), **stats never gate AI-generated dialogue options** (they shape tone/outcomes), deterministic growth (choices + world events), inventory = key items + currency + gifts (gift acceptance by bond tier; code decides, AI reacts), **story-driven progression** (no XP/levels), item sprites from a **CC0 sprite dependency** (Kenney), on-demand lore retrieval as a **v2+ idea**, and **zero gameplay in the MVP slice**. |
+| **Landing spot** | `gameplay-spec.md` (new spec). |
+| **Immediate impact** | Confirmed: the MVP slice (`narrative-spec.md` §9) stays **scene + dialogue only** — no stats/inventory/reputation. The save schema evolves later via Dexie versioning. |
 
 ---
 
@@ -135,7 +135,7 @@
 
 | # | Definition | Status |
 | --- | --- | --- |
-| 1 | Gameplay scope (stats/inventory/progression) | ⏳ Open — dedicated turn |
+| 1 | Gameplay scope (stats/inventory/progression) | ✅ Answered (`gameplay-spec.md`) |
 | 2 | Asset generation & distribution | 🔄 Partially answered (`vn-rpg-spec.md` §4.2–4.3) |
 | 3 | Onboarding flow (screens) | 🔄 Partially answered (`vn-rpg-spec.md` §8) |
 | 4 | Languages, detection & i18n scope | ✅ Answered (`narrative-spec.md` §5.4/§8, `relationships-spec.md` §6) |
@@ -150,5 +150,5 @@
 1. Keep this doc updated every time a gap is identified or a decision lands.
 2. When a dedicated turn resolves an ⏳ item, move its detail into the owning
    spec and leave the index entry here.
-3. The ⏳ items (1 and 6) are candidates for their own dedicated turns before
-   the corresponding development work begins.
+3. The ⏳ item (6 — support matrix & a11y) is a candidate for its own
+   dedicated turn before the corresponding development work begins.

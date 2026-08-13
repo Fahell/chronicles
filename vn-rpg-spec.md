@@ -6,7 +6,8 @@
 > here.
 > **Owner:** project owner + primary dev agent
 > **Related:** `PERCHANCE-GUIDE.md` (platform reference), `narrative-spec.md`,
-> `relationships-spec.md`, `pending-decisions.md`, `AGENTS.md` (conventions),
+> `relationships-spec.md`, `gameplay-spec.md` (stats/inventory/progression),
+> `pending-decisions.md`, `AGENTS.md` (conventions),
 > `README.md` (platform-facing orientation).
 
 ---
@@ -27,7 +28,8 @@ open.
   - `generateImage` → all visual assets and scene imagery.
   - `generateText` → narrative/secondary text content.
 - **Gameplay balance:** reading + player choices, plus **light RPG systems**
-  (stats, inventory, simple progression).
+  (stats, inventory, simple progression) — defined in `gameplay-spec.md`
+  (zero gameplay in the MVP slice).
 - **Art direction:** **HD-2D / pixel art** (crisp textures, the
   nearest-neighbor / pixelated mindset from the previous project).
 - **Text role:** main story arc is scripted; AI text is used for *secondary*

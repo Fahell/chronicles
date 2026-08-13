@@ -9,8 +9,8 @@
 > concrete technical decisions.
 > **Owner:** project owner + primary dev agent
 > **Related:** `vn-rpg-spec.md`, `narrative-spec.md`, `relationships-spec.md`,
-> `pending-decisions.md`, `AGENTS.md` (conventions), `PERCHANCE-GUIDE.md`
-> (platform reference), `README.md` (platform-facing orientation).
+> `gameplay-spec.md`, `pending-decisions.md`, `AGENTS.md` (conventions),
+> `PERCHANCE-GUIDE.md` (platform reference), `README.md` (platform-facing orientation).
 
 ---
 
@@ -333,6 +333,9 @@ Richer than the guide's minimal stub, deterministic and controllable:
   (`rpg_dev` / `rpg`).
 - Saves and the relationship web **persist across sessions** (relationships-spec
   §8) — on the platform this is per-user IndexedDB, exactly as locally.
+- **Gameplay tables (stats, inventory, reputation, item lore) are deferred:**
+  zero gameplay in the MVP slice (`gameplay-spec.md` §9); the schema sketch for
+  the gameplay milestone is in `gameplay-spec.md` §10.
 
 ### 7.3 Context payload builder (the 24k budget)
 

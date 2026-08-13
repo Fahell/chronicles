@@ -8,8 +8,8 @@
 > context management. Complements `vn-rpg-spec.md` (scenes & visual
 > techniques). Stack/tooling are still TBD.
 > **Owner:** project owner + primary dev agent
-> **Related:** `vn-rpg-spec.md`, `relationships-spec.md`, `pending-decisions.md`,
-> `PERCHANCE-GUIDE.md`, `AGENTS.md`, `README.md`.
+> **Related:** `vn-rpg-spec.md`, `relationships-spec.md`, `gameplay-spec.md`,
+> `pending-decisions.md`, `PERCHANCE-GUIDE.md`, `AGENTS.md`, `README.md`.
 
 ---
 
@@ -190,6 +190,11 @@ Context must be organized into distinct types, with a clear rule for each:
 | **Selected choice** | The option the player picked | **Lore** — treated as the player's own action (§3.1) |
 | **Memories / exchanged messages** | Past conversation | Summarizable (with recurring summarization) |
 | **User identity** | The player's story/appearance | Background: **private** (strangers). Appearance (visual description): **shared** with present NPCs |
+
+> **User stats/traits:** the player's gameplay traits enter payloads as
+> **compact, organized content** (never raw numbers) under the same discipline
+> — see `gameplay-spec.md` §5. The payload must be structured so what enters
+> is analyzable (ties to the payload builder, `tech-spec.md` §7.3).
 
 Rule of thumb: **lore and old memories are summarized; everything a voice needs
 to act correctly (instructions, scene/visual descriptions, own identity) stays

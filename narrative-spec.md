@@ -37,13 +37,16 @@ need to describe to the user what the user can already see. The user is not
 
 ## 2. Context Injection Model (how the voices know the world)
 
-The core idea: the **image generation prompts** double as **narrative context**.
+The core idea: the **image generation prompts** double as **narrative
+context** — but payloads receive **visual descriptions derived from the
+prompts**, never the raw prompts (see §2.2).
 
 - **World narrator** receives "what is in the scene":
-  - the **scene image prompt** (the prompt that created the backdrop), and
-  - the **character image prompts** of the characters present.
-- **NPCs** receive their **own** context: who they are (their background) and
-  what is in the scene, so they can speak and react coherently.
+  - the **scene description** (what the backdrop shows), and
+  - the **visual descriptions** of the characters present.
+- **NPCs** receive their **own** context: who they are (their background),
+  plus the **appearances of everyone present** — including the user's — so
+  they know who they are talking to (§2.2).
 - **The user is not part of this injection** — again, they see the scene
   themselves; nothing about the visible scene is narrated *to* them.
 
@@ -51,6 +54,8 @@ The core idea: the **image generation prompts** double as **narrative context**.
 
 - **No NPC carries another NPC's background history in its payload.**
 - **No NPC carries the user's background history in its payload.**
+- **Appearances, however, are shared** (§2.2): knowing what someone looks like
+  is not the same as knowing their history.
 - At this stage, everyone is a **stranger** to everyone else: background
   histories are *not* shared. Knowledge between characters develops through
   **in-scene interaction** (dialogue), not through payload injection.
@@ -59,6 +64,27 @@ The core idea: the **image generation prompts** double as **narrative context**.
 > In the world there are two kinds of people — *known* (who share each other's
 > backgrounds) and *unknown* (who don't). This adds realism but is deferred for
 > complexity reasons.
+
+### 2.2 Prompt vs visual description (never send the recipe)
+
+Sending a raw image prompt as narrative context is like giving someone a cake
+recipe when they asked for a slice of cake. Instead, every generated character
+(and scene) produces **two artifacts** from the same definition input:
+
+1. **Image prompt** → used only for image generation.
+2. **Visual description** → a short, plain-language description of what the
+   character/scene looks like; this is what goes into narrator and NPC
+   payloads.
+
+The AI derives both. Visual descriptions are compact (a short paragraph) and
+are **never summarized** context.
+
+- **Appearances are shared** (unlike backgrounds): an NPC receives the visual
+  description of the user and of the other NPCs present in the scene, so
+  everyone knows who is in front of them.
+- **Backgrounds remain private** (§2.1): appearance ≠ background.
+- For scenes, the description is authored as part of the scene definition (or
+  AI-derived from the scene prompt at authoring time).
 
 ## 3. Dialogue Mechanics
 
@@ -114,17 +140,31 @@ Context must be organized into distinct types, with a clear rule for each:
 | Context type | Contains | Policy |
 | --- | --- | --- |
 | **System instructions** | Voice rules, style, language, format | **Never summarized** — always full |
-| **Scene image prompt** | What created the backdrop | **Never summarized** (narrator needs it complete) |
-| **Character image prompts** | What created each character | **Never summarized** |
+| **Scene description** | What the backdrop shows (derived from the scene prompt) | **Never summarized** (narrator needs it complete) |
+| **Visual descriptions** | What each character/scene looks like (derived from prompts) | **Never summarized** — injected into narrator/NPC payloads |
 | **Character background** | Who each character *is* | Full for its own character; **never shared** with others (current stage) |
 | **Game lore** | What happens in dialogues and in the game world | **Summarizable** — this is the main thing that gets summarized |
 | **Memories / exchanged messages** | Past conversation | Summarizable (with recurring summarization) |
-| **User identity** | The player's story/appearance | Not injected into NPC payloads (current stage) |
+| **User identity** | The player's story/appearance | Background: **private** (strangers). Appearance (visual description): **shared** with present NPCs |
 
 Rule of thumb: **lore and old memories are summarized; everything a voice needs
-to act correctly (instructions, prompts, own identity) stays complete.** The
-narrator always gets full scene + character prompts; NPCs must not have
-non-lore information summarized.
+to act correctly (instructions, scene/visual descriptions, own identity) stays
+complete.** The narrator always gets the full scene + visual descriptions;
+NPCs must not have non-lore information summarized.
+
+### 5.4 Content size limits (protecting the lore budget)
+
+The window must reserve space for the **current story's lore**. Initial limits
+(compact; tunable in tests):
+
+| Content | Initial limit | Enforced by |
+| --- | --- | --- |
+| User background story | **≤ ~300 chars** | UI blocks submission until it fits |
+| Character (NPC) backgrounds | **≤ ~300 chars** | Authored within limit |
+| Visual descriptions | Short paragraph (budget TBD) | AI derives them compactly |
+
+If these grow unchecked, the window gets compromised and there is no room left
+for the current story's lore.
 
 ## 6. User Identity & Creation
 
@@ -132,12 +172,13 @@ non-lore information summarized.
   - **Appearance:** free description, **or** a pre-defined archetype (e.g.,
     medieval RPG class).
   - **Background story:** write their own, **or** choose a pre-defined template.
-- **Image generation:** the AI takes the user's appearance description and
-  optimizes it into an image prompt → the character image is generated in the
-  project's RPG style (pixel art, etc.).
-- The user's identity exists so the story has its second character; at the
-  current stage it is **not** injected into NPC payloads (they meet as
-  strangers).
+- **Generation & description:** the AI takes the appearance definition and
+  derives **two artifacts** — the **image prompt** (for image generation, in
+  the project's RPG style / pixel art) and the **visual description** (what
+  NPCs and the narrator receive). See §2.2.
+- The user's identity exists so the story has its second character. NPCs know
+  the user's **appearance** (visual description), but **not** their background
+  — they meet as strangers (§2.1).
 
 ## 7. Language & i18n
 
@@ -177,7 +218,8 @@ for a missing sibling / sworn to protect a hidden village.
 | Summarization cadence & budget | How often / how much of the 24k chars |
 | Narration frequency & scope tuning | Opening / between turns / on-demand mix |
 | Known/unknown mechanic | Future feature — deferred |
-| User identity in NPC payloads | Currently: never; may change with the known/unknown feat |
+| User identity in NPC payloads | Background: never (strangers). Appearance: shared. May evolve with the known/unknown feat |
+| Visual description budget | Exact size/cadence of derived descriptions — tune in tests |
 | Content (types, backgrounds, templates, archetypes) | Examples only for now |
 | Scene options & user-driven progression details | Bridges with the scene spec |
 | Stack, tooling, framework | Decided after the ideation phase |

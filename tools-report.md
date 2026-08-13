@@ -31,13 +31,15 @@
   dust, petals). Declarative emitter config slots directly into the scene
   manifest (tech-spec §5.2).
 - **Battle-tested evidence:** long-standing official project; large install
-  base. Note: the canonical repo is being updated for **PixiJS v8**; a
-  maintained v8 fork exists (`@spd789562/particle-emitter`) that uses the new
-  `ParticleContainer`.
-- **Recommendation:** use the v8 `ParticleContainer`-based path. For trivial
-  effects, PixiJS v8's native `ParticleContainer` alone may suffice (official
-  blog: optimized for rendering massive numbers of lightweight visuals) —
-  keep a thin effect interface so we can switch between the two.
+  base. **Update (2026-08):** the canonical repo now ships **v8 support**
+  (`@pixi/particle-emitter` **5.0.10**, pinned in `research-resolutions.md`
+  §5.2) — the previously noted v8 fork (`@spd789562/particle-emitter`) is **no
+  longer needed**; use the official package.
+- **Recommendation:** use the official `@pixi/particle-emitter` v5 with the v8
+  `ParticleContainer`-based path. For trivial effects, PixiJS v8's native
+  `ParticleContainer` alone may suffice (official blog: optimized for
+  rendering massive numbers of lightweight visuals) — keep a thin effect
+  interface so we can switch between the two.
 
 ### 2.2 `pixi-filters` — ✅ adopt
 - **What:** the community/official filters collection for PixiJS: glow, blur,

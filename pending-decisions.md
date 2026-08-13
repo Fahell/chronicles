@@ -8,7 +8,8 @@
 > open — so no important definition is lost between turns.
 > **Owner:** project owner + primary dev agent
 > **Related:** `vn-rpg-spec.md`, `narrative-spec.md`, `relationships-spec.md`,
-> `tech-spec.md`, `AGENTS.md`, `PERCHANCE-GUIDE.md`.
+> `tech-spec.md`, `research-resolutions.md` (resolved-by-research sub-items),
+> `AGENTS.md`, `PERCHANCE-GUIDE.md`.
 
 ---
 
@@ -22,6 +23,10 @@
   - ⏳ **Open** — no decision yet; scheduled for a dedicated turn.
 - When a decision is finalized elsewhere (a spec, a dedicated turn), keep this
   doc as the index and point to where it landed.
+- **Spec-level open items resolved by research** (choice format, scene
+  manifest schema v1, memory/summarization baseline, relationship tiers,
+  System 2 v1, exact versions, language list) are tracked in
+  `research-resolutions.md` — this doc indexes project-level gaps only.
 
 ---
 
@@ -82,7 +87,7 @@
 | |   - **UI version** — the translated version shown to the player (e.g. read in a **character stats menu** once the minimum relationship level is reached — see `relationships-spec.md` §6). |
 | | - **Character stats menu (concept):** a UI surface where the player reads a character's background story (UI version) — same "you know them well enough" gate that reveals their bonds. The menu is a new concept; its full scope is open, but it makes sense to design around it. |
 | **Landing spot** | `narrative-spec.md` §5.4 and §8; `relationships-spec.md` §6. |
-| **Open details** | The exact 5-language list; how the UI version of authored content is produced/translated (author-time translation vs on-demand); stats menu scope. |
+| **Open details** | 5-language list **pinned** (`en`, `zh`, `hi`, `es`, `ar` — `research-resolutions.md` §5.1); how the UI version of authored content is produced/translated (author-time vs on-demand); stats menu scope. |
 
 ---
 

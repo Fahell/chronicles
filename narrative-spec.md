@@ -111,14 +111,31 @@ are **never summarized** context.
 - The AI prompt says it **may** (not *must*) include action options for the
   user, when convenient.
 - **Parsable format, not JSON.** Choices arrive in the same output as the
-  dialogue, but with a simple delimiter format that our code parses and turns
+  dialogue, but in a simple delimiter format that our code parses and turns
   into selectable options. A simple parseable format is deliberately preferred
   over asking the model for JSON, which can come malformed and break
-  everything. Generic idea:
+  everything.
+- **Baseline format (line-oriented, from `research-resolutions.md` §1):**
+  dialogue text first, then a choice block at the end, one option per line:
   ```
-  (normal dialogue text here) |option 1: accept, you're not confident|option b: refuse, you have your principles|
+  (normal dialogue text here — as many paragraphs as needed)
+
+  [choices]
+  1. Accept — you're not confident
+  2. Refuse — you have your principles
   ```
-  Exact delimiters/format are **to be studied** (§9).
+  - `[choices]` alone on its own line starts the block; everything before it
+    is dialogue.
+  - Each option is `N. <text>` on its own line; at most 4 options.
+  - A literal `[choices]` inside dialogue is escaped as `\[choices\]`.
+  - If no choices are appropriate, the model omits the block.
+- **Parser contract (robust, never crashes):** marker absent → all dialogue,
+  no choices; marker present with zero valid options → treat as dialogue;
+  malformed lines → dropped individually; dedupe/trim/cap at 4; **any parse
+  failure degrades to dialogue-only** — the player is never stuck and the UI
+  never shows garbage. No re-ask (plugins self-retry, `pending-decisions.md`
+  §5). The delimiter string is the only part worth tuning; the parser
+  contract is what matters.
 - **Lore filtering.** The *offered* option texts are **not lore** — they must
   not be included in anyone's lore/context. The *selected* option **is lore**:
   it counts as if the player themselves wrote the action they take.
@@ -205,6 +222,38 @@ for the current story's lore.
 Both versions derive from the same authored story; the payload version is the
 budgeted one (≤ ~300 chars), while the UI version is not context-bound.
 
+### 5.5 Summarization baseline (initial design, from `research-resolutions.md` §3)
+
+**Pattern:** contextual summarization — the *recent turns stay verbatim*, the
+*older lore gets compressed* into a rolling summary (summary-of-summary).
+
+**Starting budget split (≈24k chars total; tuned on-platform):**
+
+| Section | Budget | Policy |
+| --- | --- | --- |
+| System instructions | ~3k | Never summarized |
+| Scene + visual descriptions | ~3k | Never summarized |
+| Character background (own) | ~1k | Own only; payload version (§5.4) |
+| Lore summary (rolling) | ~6k | The summarized part |
+| Recent turns (verbatim) | ~8k | Last ~8–10 turns kept verbatim |
+| Safety margin | ~3k | Headroom |
+
+**Rules:**
+
+- **Trigger:** summarize when a voice's accumulated raw turns exceed the
+  "recent turns" budget (~8k chars) — not a fixed message count.
+- **Action:** oldest turns beyond the last ~10 compress into the rolling lore
+  summary; the last ~10 stay verbatim.
+- **Never summarized:** the taxonomy's never-summarized rows (§5.3) — system
+  instructions, scene/visual descriptions, own background.
+- **Summarization prompt:** imperative, extract-only-what-matters (decisions,
+  promises, revealed facts, emotional shifts, open threads), **in English**
+  (§8.2), output ≤ the lore budget.
+- **Per-voice:** narrator and each NPC summarize their own memory; co-present
+  NPCs share the scene's raw turns but summarize into their own stores.
+- **Session scope:** summaries live in the `memory` table keyed by
+  `(voiceId, type)`, session-scoped for now.
+
 ## 6. Relationship System & NPC Poses
 
 A **relationship system** will track each NPC's bond with the user — likely as
@@ -260,8 +309,11 @@ To avoid inefficient generation, poses are **gated by the relationship level**:
 
 - **Detection:** the browser's language is detected automatically, with a
   **manual override** — the user can change the language in settings.
-- **Initial scope:** the **five most spoken languages** for the UI (exact list
-  pinned at i18n setup); **fallback to English** for anything untranslated.
+- **Initial scope:** the **five most spoken languages** for the UI — pinned
+  from Ethnologue 2026 (`research-resolutions.md` §5.1): **English (`en`),
+  Mandarin Chinese (`zh`), Hindi (`hi`), Spanish (`es`), Standard Arabic
+  (`ar`)**; **fallback to English** for anything untranslated. The list can
+  grow later (French is #6); the i18n architecture is list-agnostic.
 - The AI receives the **detected/selected language** (the language variable).
 
 ### 8.2 Token-efficiency rule (what gets translated)
@@ -303,16 +355,16 @@ for a missing sibling / sworn to protect a hidden village.
 | Item | Notes |
 | --- | --- |
 | Memory sharing rules (narrator ↔ NPC) | Whether NPCs carry narrator output — must test |
-| Summarization cadence & budget | How often / how much of the 24k chars |
+| Summarization cadence & budget | Baseline split + trigger in §5.5; numbers calibrated on-platform |
 | Narration frequency & scope tuning | Opening / between turns / on-demand mix |
 | Known/unknown mechanic | Future feature — deferred |
 | User identity in NPC payloads | Background: never (strangers). Appearance: shared. May evolve with the known/unknown feat |
 | Visual description budget | Exact size/cadence of derived descriptions — tune in tests |
-| Choice format & parsing | Exact delimiters/format (§3.1) — to be studied |
+| Choice format & parsing | Baseline in §3.1 (line-oriented) — delimiter string tunable |
 | Content (types, backgrounds, templates, archetypes) | Examples only for now |
 | Scene options & user-driven progression details | Bridges with the scene spec |
 | Relationship tiers ↔ poses | Currently decoupled; may reconnect — see `relationships-spec.md` |
-| Language list & i18n resources | The 5 most spoken languages, pinned at i18n setup (§8.1) |
+| Language list & i18n resources | Pinned: en, zh, hi, es, ar (§8.1) — list-agnostic architecture |
 | Background dual versions (payload vs UI) | Payload budget vs UI presentation — how both derive from one authored story (§5.4) |
 | Stack, tooling, framework | Decided after the ideation phase |
 

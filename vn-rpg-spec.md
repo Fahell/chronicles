@@ -77,12 +77,15 @@ later).
 
 ### 3.5 Scene definition format
 
-**OPEN** — to be decided during the scene experiments:
+**Baseline direction (hybrid):** declarative typed manifests
+(`SceneManifest`, schema v1 in `tech-spec.md` §5.3, grounded in Ren'Py /
+Monogatari patterns — `research-resolutions.md` §2) as the default, with a
+**code escape hatch** (`ScenePlugin`) for special scenes (type C/B, future
+cases). The concrete schema is drafted; experiments will refine it.
 
-- Data-driven (declarative files, e.g. JSON: backdrop, layers, effects, actors,
-  transitions)
-- Code-built (per-scene functions/classes)
-- Hybrid (declarative data + special scenes in code)
+- Data-driven (declarative files: backdrop, effects, actors, transitions)
+- Code-built (per-scene functions/classes) — the escape hatch
+- Hybrid (declarative data + special scenes in code) — **the baseline**
 
 ### 3.6 Scene type A — known challenges (scale & floor)
 
@@ -270,7 +273,7 @@ on the Perchance platform.
 | Item | Notes |
 | --- | --- |
 | Scene **style, composition, angle** | Deliberately left open (owner decision) |
-| Scene definition format | Data-driven vs code vs hybrid — via experiments |
+| Scene definition format | Baseline: hybrid, typed manifest schema v1 (tech-spec §5.3) — experiments refine |
 | Final scene approach (A/B/C) | Decided by experiments + §6 criteria |
 | Type C papercraft treatment | Feathered edges + ambient-color sides — prototype and evaluate |
 | Parallax / camera effects | Deferred; can be revisited |

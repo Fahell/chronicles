@@ -206,7 +206,32 @@ unit-testable module (deterministic with a seeded RNG for particle config).
 
 - A **typed, versioned `SceneManifest`** is the default: `{ schemaVersion,
   type: 'A'|'B'|'C', backdrop, effects[], actors[], transitions, ... }`,
-  authored as typed TS data files (compiled into the bundle).
+  authored as typed TS data files (compiled into the bundle). Schema v1
+  (baseline from `research-resolutions.md` §2, grounded in Ren'Py/Monogatari
+  patterns):
+  ```ts
+  interface SceneManifest {
+    schemaVersion: 1;
+    id: string;                    // stable scene id (cache/payload key)
+    type: 'A' | 'B' | 'C';
+    backdrop: {
+      assetKey: string;            // cache key → generated image (dev/prod modes)
+      prompt?: ImagePrompt;        // prompt params if generation is on-demand
+      description: string;         // visual description for narrator payload
+    };
+    effects: EffectConfig[];       // declarative (particles/fog/lighting/dayNight)
+    actors: ActorPlacement[];      // characterId + pose + position + depth
+    transitions?: { enter?: string; exit?: string };
+    floor?: {                      // type-A de-risking hooks (§5.4)
+      line?: number;               // pixel row of the floor plane
+      scaleAnchor?: { x: number; y: number; size: number };
+    };
+    camera: { mode: 'fixed' };     // contain/letterbox viewport (§5.1)
+  }
+  ```
+  Assets are referenced **by key, not inlined** (the cache is the source of
+  truth for pixels); the scene's `description` is first-class so the narrator
+  payload builder reads it directly (`narrative-spec.md` §2.2).
 - The **loader** (`scene/loader.ts`) validates the manifest against its schema
   (runtime validation + unit tests) and builds the stage.
 - **Escape hatch:** a scene may provide a `ScenePlugin` (code) that receives
@@ -400,7 +425,7 @@ sampling; targets are documented, not enforced as hard failures for now:
 
 | Item | Notes |
 | --- | --- |
-| Exact versions | Pin at setup (PixiJS 8, three.js r-latest when integrated, Vite latest, Biome, Vitest, i18next, Dexie, Preact + signals) |
+| Exact versions | Snapshot pinned 2026-08 in `research-resolutions.md` §5.2 (PixiJS 8.19, three 0.185, Vite 8.2, Vitest 4.1, Biome 2.5, i18next 26, Dexie 4.4, Preact 10.29, TS 7.0, etc.) — re-pin at setup |
 | three.js integration | Only when a type B/C scene is prototyped — confirm the Stage abstraction holds |
 | Summarizer implementation | Cadence/budget tuned on-platform via `test-prompt.txt` |
 | Save slots & schema | First version: single slot vs multiple — decide in MVP |
@@ -408,7 +433,7 @@ sampling; targets are documented, not enforced as hard failures for now:
 | Intro screen flow | New Game / Load / Settings minimum (§8 vn-rpg-spec) — contents open |
 | Language list & i18n resources | 5 most spoken languages, fallback EN (narrative-spec §8.1) |
 | WebMCP tool list | Refined as tests are written |
-| Scene manifest schema v1 | Drafted during the first scene experiment |
+| Scene manifest schema v1 | Baseline drafted in §5.3 (`research-resolutions.md` §2) — refined in the first scene experiment |
 | Floor/scale strategy | Open (vn-rpg-spec §9) — manifest hooks + debug overlay are ready |
 | GitHub repo + Actions | When the owner pushes the repo |
 | Upload automation | Manual copy for now; a script (local-only) may be added later |

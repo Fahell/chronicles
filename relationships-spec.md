@@ -80,12 +80,49 @@ Relationship levels are driven by events, initially in two forms:
   - adjust the **intensity** of existing bonds, **and**
   - **create or remove** bonds between NPCs.
 
+**Baseline v1 algorithm (deterministic, seeded — from
+`research-resolutions.md` §4.2):**
+
+- **Tick:** one world tick per scene change / N in-game time units.
+- **Drift:** each existing NPC↔NPC edge drifts toward its bond type's baseline
+  (e.g. family mean-reverts toward +60, rivalry toward −40) by a small step —
+  prevents runaway and models "life goes on" between the user's visits.
+- **Co-presence (Proximity):** NPCs present in the same scene accumulate a
+  co-presence counter; crossing a threshold creates/strengthens a positive
+  bond — the simplest implementation of the *proximity* factor of the
+  friendship model.
+- **Rare events:** seeded RNG roll per tick per edge (low probability): a
+  world event modifies intensity (±), rarely changes type or creates a bond
+  between co-present NPCs.
+- **Constraints:** bonds are only *created* for characters that have met
+  (co-presence) or were born with the bond (§3); new NPCs "born" with edges
+  already exist in the graph.
+- **Determinism:** all rolls use the seeded PRNG (`seedrandom`) so System 2 is
+  reproducible in tests (`tech-spec.md` §8.1).
+
 ## 5. Levels & Scaling (hybrid)
 
 - A **numeric value** per bond (e.g., −100 … +100), from which **named tiers**
-  are derived (stranger → acquaintance → friend → close → intimate; negative
-  side: enemy, etc.).
-- Exact thresholds and tier names are open items.
+  are derived.
+
+**Baseline tier mapping (from `research-resolutions.md` §4.1; thresholds are
+the tunable part):**
+
+| Range | Tier | Notes |
+| --- | --- | --- |
+| −100 .. −61 | **Enemy** | Strong negative bond |
+| −60 .. −21 | **Rival** | Active conflict/competition |
+| −20 .. −1 | **Cold** | Negative lean, still stranger-level |
+| 0 .. 19 | **Stranger** | No real bond (default) |
+| 20 .. 39 | **Acquaintance** | **Visibility gate opens here** (§6) |
+| 40 .. 59 | **Friend** | Reciprocity established |
+| 60 .. 79 | **Close friend** | Deep trust |
+| 80 .. 100 | **Intimate** | Max positive tier |
+
+> Grounded in the Project Horseshoe friendship spectrum
+> (stranger → acquaintance → friend → close → intimate) and the 5-level
+> system of games like Wildermyth. Poses stay **decoupled** from tiers
+> (stranger pose set = baseline for anyone below Acquaintance).
 
 > **Poses note:** currently NPC poses are **not** tied to relationship levels
 > (the pose gating in `narrative-spec.md` §6 remains as-is — strangers get a
@@ -142,7 +179,7 @@ survive between play sessions.
 | Concrete web implementation | Data structure, algorithms, best way to model the teia |
 | Bond types beyond the initial 4 | Extensible — future additions |
 | Event model details | What counts as a dialogue event (system 1); world-event catalog (system 2) |
-| Tier thresholds & names | Numeric → named tiers mapping; visibility threshold |
+| Tier thresholds & names | Baseline mapping in §5; thresholds tunable (research-resolutions §4.1) |
 | Relationship ↔ poses | Currently decoupled; may reconnect later |
 | Character stats menu scope | The UI surface gated by relationship level (§6) — contents/format open |
 | Generation pool | Species/traits/background templates — content and structure |

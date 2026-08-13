@@ -42,7 +42,7 @@ open.
 | --- | --- | --- |
 | **A. Static image + code effects (2.5D)** | AI-generated background enhanced by code-driven effects (particles, fog, lighting) | **First experiment** |
 | **B. Pure code scene (e.g. three.js)** | Fully procedural/3D scene, no image | Explore later |
-| **C. Mixed (three.js + image)** | AI image as backdrop/texture inside a 3D scene | Explore later |
+| **C. Mixed (three.js + image)** | AI images as floor + backdrop inside a 3D scene — papercraft idea (§3.8) | Explore later |
 
 No single path is predefined — the experiments will decide.
 
@@ -142,6 +142,32 @@ Open detail: how NPCs are represented during dialogue (their in-scene sprite
 vs a dedicated portrait beside the dialogue box) — to be decided in the
 prototype.
 
+### 3.8 Scene type C — hybrid idea (three.js + images)
+
+**Two images per scene:**
+
+1. **Floor image** — texture for the 3D ground plane.
+2. **Backdrop image** — the scene background (delimits the scale).
+
+**Empty sides, not a box:** the lateral sides are intentionally empty. To avoid
+the "box"/rectangular look, the images' edges are **feathered** — softly faded
+out, like being erased, with an **irregular shape** — and the empty space at
+the sides follows the **ambient color of the time of day**: white for day,
+darkening to black for night. (This also feeds the day/night cycle effect,
+§3.3.)
+
+**Why this solves type A's problems (§3.6):** the 3D scene provides a real
+floor (an image) and the backdrop delimits the scale, so **floor and scale stop
+being heuristics**:
+
+- the character can go anywhere in the scene,
+- the fixed camera shows the character at the correct size, and
+- any object asset can be placed at any depth.
+
+**Expected style:** a "papercraft" look — 2D assets in a 3D world. With the
+right treatment this should look good — likely **better than the heuristic of
+type A**.
+
 ## 4. Assets & AI Generation Pipeline
 
 ### 4.1 Asset policy
@@ -217,6 +243,7 @@ on the Perchance platform.
 | Scene **style, composition, angle** | Deliberately left open (owner decision) |
 | Scene definition format | Data-driven vs code vs hybrid — via experiments |
 | Final scene approach (A/B/C) | Decided by experiments + §6 criteria |
+| Type C papercraft treatment | Feathered edges + ambient-color sides — prototype and evaluate |
 | Parallax / camera effects | Deferred; can be revisited |
 | Floor/scale alignment strategy (type A) | Main invalidation risk — mitigations to experiment |
 | NPC representation during dialogue | In-scene sprite vs dedicated portrait — prototype decision |
@@ -235,4 +262,6 @@ on the Perchance platform.
 4. Iterate effects priority (§3.3) on the prototype.
 5. **De-risk floor/scale early:** experiment with prompt angle consistency and
    scene layout (floor line, scale anchors) as the top risk for type A (§3.6).
-6. Later: define the narrative spec (separate document).
+6. Prototype the **type C hybrid idea** (floor + backdrop images with feathered
+   edges, §3.8) and compare it against type A.
+7. Later: define the narrative spec (separate document).

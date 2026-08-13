@@ -5,8 +5,9 @@
 > separate spec (built around the `generateText` plugin) and is **out of scope**
 > here.
 > **Owner:** project owner + primary dev agent
-> **Related:** `PERCHANCE-GUIDE.md` (platform reference), `AGENTS.md`
-> (conventions), `README.md` (platform-facing orientation).
+> **Related:** `PERCHANCE-GUIDE.md` (platform reference), `narrative-spec.md`,
+> `relationships-spec.md`, `pending-decisions.md`, `AGENTS.md` (conventions),
+> `README.md` (platform-facing orientation).
 
 ---
 
@@ -186,19 +187,33 @@ type A**.
   generation vision (`relationships-spec.md` §7) will flow into asset
   generation here (image + pose set).
 
-### 4.2 Generation timing
+### 4.2 Generation timing & distribution
 
 - **Pre-generate + cache** (persistent cache, Dexie-style): scenes load
   instantly, generation happens ahead of play.
 - **Caching is separated per mode** (dev cache vs prod cache) so development
   generations never pollute the production cache.
+- **Distribution model (owner direction — `pending-decisions.md` §2):**
+  hybrid leaning per-player. The **initial path** is **full generation on the
+  Perchance platform** (per player/device) with a **persistent cache**, so
+  assets are not regenerated on reload. Some assets **may** be pre-generated
+  and shipped as **webp** where instant availability pays off — but that is
+  not the initial path.
 
-### 4.3 Character consistency
+### 4.3 Asset regeneration (user control)
+
+The image plugin supports **regenerating a generated image**. A generated
+asset can come out with a defect (artifacts, wrong details), so regeneration
+is integrated **intelligently as user control** — the player must not be stuck
+with a bad asset. **How** the regenerate option is surfaced to the player is
+**not yet defined** (open item, §9; see `pending-decisions.md` §2).
+
+### 4.4 Character consistency
 
 - Fixed **prompt template + fixed seed per character** to keep the visual
   stable across generations.
 
-### 4.4 Scene images
+### 4.5 Scene images
 
 - The background generation approach is part of the scene experiments.
   Style, composition, and angle are **explicitly open** (see §9).
@@ -210,9 +225,13 @@ type A**.
 - The generator runs inside a **cross-origin iframe** (not the top frame):
   external CDP/browser-automation testing of the live generator is not viable.
   Final runtime validation happens via `test-prompt.txt`, handed to the
-  Perchance AI agent.
-- Generation takes time: **always show a loading indicator** and cache results
-  aggressively.
+  Perchance AI agent.- Generation takes time: **always show a loading indicator** and cache
+  results aggressively.
+- **No app-level retry/timeout on plugin content** (owner decision,
+  `pending-decisions.md` §5): the plugins handle their own generation failures
+  and retries. Implementing our own timeout/retry is purely heuristic and
+  discouraged — a timeout firing while a generation is merely slow would waste
+  an in-flight generation. Loading indicators are UX, not timeouts.
 - Perchance quotas: `src/` = 100 MB total, 5 MB per file, 1000 files max.
 - Ship policy: only the app code and `README.md` are uploaded to the platform.
 
@@ -241,6 +260,10 @@ on the Perchance platform.
 ## 8. Screen & Presentation
 
 - **Responsive, landscape-oriented**, on both desktop and mobile.
+- **Intro screen (minimum):** a title screen with at least **New Game**,
+  **Load Game** and **Settings**. The look and contents of the title, New
+  Game, Load and Settings screens are **not yet defined**
+  (`pending-decisions.md` §3).
 
 ## 9. Explicitly Open Items
 
@@ -253,6 +276,9 @@ on the Perchance platform.
 | Parallax / camera effects | Deferred; can be revisited |
 | Floor/scale alignment strategy (type A) | Main invalidation risk — mitigations to experiment |
 | NPC representation during dialogue | In-scene sprite vs dedicated portrait — prototype decision |
+| Asset regeneration UI | How the player triggers regeneration of a defective asset (§4.3) |
+| Pre-generated webp assets | Which assets (if any) ship pre-generated (§4.2) |
+| Intro / New Game / Load / Settings screens | Minimum set defined (§8); look & contents open |
 | Narrative system | Separate spec (text plugin) |
 | Audio (music/SFX) | Future phase; out of scope now |
 | Stack, tooling, framework | Decided after this ideation phase |

@@ -8,7 +8,8 @@
 > context management. Complements `vn-rpg-spec.md` (scenes & visual
 > techniques). Stack/tooling are still TBD.
 > **Owner:** project owner + primary dev agent
-> **Related:** `vn-rpg-spec.md`, `PERCHANCE-GUIDE.md`, `AGENTS.md`, `README.md`.
+> **Related:** `vn-rpg-spec.md`, `relationships-spec.md`, `pending-decisions.md`,
+> `PERCHANCE-GUIDE.md`, `AGENTS.md`, `README.md`.
 
 ---
 
@@ -192,6 +193,18 @@ The window must reserve space for the **current story's lore**. Initial limits
 If these grow unchecked, the window gets compromised and there is no room left
 for the current story's lore.
 
+**Dual versions of background stories** (efficiency optimization, §8.2):
+
+- **Payload version** — concise, direct, no narrative preamble, **in English**.
+  This is the version that enters the LLM context: compact, protecting the
+  window.
+- **UI version** — the full/translated version, shown to the player when they
+  read a character's story (e.g. in a **character stats menu** once the minimum
+  relationship level is reached — see `relationships-spec.md` §6).
+
+Both versions derive from the same authored story; the payload version is the
+budgeted one (≤ ~300 chars), while the UI version is not context-bound.
+
 ## 6. Relationship System & NPC Poses
 
 A **relationship system** will track each NPC's bond with the user — likely as
@@ -243,6 +256,26 @@ To avoid inefficient generation, poses are **gated by the relationship level**:
   2. a **language variable** injected into the LLM prompt, informing the model
      which language to generate in.
 
+### 8.1 Detection & scope (MVP)
+
+- **Detection:** the browser's language is detected automatically, with a
+  **manual override** — the user can change the language in settings.
+- **Initial scope:** the **five most spoken languages** for the UI (exact list
+  pinned at i18n setup); **fallback to English** for anything untranslated.
+- The AI receives the **detected/selected language** (the language variable).
+
+### 8.2 Token-efficiency rule (what gets translated)
+
+English is the most token-efficient language, so translation is applied only
+where the player can actually see the text:
+
+- **Never translated (always English):** text that never reaches the player's
+  eyes — image prompts, visual descriptions for payloads, internal/system
+  prompt text, and the **payload version** of backgrounds (§5.4).
+- **Translated (i18n resources or the UI version):** any text that can appear
+  in the UI for the player to read — hardcoded interface text, and authored
+  content such as an NPC's background story (**UI version**, §5.4).
+
 ## 9. Initial Test Scenario (validation slice)
 
 Purpose: validate the base loop with minimal complexity — only the basics that
@@ -279,6 +312,8 @@ for a missing sibling / sworn to protect a hidden village.
 | Content (types, backgrounds, templates, archetypes) | Examples only for now |
 | Scene options & user-driven progression details | Bridges with the scene spec |
 | Relationship tiers ↔ poses | Currently decoupled; may reconnect — see `relationships-spec.md` |
+| Language list & i18n resources | The 5 most spoken languages, pinned at i18n setup (§8.1) |
+| Background dual versions (payload vs UI) | Payload budget vs UI presentation — how both derive from one authored story (§5.4) |
 | Stack, tooling, framework | Decided after the ideation phase |
 
 ## 11. Next Steps

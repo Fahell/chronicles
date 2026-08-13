@@ -7,7 +7,7 @@
 > that drive relationship levels, and the world-generation vision.
 > **Owner:** project owner + primary dev agent
 > **Related:** `narrative-spec.md` (memory, NPC poses §6), `vn-rpg-spec.md`
-> (scenes & assets), `PERCHANCE-GUIDE.md`, `AGENTS.md`.
+> (scenes & assets), `pending-decisions.md`, `PERCHANCE-GUIDE.md`, `AGENTS.md`.
 
 ---
 
@@ -102,6 +102,13 @@ The user's view of the web is gated by relationship level:
 - The user **cannot** see the relationships of someone they have no bond with.
 - Exact thresholds: open item.
 
+**Character stats menu (concept):** a UI surface where the player can read a
+character's **background story** — the **UI version** (`narrative-spec.md`
+§5.4), not the payload version — under the **same gate** that reveals their
+bonds: the minimum relationship level. The menu is a new concept and its full
+scope is open; for now it is the intended home for player-facing authored
+stories (see also `pending-decisions.md` §4).
+
 ## 7. World Generation Vision (future)
 
 With a base story mounted and a more molded world idea, the world should
@@ -137,6 +144,7 @@ survive between play sessions.
 | Event model details | What counts as a dialogue event (system 1); world-event catalog (system 2) |
 | Tier thresholds & names | Numeric → named tiers mapping; visibility threshold |
 | Relationship ↔ poses | Currently decoupled; may reconnect later |
+| Character stats menu scope | The UI surface gated by relationship level (§6) — contents/format open |
 | Generation pool | Species/traits/background templates — content and structure |
 | Encounters with the web | Future feature (§7) |
 | Stack, tooling, framework | Decided after the ideation phase |

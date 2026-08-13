@@ -8,8 +8,9 @@
 > (`vn-rpg-spec.md`, `narrative-spec.md`, `relationships-spec.md`) into
 > concrete technical decisions.
 > **Owner:** project owner + primary dev agent
-> **Related:** `AGENTS.md` (conventions), `PERCHANCE-GUIDE.md` (platform
-> reference), `README.md` (platform-facing orientation).
+> **Related:** `vn-rpg-spec.md`, `narrative-spec.md`, `relationships-spec.md`,
+> `pending-decisions.md`, `AGENTS.md` (conventions), `PERCHANCE-GUIDE.md`
+> (platform reference), `README.md` (platform-facing orientation).
 
 ---
 
@@ -156,6 +157,14 @@ rpg/
 3. Local tests + CI green → write `test-prompt.txt` for the Perchance agent.
 4. Agent runs runtime validation; results feed back into local fixes.
 
+> **Single-version testing (platform fact — `pending-decisions.md` §7):** only
+> one version of the project can be tested on Perchance at a time — always the
+> **latest uploaded**. The platform does not pull the project from GitHub;
+> direct GitHub→CDN import is possible but would make the Perchance agent test
+> "blindly" (no access to the workspace source, only observable generator
+> behavior), so the flow stays as above: local build → upload latest →
+> `test-prompt.txt`.
+
 ---
 
 ## 5. Rendering & Scene System (technical)
@@ -235,8 +244,16 @@ Technical hooks to support the experiments (not solutions yet):
   and `rpg`) so development generations never pollute production (vn-rpg-spec
   §4.2).
 - **Character consistency:** fixed prompt template + fixed seed per character
-  (vn-rpg-spec §4.3); the cache key includes mode + entity + prompt + seed, so
+  (vn-rpg-spec §4.4); the cache key includes mode + entity + prompt + seed, so
   changing a prompt busts the cache by key change.
+- **No app-level retry/timeout on plugin content** (owner decision,
+  `pending-decisions.md` §5): the plugins already handle their own generation
+  failures and retries. Any timeout/retry we add is purely heuristic and
+  discouraged — a timeout firing while a generation is merely slow would waste
+  it. The adapter only surfaces loading state; it never aborts plugin calls.
+- **Regeneration hook:** the image plugin can regenerate an asset — the
+  adapter exposes it as a first-class operation so the UI can offer "regenerate"
+  for defective assets (vn-rpg-spec §4.3; UI surfacing is an open item).
 
 ### 6.2 Mock harness (local dev + tests)
 
@@ -387,6 +404,9 @@ sampling; targets are documented, not enforced as hard failures for now:
 | three.js integration | Only when a type B/C scene is prototyped — confirm the Stage abstraction holds |
 | Summarizer implementation | Cadence/budget tuned on-platform via `test-prompt.txt` |
 | Save slots & schema | First version: single slot vs multiple — decide in MVP |
+| Asset regeneration wiring | Adapter hook exists (§6.1); cache/seed semantics once the UI decision lands (vn-rpg-spec §4.3) |
+| Intro screen flow | New Game / Load / Settings minimum (§8 vn-rpg-spec) — contents open |
+| Language list & i18n resources | 5 most spoken languages, fallback EN (narrative-spec §8.1) |
 | WebMCP tool list | Refined as tests are written |
 | Scene manifest schema v1 | Drafted during the first scene experiment |
 | Floor/scale strategy | Open (vn-rpg-spec §9) — manifest hooks + debug overlay are ready |

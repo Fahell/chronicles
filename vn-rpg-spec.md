@@ -182,6 +182,9 @@ type A**.
 - **NPC pose sets:** each NPC's sprite set is composed of **poses**, gated by
   the relationship system (`narrative-spec.md` §6): strangers get default +
   1 idle + angry; the remaining poses activate on demand in dev tests.
+- **Future — world-generated characters:** characters created by the world
+  generation vision (`relationships-spec.md` §7) will flow into asset
+  generation here (image + pose set).
 
 ### 4.2 Generation timing
 

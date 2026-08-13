@@ -179,6 +179,9 @@ type A**.
   dev-only outputs).
 - **Dev discipline:** only a few real images are generated per test round —
   just enough to validate the implementation, never throwaway art at scale.
+- **NPC pose sets:** each NPC's sprite set is composed of **poses**, gated by
+  the relationship system (`narrative-spec.md` §6): strangers get default +
+  1 idle + angry; the remaining poses activate on demand in dev tests.
 
 ### 4.2 Generation timing
 

@@ -273,6 +273,10 @@ on the Perchance platform.
   **Load Game** and **Settings**. The look and contents of the title, New
   Game, Load and Settings screens are **not yet defined**
   (`pending-decisions.md` §3).
+- **Accessibility baseline** (`tech-spec.md` §5.5): full keyboard parity,
+  screen-reader dialogue + menus, visible focus, contrast AA; the **MVP slice
+  ships the core** (keyboard, aria-live, focus, contrast, unsupported-browser
+  screen), and the full a11y settings land post-MVP.
 
 ## 9. Explicitly Open Items
 

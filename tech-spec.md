@@ -58,7 +58,7 @@ Anything in this spec must respect these platform facts:
 | Persistence | **Dexie / IndexedDB** | Standard web API: works identically locally and on the platform; testable in CI; one DB, several tables. (Precedent: previous Mathema project.) |
 | i18n | **i18next** | Mature, pluralization + interpolation + lazy resources; feeds the language variable into AI payloads (narrative-spec §8). (Precedent: Mathema.) |
 | Lint + format | **Biome** | Single fast Rust-based tool for lint + format + TS-aware checks. |
-| Tests | **Vitest** (unit/integration) + **browser E2E via CDP/Playwright + WebMCP harness** (local) | Tiered by tag (see §8); no duplicated coverage between CI and local. |
+| Tests | **Vitest** (unit/integration) + **browser E2E via Chrome DevTools MCP + WebMCP harness** (local, owner preference — no Playwright script dependency, §8) | Tiered by tag (see §8); no duplicated coverage between CI and local. |
 | CI | **GitHub Actions** (once the repo is pushed) | Typecheck + lint + unit/integration tests + production build. |
 | Build artifact | **`rpg/build/` committed to git** | The upload step is a plain copy of tracked files; the Perchance agent sees exactly what is in production. |
 
@@ -257,6 +257,57 @@ Technical hooks to support the experiments (not solutions yet):
 - A **debug overlay** (dev-only) that draws the floor line / scale guides on
   the stage — lets us tune backdrops quickly before art generation.
 
+### 5.5 Support matrix & accessibility baseline
+
+Resolves `pending-decisions.md` §6 (owner interview).
+
+**Support matrix:**
+
+- **Browsers — evergreen latest-2:** Chrome / Edge / Firefox (latest 2
+  versions) + Safari / iOS 15+ (the implicit floor set by **PixiJS v8
+  requiring WebGL2**, which is universal there). Build target stays es2020+.
+- **WebGL2 is required** (PixiJS v8 dropped WebGL1/Canvas legacy). If WebGL2
+  is unavailable (rare: disabled GPU, very old device) → **graceful
+  "unsupported browser" screen** with instructions. **No degraded DOM
+  renderer** (a second rendering layer is not maintained).
+- **Devices:** desktop (keyboard/mouse) + **mid-range mobile** (touch,
+  landscape, contain/letterbox §5.1, DPR cap 2). **No dedicated low-end tier**
+  — manifest quality tiers still scale effects down on small screens (§9).
+
+**Accessibility baseline (owner decisions):**
+
+- **Keyboard — full parity:** every UI is operable by keyboard — menus,
+  choices (arrows + enter), advance dialogue (space/enter), Escape always
+  exits dialogue (always-escape, `narrative-spec.md` §3). Classic VN pattern.
+- **Screen reader — dialogue + menus:** dialogue announced via
+  `aria-live="polite"`; menus/settings navigable by screen reader (semantic
+  HTML, roles, `lang` per i18n language). The game is playable with a screen
+  reader.
+- **Focus:** custom **visible focus ring** + **conscious focus management**
+  across transitions (dialogue → choices → menus → modals).
+- **Reduced motion (post-MVP):** honor `prefers-reduced-motion` — disable or
+  reduce particles, fog, lighting flicker, and transitions (WCAG 2.3.3 /
+  technique C39) — **plus a manual toggle in Settings**.
+- **Text legibility (Settings, post-MVP):** **text size** setting + **skip**
+  (instant advance / skip read text). **No text-speed setting** — the text
+  plugin streams at its own variable pace, so speed is not controllable; a
+  **typewriter effect is always on** (no toggle).
+- **Color & contrast:** **WCAG AA** contrast for dialogue/HUD text in the
+  baseline. "No information conveyed by color alone" is documented practice
+  (e.g., bond-change indicators use icon + text; active-speaker dimming is
+  brightness-based) — without a separate audit gate.
+
+**Testing & enforcement:**
+
+- Automated a11y checks run via **CDP MCP + WebMCP harness** (owner
+  preference — avoids Playwright script dependency): Chrome DevTools MCP
+  **Lighthouse audit** (a11y category) + WebMCP state inspection. No
+  `@axe-core/playwright` scripts.
+- **MVP scope:** the **core ships in the base slice** — keyboard parity,
+  `aria-live` dialogue, focus ring/management, contrast AA, and the
+  unsupported-browser screen. The **full set lands post-MVP**: Settings
+  (text size, skip, reduced-motion toggle) and Lighthouse a11y gating.
+
 ---
 
 ## 6. AI Runtime & Mock Harness
@@ -386,7 +437,7 @@ per change which tests to run.
 | --- | --- | --- | --- |
 | **unit** | `unit` | Pure logic: payload builder + budget, choice parser, scene manifest validation, relationship graph ops, i18n keys, seeded RNG determinism | CI + local, always fast |
 | **integration** | `integration` | Stores/services with mocks: dialogue machine + always-escape, memory/summarizer, relationships systems, Dexie via `fake-indexeddb` | CI + local |
-| **e2e** | `e2e` | Browser against the **committed build** with mock harness + WebMCP tools, driven by CDP/Playwright: boot, scene renders, dialogue flow, choices, letterbox, save/load | Local on demand; can be flagged in CI |
+| **e2e** | `e2e` | Browser against the **committed build** with mock harness + WebMCP tools, driven by **Chrome DevTools MCP** (no Playwright scripts — owner preference): boot, scene renders, dialogue flow, choices, letterbox, save/load; **a11y via CDP MCP Lighthouse audit** (§5.5) | Local on demand; can be flagged in CI |
 | **perf** | `perf` | Playwright traces / Lighthouse / FPS sampling against soft targets (§9) | Manual / on demand |
 
 ### 8.2 Scripts & policy
@@ -400,6 +451,10 @@ per change which tests to run.
   to run on each change — unit+integration after most edits; e2e when the
   change touches boot/rendering/UI flows; perf when performance is at stake.
   This is recorded in `AGENTS.md` as part of the workflow.
+- **E2E driver:** Chrome DevTools MCP + WebMCP harness (owner preference).
+  The dev agent drives browser tests directly through the CDP MCP instead of
+  maintaining Playwright scripts — faster, more flexible, and a11y audits run
+  via the CDP MCP Lighthouse audit (`§5.5`).
 
 ---
 
@@ -427,6 +482,8 @@ sampling; targets are documented, not enforced as hard failures for now:
   optional).
 - Vitest config with `fake-indexeddb`, jsdom/node environments per tier,
   tag-based script wiring.
+- A11y: no extra dependency — a11y audits run through the CDP MCP Lighthouse
+  audit + WebMCP state inspection (`§5.5`).
 - GitHub Actions workflow (added when the repo is pushed): typecheck →
   Biome → `pnpm test` → `pnpm build`; upload-artifact for `rpg/build/`.
 - Dev harness page + mock harness + WebMCP gating flag.
@@ -445,6 +502,8 @@ sampling; targets are documented, not enforced as hard failures for now:
 | Intro screen flow | New Game / Load / Settings minimum (§8 vn-rpg-spec) — contents open |
 | Language list & i18n resources | 5 most spoken languages, fallback EN (narrative-spec §8.1) |
 | WebMCP tool list | Refined as tests are written |
+| A11y settings UI | Text size + skip + reduced-motion toggle in Settings — **post-MVP** (`§5.5`) |
+| Lighthouse a11y gating | Via CDP MCP — **post-MVP** (`§5.5`) |
 | Scene manifest schema v1 | Baseline drafted in §5.3 (`research-resolutions.md` §2) — refined in the first scene experiment |
 | Floor/scale strategy | Open (vn-rpg-spec §9) — manifest hooks + debug overlay are ready |
 | GitHub repo + Actions | When the owner pushes the repo |

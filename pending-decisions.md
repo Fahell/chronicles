@@ -66,7 +66,7 @@
 | **Owner answer** | **Yes — there must be an intro screen**, with at least: **New Game**, **Load Game**, and **Settings**. |
 | | The look and contents of the title screen and of the New Game / Load / Settings screens are **not yet defined**. |
 | **Landing spot** | `vn-rpg-spec.md` §8 (screen & presentation). |
-| **Open details** | Layout, contents, flow (title → new game → identity creation → first scene), settings screen contents. |
+| **Open details** | Layout, contents, flow (title → new game → identity creation → first scene), settings screen contents. Partial: a11y settings are now defined (**text size, skip, reduced-motion toggle** — `tech-spec.md` §5.5, post-MVP); the rest of the Settings contents remain open. |
 
 ---
 
@@ -110,11 +110,11 @@
 
 | | |
 | --- | --- |
-| **Status** | ⏳ **Open** |
-| **Why it matters** | Browsers/devices minimums (e.g. evergreen + WebGL2 with PixiJS fallback) and the a11y baseline (keyboard, screen-reader basics for the VN UI). |
-| **Owner answer** | **No decision yet** — to be defined in the future. Left as a pending item. |
-| **Landing spot** | TBD (likely a section of `tech-spec.md`). |
-| **Immediate impact** | None on the scaffold; the PixiJS + DOM-overlay architecture already keeps the door open. |
+| **Status** | ✅ **Answered** (dedicated interview turn) |
+| **Why it matters** | Browsers/devices minimums (driven by PixiJS v8 requiring WebGL2) and the a11y baseline (keyboard, screen reader, focus, motion, text legibility, contrast). |
+| **Owner answer** | **Support matrix:** evergreen latest-2 (Chrome/Edge/Firefox latest-2 + Safari/iOS 15+ — the implicit WebGL2 floor); **graceful "unsupported browser" screen** if WebGL2 is unavailable (no degraded DOM renderer); **desktop + mid-range mobile** (no dedicated low-end tier). **A11y:** full keyboard parity; dialogue via `aria-live` + menus navigable by screen reader; custom focus ring + focus management; reduced motion (auto `prefers-reduced-motion` + manual toggle, **post-MVP**); **text size + skip** in Settings (**no text-speed** — the plugin streams at its own pace; typewriter always on); contrast **WCAG AA**. Audits via **CDP MCP Lighthouse + WebMCP** (no Playwright scripts). MVP ships the core (keyboard, aria-live, focus, contrast AA, unsupported screen); the full set lands post-MVP. |
+| **Landing spot** | `tech-spec.md` §5.5 (new section). |
+| **Immediate impact** | MVP slice ships the a11y core (keyboard parity, `aria-live` dialogue, focus ring/management, contrast AA, unsupported-browser screen). A11y settings UI + Lighthouse gating are **post-MVP**. |
 
 ---
 
@@ -140,7 +140,7 @@
 | 3 | Onboarding flow (screens) | 🔄 Partially answered (`vn-rpg-spec.md` §8) |
 | 4 | Languages, detection & i18n scope | ✅ Answered (`narrative-spec.md` §5.4/§8, `relationships-spec.md` §6) |
 | 5 | Error & degradation policy (plugins) | ✅ Answered (`tech-spec.md` §6.1, `vn-rpg-spec.md` §5) |
-| 6 | Support matrix & accessibility baseline | ⏳ Open — future turn |
+| 6 | Support matrix & accessibility baseline | ✅ Answered (`tech-spec.md` §5.5) |
 | 7 | Version testing on Perchance | ✅ Answered (`tech-spec.md` §4.3) |
 
 ---
@@ -150,5 +150,5 @@
 1. Keep this doc updated every time a gap is identified or a decision lands.
 2. When a dedicated turn resolves an ⏳ item, move its detail into the owning
    spec and leave the index entry here.
-3. The ⏳ item (6 — support matrix & a11y) is a candidate for its own
-   dedicated turn before the corresponding development work begins.
+3. All ⏳ items are now resolved — new gaps should be added here as they are
+   identified during development.

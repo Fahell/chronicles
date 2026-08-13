@@ -99,6 +99,30 @@ are **never summarized** context.
   AI conducts the narrative freely within the given context (scene + characters
   + lore). A basic story exists to give direction over time, but the path is
   not pre-scripted.
+- **Always-escape.** The user must **always be able to end a dialogue** — a
+  fixed exit option, inside or near the dialogue box, that ends the
+  interaction with the NPC. The player is never trapped in a conversation.
+
+### 3.1 AI-proposed choices (action options)
+
+- **Choices are not narrative text:** they can be **selected** and carry
+  interaction/action.
+- The AI prompt says it **may** (not *must*) include action options for the
+  user, when convenient.
+- **Parsable format, not JSON.** Choices arrive in the same output as the
+  dialogue, but with a simple delimiter format that our code parses and turns
+  into selectable options. A simple parseable format is deliberately preferred
+  over asking the model for JSON, which can come malformed and break
+  everything. Generic idea:
+  ```
+  (normal dialogue text here) |option 1: accept, you're not confident|option b: refuse, you have your principles|
+  ```
+  Exact delimiters/format are **to be studied** (§9).
+- **Lore filtering.** The *offered* option texts are **not lore** — they must
+  not be included in anyone's lore/context. The *selected* option **is lore**:
+  it counts as if the player themselves wrote the action they take.
+- General rule: **filter what enters the LLM context** — never put non-lore or
+  pre-defined information into the window (§5.3).
 
 ## 4. Scene Progression
 
@@ -144,6 +168,8 @@ Context must be organized into distinct types, with a clear rule for each:
 | **Visual descriptions** | What each character/scene looks like (derived from prompts) | **Never summarized** — injected into narrator/NPC payloads |
 | **Character background** | Who each character *is* | Full for its own character; **never shared** with others (current stage) |
 | **Game lore** | What happens in dialogues and in the game world | **Summarizable** — this is the main thing that gets summarized |
+| **Offered choices (unselected)** | Option texts shown to the player | **Not lore** — filtered out of context |
+| **Selected choice** | The option the player picked | **Lore** — treated as the player's own action (§3.1) |
 | **Memories / exchanged messages** | Past conversation | Summarizable (with recurring summarization) |
 | **User identity** | The player's story/appearance | Background: **private** (strangers). Appearance (visual description): **shared** with present NPCs |
 
@@ -220,6 +246,7 @@ for a missing sibling / sworn to protect a hidden village.
 | Known/unknown mechanic | Future feature — deferred |
 | User identity in NPC payloads | Background: never (strangers). Appearance: shared. May evolve with the known/unknown feat |
 | Visual description budget | Exact size/cadence of derived descriptions — tune in tests |
+| Choice format & parsing | Exact delimiters/format (§3.1) — to be studied |
 | Content (types, backgrounds, templates, archetypes) | Examples only for now |
 | Scene options & user-driven progression details | Bridges with the scene spec |
 | Stack, tooling, framework | Decided after the ideation phase |
@@ -233,5 +260,7 @@ for a missing sibling / sworn to protect a hidden village.
    platform via the `test-prompt.txt` handoff.
 4. Experiment with narration frequency/scope and dialogue mechanics (choices +
    free text).
-5. Keep this spec as a living document — add/remove items as tests reveal
+5. Define and validate the **choice formatting + parsing** (§3.1), including
+   lore filtering (offered vs selected options).
+6. Keep this spec as a living document — add/remove items as tests reveal
    what works.

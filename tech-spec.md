@@ -380,7 +380,7 @@ Richer than the guide's minimal stub, deterministic and controllable:
 | Table | Purpose |
 | --- | --- |
 | `assets` | cached generations: key (mode+entity+pose+seed), dataUrl, prompt, seed, mode, createdAt |
-| `save` | game snapshots (per save slot): identity, scene, progress, flags |
+| `save` | game snapshots — **v1: 3–6 manual slots + autosave** (owner decision): identity, scene, progress, flags |
 | `characters` | registry: user identity + NPCs (visual description, background, pose availability) |
 | `relationships` | the web: edges `(from, to, type, intensity, direction)` |
 | `memory` | per-voice memory records (session-scoped initially; summarization later) |
@@ -497,8 +497,8 @@ sampling; targets are documented, not enforced as hard failures for now:
 | Summarizer implementation | Cadence/budget tuned on-platform via `test-prompt.txt`; **two-tier (daily + window)** per `day-cycle-spec.md` §6 |
 | End-of-day scoring run | System 1 batched per day (`day-cycle-spec.md` §5): batch of 2, parseable output, re-call cap, delta application — prototype with mocks |
 | Output-limit verification | ~3.5k chars per call (§1) — confirm 2-NPC batching or fall back to 1 per call |
-| Save slots & schema | First version: single slot vs multiple — decide in MVP |
-| Asset regeneration wiring | Adapter hook exists (§6.1); cache/seed semantics once the UI decision lands (vn-rpg-spec §4.3) |
+| Save slots & schema | **v1 decided:** 3–6 manual slots + autosave (§7.2); autosave trigger to define (day-end is a natural point, `day-cycle-spec.md` §5) |
+| Asset regeneration wiring | Adapter hook exists (§6.1); **decided: re-roll button on the asset + new seed** (`vn-rpg-spec.md` §4.3) — wire cache-key semantics (mode+entity+prompt+seed) for re-rolls |
 | Intro screen flow | New Game / Load / Settings minimum (§8 vn-rpg-spec) — contents open |
 | Language list & i18n resources | 5 most spoken languages, fallback EN (narrative-spec §8.1) |
 | WebMCP tool list | Refined as tests are written |

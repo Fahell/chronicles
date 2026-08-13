@@ -129,28 +129,32 @@ this project.
 > **Status:** flagged as the top technical risk for type A. Mitigations are to
 > be discovered through experiments (see §10).
 
-### 3.7 Character presence in scenes (type A)
+### 3.7 Character presence in scenes (owner revision)
 
-Characters appear in two distinct ways:
+All characters — NPCs **and the user's avatar** — are placed **in the scene**
+(owner decision, interview):
 
-**NPCs — in the scene:**
+- **Static sprites that change places with different poses** — e.g., fade out
+  and appear in another position with a different pose (NPCs and the user
+  alike).
+- **Facing:** each character is **always turned toward their interlocutor** —
+  the user's avatar faces the NPC being spoken to, and the NPC faces the user.
+  With multiple NPCs, each faces whoever they talk to. Implemented at runtime
+  via positioning/mirroring of authored sprites (open detail: whether
+  dedicated side/back orientations are ever needed, §9).
+- **Active-speaker emphasis:** when one speaks, the others dim — brightness
+  based (a11y-safe, `tech-spec.md` §5.5).
 
-- Static, but able to **change places with different poses** — e.g., fade out
-  and appear in another position with a different pose.
-- The user never appears this way.
+**Dialogue representation — speaker portrait in the box (owner revision):**
 
-**User — first person:**
-
-- The user is in **first person**: not placed in the scene.
-- The user only appears when **dialogue boxes** show on their own turn to
-  speak — the classic VN arrangement where characters appear **behind and
-  above the dialogue box**.
-- Classic alternation: **when one speaks, the other dims** (the active speaker
-  is highlighted).
-
-Open detail: how NPCs are represented during dialogue (their in-scene sprite
-vs a dedicated portrait beside the dialogue box) — to be decided in the
-prototype.
+- The dialogue box shows **the portrait of whoever is speaking** — NPC **and**
+  user — **plus the dialogue text**.
+- The classic "characters behind and above the dialogue box" arrangement is
+  **dropped**.
+- **Portrait assets:** every speaker needs a **portrait** — a new asset type
+  in the pipeline (§4). v1: **one neutral portrait per character**; pose-linked
+  portraits may come later (ties to the pose sets, `narrative-spec.md` §6).
+- Scene types B/C remain to be verified; this presence model is the baseline.
 
 ### 3.8 Scene type C — hybrid idea (three.js + images)
 
@@ -214,8 +218,18 @@ type A**.
 The image plugin supports **regenerating a generated image**. A generated
 asset can come out with a defect (artifacts, wrong details), so regeneration
 is integrated **intelligently as user control** — the player must not be stuck
-with a bad asset. **How** the regenerate option is surfaced to the player is
-**not yet defined** (open item, §9; see `pending-decisions.md` §2).
+with a bad asset.
+
+**Decided baseline (owner interview):**
+
+- **UX:** a **"regenerate" (re-roll) button on the asset** itself (e.g., the
+  portrait, the inventory item, the backdrop) that re-runs the generation —
+  the classic AI regenerate pattern, simple and cheap. No variant carousel in
+  v1.
+- **Seed semantics:** regeneration uses a **new seed**. Character/scene
+  consistency relies on the **fixed prompt template** (§4.4); the new seed is
+  what actually fixes the defect. A re-roll produces a new cached generation
+  (cache key includes seed, `tech-spec.md` §6.1).
 
 ### 4.4 Character consistency
 
@@ -273,6 +287,10 @@ on the Perchance platform.
   **Load Game** and **Settings**. The look and contents of the title, New
   Game, Load and Settings screens are **not yet defined**
   (`pending-decisions.md` §3).
+- **Dynamic title:** the title screen shows **"Chronicles of {player name}"**
+  — the player's name from identity creation (`narrative-spec.md` §7)
+  personalizes the title; a generic name is used if none is provided and can
+  be changed later. (Working project name: **Chronicles**.)
 - **Accessibility baseline** (`tech-spec.md` §5.5): full keyboard parity,
   screen-reader dialogue + menus, visible focus, contrast AA; the **MVP slice
   ships the core** (keyboard, aria-live, focus, contrast, unsupported-browser
@@ -288,14 +306,16 @@ on the Perchance platform.
 | Type C papercraft treatment | Feathered edges + ambient-color sides — prototype and evaluate |
 | Parallax / camera effects | Deferred; can be revisited |
 | Floor/scale alignment strategy (type A) | Main invalidation risk — mitigations to experiment |
-| NPC representation during dialogue | In-scene sprite vs dedicated portrait — prototype decision |
-| Asset regeneration UI | How the player triggers regeneration of a defective asset (§4.3) |
+| NPC representation during dialogue | **Resolved (§3.7):** speaker portrait in the dialogue box (NPC + user); user avatar in scene, facing interlocutor |
+| Portrait assets | One neutral portrait per character v1; pose-linked portraits later (ties to pose sets, `narrative-spec.md` §6) — asset-pipeline detail |
+| Facing mechanics | Sprites mirrored/positioned at runtime to face the interlocutor; whether dedicated side/back orientations are ever needed (§3.7) |
+| Asset regeneration UI | **Resolved (§4.3):** re-roll button on the asset + **new seed** |
 | Pre-generated webp assets | Which assets (if any) ship pre-generated (§4.2) |
-| Intro / New Game / Load / Settings screens | Minimum set defined (§8); look & contents open |
+| Intro / New Game / Load / Settings screens | Minimum set defined (§8); look & contents open — dedicated turn (`pending-decisions.md` §3) |
 | Narrative system | Separate spec (text plugin) |
 | Audio (music/SFX) | Future phase; out of scope now |
 | Stack, tooling, framework | Decided after this ideation phase |
-| Project name | TBD |
+| Project name | **Chronicles** (working title) — title screen shows "Chronicles of {player name}" (§8) |
 
 ## 10. Next Steps
 

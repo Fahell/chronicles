@@ -192,7 +192,7 @@ Context must be organized into distinct types, with a clear rule for each:
 | **Memories / exchanged messages** | Past conversation | Summarizable (with recurring summarization) |
 | **Day summaries (daily lore)** | Per-character daily summaries of the day's interactions | **Summarizable** — the daily tier of the two-tier mechanic (§5.6); injected into that character's context |
 | **Time of day (period)** | Morning / Afternoon / Night — from the day system | **Never summarized** — injected as a named section (`day-cycle-spec.md` §3) |
-| **User identity** | The player's story/appearance | Background: **private** (strangers). Appearance (visual description): **shared** with present NPCs |
+| **User identity** | The player's name/story/appearance | Background: **private** (strangers). Name + appearance (visual description): **shared** with present NPCs |
 
 > **User stats/traits:** the player's gameplay traits enter payloads as
 > **compact, organized content** (never raw numbers) under the same discipline
@@ -315,6 +315,11 @@ To avoid inefficient generation, poses are **gated by the relationship level**:
 ## 7. User Identity & Creation
 
 - The user defines their identity at the start:
+  - **Name:** the player provides a name — or a **generic name is chosen** if
+    none is given, **changeable later**. The name personalizes the title
+    screen ("Chronicles of {name}", `vn-rpg-spec.md` §8) and is how NPCs
+    address the user (surface identity — shared, like appearance, not
+    background).
   - **Appearance:** free description, **or** a pre-defined archetype (e.g.,
     medieval RPG class).
   - **Background story:** write their own, **or** choose a pre-defined template.

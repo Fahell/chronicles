@@ -51,9 +51,9 @@
 | **Owner answer** | **Hybrid of A and C** (from the gap analysis): |
 | | - **Initial path:** **full generation on the Perchance platform** (per player/device) with a **persistent cache**, so assets are **not regenerated on reload**. |
 | | - Some assets **may** be pre-generated and shipped as **webp** where instant availability pays off — but that is **not** the initial path. |
-| | - **Regeneration control (important):** the image plugin can **regenerate a generated image**. A generated asset can come out with a defect (e.g. artifacts), so regeneration must be integrated **intelligently as user control** — the player must not be stuck with a bad asset. **How** the regenerate option is surfaced to the player is **not yet defined**. |
+| | - **Regeneration control (important):** the image plugin can **regenerate a generated image**. A generated asset can come out with a defect (e.g. artifacts), so regeneration must be integrated **intelligently as user control** — the player must not be stuck with a bad asset. **Decided:** a **re-roll button on the asset** + **new seed** on regeneration (`vn-rpg-spec.md` §4.3). |
 | **Landing spot** | `vn-rpg-spec.md` §4.2 (distribution) and §4.3 (regeneration). |
-| **Open details** | Which assets (if any) become pre-generated webp; the regeneration UI/UX; whether regeneration re-rolls the seed or keeps it. |
+| **Open details** | Which assets (if any) become pre-generated webp (still open). Regeneration **decided**: re-roll button on the asset + **new seed** (`vn-rpg-spec.md` §4.3). |
 
 ---
 
@@ -66,7 +66,7 @@
 | **Owner answer** | **Yes — there must be an intro screen**, with at least: **New Game**, **Load Game**, and **Settings**. |
 | | The look and contents of the title screen and of the New Game / Load / Settings screens are **not yet defined**. |
 | **Landing spot** | `vn-rpg-spec.md` §8 (screen & presentation). |
-| **Open details** | Layout, contents, flow (title → new game → identity creation → first scene), settings screen contents. Partial: a11y settings are now defined (**text size, skip, reduced-motion toggle** — `tech-spec.md` §5.5, post-MVP); the rest of the Settings contents remain open. |
+| **Open details** | Layout, contents, flow (title → new game → identity creation → first scene), settings screen contents. Partial: the **title screen** shows "Chronicles of {player name}" (`vn-rpg-spec.md` §8); a11y settings are defined (**text size, skip, reduced-motion toggle** — `tech-spec.md` §5.5, post-MVP). The rest of the flow/contents remain open — **dedicated turn**. |
 
 ---
 

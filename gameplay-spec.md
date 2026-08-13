@@ -164,10 +164,18 @@ Each item carries:
 ### 6.4 Item visuals (dependency, not generation)
 
 Item sprites come from a **battle-tested sprite/icon dependency** — we do not
-generate or author item art. Baseline candidate: **Kenney asset packs** (CC0
-public domain — 40k+ assets, the indie standard; also OpenGameArt CC0 as a
-secondary source). **License verification is a setup step** (the project ships
-publicly on Perchance). The choice is integrated, not created.
+generate or author item art. **Decided baseline (owner interview): a curated
+mix**:
+
+- **game-icons.net** (4,100+ consistent item icons — keys, potions, weapons;
+  CC BY 3.0) for most items;
+- **OpenGameArt pixel-art item sets** (CC0 / CC-BY) where the **pixel-art
+  direction** wins (HD-2D, `vn-rpg-spec.md` §2);
+- a **consolidated credits screen** covers all CC BY / CC0 attributions (the
+  project ships publicly on Perchance).
+
+**License verification is a setup step**; the exact icon subset is curated at
+integration. The choice is integrated, not created.
 
 ## 7. Progression
 
@@ -249,7 +257,7 @@ This is a **sketch only** — deferred until the gameplay milestone begins.
 | Gift acceptance curve | Bond tier → probability mapping; seeded RNG semantics (reuse of `seedrandom`, tech-spec §8.1) |
 | NPC→NPC stat injection | PENDING — needs loop-control design before implementation (§5) |
 | On-demand retrieval (v2+) | Mechanics, feasibility, RAG vs BM25 vs alternatives (§8) |
-| Item sprite library | Kenney baseline; exact pack + license verification at integration (§6.4) |
+| Item sprite library | **Decided:** curated mix (game-icons.net + OpenGameArt) with a credits screen (§6.4); exact subset + license verification at integration |
 | Reputation ↔ web coupling rules | Indirect feed details (bond → reputation via world events; §7.2) |
 | World-event catalog that moves stats | Content and cadence — ties to System 2 (`relationships-spec.md` §4.2) |
 | Organized payload format | Exact section structure for gameplay content (§5) — design with the payload builder |

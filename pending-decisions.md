@@ -61,12 +61,11 @@
 
 | | |
 | --- | --- |
-| **Status** | 🔄 **Partially answered** — direction set; contents open |
+| **Status** | ✅ **Answered** (dedicated turn) |
 | **Why it matters** | Defines the Preact UI structure, app boot, and the first `test-prompt.txt`; the MVP slice includes identity creation, which needs a home screen flow. |
-| **Owner answer** | **Yes — there must be an intro screen**, with at least: **New Game**, **Load Game**, and **Settings**. |
-| | The look and contents of the title screen and of the New Game / Load / Settings screens are **not yet defined**. |
-| **Landing spot** | `vn-rpg-spec.md` §8 (screen & presentation). |
-| **Open details** | Layout, contents, flow (title → new game → identity creation → first scene), settings screen contents. Partial: the **title screen** shows "Chronicles of {player name}" (`vn-rpg-spec.md` §8); a11y settings are defined (**text size, skip, reduced-motion toggle** — `tech-spec.md` §5.5, post-MVP). The rest of the flow/contents remain open — **dedicated turn**. |
+| **Owner answer** | Flow + contents defined in **`vn-rpg-spec.md` §8**: title ("Chronicles of {player name}" + New Game / Load / Settings / Credits / Help — look based on a **reference image the owner will share**); **New Game = identity wizard** (name → appearance → background → review, with random/template paths; creates a new slot, overwrite prompt when full; **identity locked to the save**); **Load** = slot grid (3–6 + autosave) with thumbnail + name + day/period + scene + date (disabled without saves); **Settings** = tabs (Language / Accessibility / Display / Audio-future); **Credits + Help** screens; **pause menu v1** = Save / Settings / Quit (Esc). MVP: title + wizard complete; Load/Settings/Credits/Help as navigable stubs. |
+| **Landing spot** | `vn-rpg-spec.md` §8.1–8.3 (screen & presentation). |
+| **Open details** | Title **look/layout** pending the owner's reference image; Display tab contents; in-game Load and Sleep placement (scene-level action candidate). |
 
 ---
 
@@ -137,7 +136,7 @@
 | --- | --- | --- |
 | 1 | Gameplay scope (stats/inventory/progression) | ✅ Answered (`gameplay-spec.md`) |
 | 2 | Asset generation & distribution | 🔄 Partially answered (`vn-rpg-spec.md` §4.2–4.3) |
-| 3 | Onboarding flow (screens) | 🔄 Partially answered (`vn-rpg-spec.md` §8) |
+| 3 | Onboarding flow (screens) | ✅ Answered (`vn-rpg-spec.md` §8) |
 | 4 | Languages, detection & i18n scope | ✅ Answered (`narrative-spec.md` §5.4/§8, `relationships-spec.md` §6) |
 | 5 | Error & degradation policy (plugins) | ✅ Answered (`tech-spec.md` §6.1, `vn-rpg-spec.md` §5) |
 | 6 | Support matrix & accessibility baseline | ✅ Answered (`tech-spec.md` §5.5) |

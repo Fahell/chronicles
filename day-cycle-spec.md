@@ -64,7 +64,9 @@ LLM understands the full context of a day's conversation and can score it.
   the clock to the next period.
 - When **Night**'s budget is spent — or earlier, by choice — the **day ends**.
 - **Sleep is a player action** ("rest/sleep"): the user decides when to end the
-  day. Sleeping **triggers the end-of-day processing run** (§5).
+  day. Sleeping **triggers the end-of-day processing run** (§5). Placement: **a
+  scene-level action candidate** — **not** in the basic pause menu
+  (`vn-rpg-spec.md` §8.2); exact placement TBD.
 - **Time-of-day is game context.** NPCs know whether it is day, afternoon, or
   night — the current period is injected into payloads as a **named context
   section** (`narrative-spec.md` §5.3), so dialogue can reference the time of
@@ -218,6 +220,7 @@ Both new tables are **mode-aware** (dev/prod DBs separated, `tech-spec.md`
 | Scenes per period (N) | Baseline 3 per period — tunable |
 | Number of periods | Baseline Morning/Afternoon/Night — tunable |
 | Sleep timing | Whether sleeping can end the day mid-period (before Night's budget) |
+| Sleep trigger placement | Scene-level action candidate — not in the basic pause menu (`vn-rpg-spec.md` §8.2); placement TBD (§3) |
 | Batch combination threshold | ~20k chars combined — verify with the tokenizer |
 | Delta calibration | −5..+5 baseline — tune in tests (relationship tiers, `relationships-spec.md` §5) |
 | Attempt cap | 2–3 re-calls per NPC — exact value |

@@ -283,14 +283,59 @@ on the Perchance platform.
 ## 8. Screen & Presentation
 
 - **Responsive, landscape-oriented**, on both desktop and mobile.
-- **Intro screen (minimum):** a title screen with at least **New Game**,
-  **Load Game** and **Settings**. The look and contents of the title, New
-  Game, Load and Settings screens are **not yet defined**
-  (`pending-decisions.md` §3).
-- **Dynamic title:** the title screen shows **"Chronicles of {player name}"**
-  — the player's name from identity creation (`narrative-spec.md` §7)
-  personalizes the title; a generic name is used if none is provided and can
-  be changed later. (Working project name: **Chronicles**.)
+
+### 8.1 Onboarding flow (owner decisions — `pending-decisions.md` §3)
+
+```
+Title
+ ├─ New Game → identity wizard (name → appearance → background → review) → first scene
+ ├─ Load Game → slot grid (3–6 + autosave) → load → scene
+ ├─ Settings → tabs (Language / Accessibility / Display / Audio-future)
+ ├─ Credits
+ └─ Help / Controls
+```
+
+- **Title screen:** shows **"Chronicles of {player name}"** (the player's
+  name from identity creation, `narrative-spec.md` §7) with **New Game / Load
+  Game / Settings / Credits / Help**. **Look & layout are based on a reference
+  image the owner will share** (pending — the title's visual design anchors to
+  it). When no save exists, **Load is disabled**.
+- **New Game — identity wizard (guided steps):** ① **name** → ② **appearance**
+  (free or archetype) → ③ **background story** (write or template) →
+  ④ **review/confirm**. Each step offers **random/template** quick paths.
+  Creating the game **creates a new save slot**; when all 3–6 slots are full,
+  the player is asked to **overwrite an existing one** (with confirmation).
+  **Identity is locked to the save**: the name is only changeable *before*
+  creating the game; appearance and background are never changed afterwards
+  (`narrative-spec.md` §7).
+- **Load Game:** a grid of the **3–6 manual slots + autosave**, each showing a
+  **thumbnail (backdrop from cache) + player name + day/period + scene name +
+  date** (`tech-spec.md` §7.2). Disabled when no saves exist.
+- **Settings (tabs):** **Language** (5 languages + fallback EN,
+  `narrative-spec.md` §8.1) / **Accessibility** (text size, skip,
+  reduced-motion toggle — post-MVP, `tech-spec.md` §5.5) / **Display**
+  (quality/fullscreen where applicable — contents open) / **Audio** (future
+  phase — reserved tab).
+- **Secondary screens:** **Credits** (required — CC BY/CC0 asset
+  attributions, `gameplay-spec.md` §6.4) and **Help / Controls** (keyboard
+  shortcuts, how to play).
+
+### 8.2 In-game (pause) menu
+
+- **Basic pause menu (v1):** **Save / Settings / Quit-to-title**. Opened with
+  **Esc** (keyboard parity, `tech-spec.md` §5.5).
+- In-game **Load and Sleep are deferred** from the pause menu. **Sleep**
+  (day-end trigger, `day-cycle-spec.md` §3) is a **scene-level action
+  candidate** (open detail — placement TBD).
+
+### 8.3 MVP scope (base slice)
+
+- **Complete in the MVP:** the **title screen** (based on the owner's reference
+  image) and the **New Game identity wizard**.
+- **Navigable stubs in the MVP:** Load, Settings, Credits, Help.
+- **Full contents post-MVP:** Load slot details, Settings tabs (incl. a11y),
+  Credits/Help content, pause menu.
+
 - **Accessibility baseline** (`tech-spec.md` §5.5): full keyboard parity,
   screen-reader dialogue + menus, visible focus, contrast AA; the **MVP slice
   ships the core** (keyboard, aria-live, focus, contrast, unsupported-browser
@@ -311,7 +356,7 @@ on the Perchance platform.
 | Facing mechanics | Sprites mirrored/positioned at runtime to face the interlocutor; whether dedicated side/back orientations are ever needed (§3.7) |
 | Asset regeneration UI | **Resolved (§4.3):** re-roll button on the asset + **new seed** |
 | Pre-generated webp assets | Which assets (if any) ship pre-generated (§4.2) |
-| Intro / New Game / Load / Settings screens | Minimum set defined (§8); look & contents open — dedicated turn (`pending-decisions.md` §3) |
+| Onboarding screens | **Resolved (§8.1–8.3):** flow + contents defined (wizard, load slots, settings tabs, credits/help, pause); **title look pending the owner's reference image** |
 | Narrative system | Separate spec (text plugin) |
 | Audio (music/SFX) | Future phase; out of scope now |
 | Stack, tooling, framework | Decided after this ideation phase |

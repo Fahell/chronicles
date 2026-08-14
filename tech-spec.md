@@ -391,6 +391,10 @@ Richer than the guide's minimal stub, deterministic and controllable:
   (`rpg_dev` / `rpg`).
 - Saves and the relationship web **persist across sessions** (relationships-spec
   §8) — on the platform this is per-user IndexedDB, exactly as locally.
+- **Slot behavior (`vn-rpg-spec.md` §8.1):** **New Game creates a new slot**;
+  when all 3–6 manual slots are full, the player chooses one to **overwrite**
+  (with confirmation). Autosave occupies its own slot(s). Load is disabled
+  when no saves exist.
 - **Gameplay tables (stats, inventory, reputation, item lore) are deferred:**
   zero gameplay in the MVP slice (`gameplay-spec.md` §9); the schema sketch for
   the gameplay milestone is in `gameplay-spec.md` §10.
@@ -499,7 +503,7 @@ sampling; targets are documented, not enforced as hard failures for now:
 | Output-limit verification | ~3.5k chars per call (§1) — confirm 2-NPC batching or fall back to 1 per call |
 | Save slots & schema | **v1 decided:** 3–6 manual slots + autosave (§7.2); autosave trigger to define (day-end is a natural point, `day-cycle-spec.md` §5) |
 | Asset regeneration wiring | Adapter hook exists (§6.1); **decided: re-roll button on the asset + new seed** (`vn-rpg-spec.md` §4.3) — wire cache-key semantics (mode+entity+prompt+seed) for re-rolls |
-| Intro screen flow | New Game / Load / Settings minimum (§8 vn-rpg-spec) — contents open |
+| Onboarding screens | **Resolved (`vn-rpg-spec.md` §8):** flow + contents defined; MVP = title + wizard complete, Load/Settings/Credits/Help stubs |
 | Language list & i18n resources | 5 most spoken languages, fallback EN (narrative-spec §8.1) |
 | WebMCP tool list | Refined as tests are written |
 | A11y settings UI | Text size + skip + reduced-motion toggle in Settings — **post-MVP** (`§5.5`) |

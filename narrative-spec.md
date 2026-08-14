@@ -314,12 +314,15 @@ To avoid inefficient generation, poses are **gated by the relationship level**:
 
 ## 7. User Identity & Creation
 
-- The user defines their identity at the start:
+- The user defines their identity at the start, through a **guided wizard**
+  at New Game — name → appearance → background → review (`vn-rpg-spec.md`
+  §8.1), with random/template quick paths per step:
   - **Name:** the player provides a name — or a **generic name is chosen** if
-    none is given, **changeable later**. The name personalizes the title
-    screen ("Chronicles of {name}", `vn-rpg-spec.md` §8) and is how NPCs
-    address the user (surface identity — shared, like appearance, not
-    background).
+    none is given. **The name is changeable only before the game is created**;
+    identity is **locked to the save** afterwards (appearance and background
+    too, `vn-rpg-spec.md` §8.1). The name personalizes the title screen
+    ("Chronicles of {name}") and is how NPCs address the user (surface
+    identity — shared, like appearance, not background).
   - **Appearance:** free description, **or** a pre-defined archetype (e.g.,
     medieval RPG class).
   - **Background story:** write their own, **or** choose a pre-defined template.

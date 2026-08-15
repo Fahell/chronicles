@@ -5,10 +5,13 @@ import { bootServices } from "./services/boot";
 import { App } from "./ui/App";
 import "./style.css";
 
-const mount = document.getElementById("app");
+// Accept both the canonical `#app` and the older `[data-rpg-app]` marker so
+// panel-file edits on the platform can't break boot (root index.html is the
+// source that gets pasted into the Perchance HTML panel).
+const mount = document.getElementById("app") ?? document.querySelector("[data-rpg-app]");
 
 if (!mount) {
-  throw new Error("Missing #app mount point — the dev harness page must contain one.");
+  throw new Error('Missing mount point — the page must contain <div id="app">.');
 }
 
 const services = bootServices();

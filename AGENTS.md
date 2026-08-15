@@ -329,6 +329,26 @@ After any non-trivial change under `rpg/`, run (in `rpg/`):
 4. `pnpm build` when the change affects the bundle or shipping
 5. `pnpm test:e2e` when the change touches boot/rendering/UI flows
 
+### Shut down Chrome after local browser tests (CPU)
+
+The CDP MCP launches a headless Chrome with the project's profile
+(`.agents/chrome-profile`). It spawns **~13 processes / ~1.7 GB RSS**, and the
+**GPU process burns ~12% CPU continuously** (SwiftShader software WebGL in
+headless). Once local browser testing is done, kill it — it is NOT owned by
+any daemon and nothing restarts it automatically:
+
+```bash
+pkill -f "user-data-dir=$PWD/.agents/chrome-profile" 2>/dev/null; sleep 2
+ps -eo pid,%cpu,rss,args | grep -E "\.agents/chrome-profile" | grep -v grep  # expect: none
+```
+
+Notes:
+- Kill **only** the Chrome processes (by `user-data-dir`), never the
+  `chrome-devtools` MCP server itself — the MCP relaunches Chrome on demand
+  for the next browser test.
+- Before finishing any session that used browser validation, run the `pkill`
+  and confirm zero matching processes remain.
+
 ### Git & GitHub conventions
 
 - **Commit messages:** English, **Conventional Commits** (`feat:` `fix:`

@@ -1,5 +1,10 @@
+import { useCallback, useEffect } from "preact/hooks";
+
+import { parseChoices } from "../game/dialogue/parse-choices";
+import { showTurn } from "../game/state/dialogue";
 import type { Stage } from "../render/stage";
 import type { BootServices } from "../services/boot";
+import { DialogueBox } from "./DialogueBox";
 
 interface AppProps {
   services: BootServices;
@@ -7,26 +12,30 @@ interface AppProps {
 }
 
 export function App({ services, stage }: AppProps) {
+  const talk = useCallback(async () => {
+    const result = await services.runtime.text.generate({
+      instruction:
+        "The player greets the village elder. Give them a short response with choices to continue the conversation.",
+    });
+    const parsed = parseChoices(result.text);
+    showTurn("Elder", parsed.dialogue, parsed.options);
+  }, [services]);
+
+  useEffect(() => {
+    return () => stage.destroy();
+  }, [stage]);
+
   return (
     <main className="app">
-      <h1>VN-RPG</h1>
-      <p className="muted">
-        stage {stage.width}×{stage.height} — type C scene
-      </p>
-      <dl className="status">
-        <div>
-          <dt>mode</dt>
-          <dd>{services.mode}</dd>
-        </div>
-        <div>
-          <dt>runtime</dt>
-          <dd>{services.mocked ? "mock (local)" : "platform plugins"}</dd>
-        </div>
-        <div>
-          <dt>cache db</dt>
-          <dd>{services.mode === "dev" ? "rpg_dev" : "rpg"}</dd>
-        </div>
-      </dl>
+      <div className="hud">
+        <p className="muted">
+          {services.mode} · {services.mocked ? "mock" : "platform"} runtime
+        </p>
+        <button type="button" onClick={talk}>
+          Talk to the elder
+        </button>
+      </div>
+      <DialogueBox />
     </main>
   );
 }

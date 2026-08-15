@@ -12,9 +12,13 @@ if (!mount) {
 }
 
 const services = bootServices();
+
+// The stage lives OUTSIDE the Preact mount: render() diffs the mount's subtree,
+// and the three.js canvas must never be reconciled by Preact.
 const stageContainer = document.createElement("div");
 stageContainer.id = "stage-container";
-mount.appendChild(stageContainer);
+stageContainer.className = "stage";
+mount.parentElement?.insertBefore(stageContainer, mount);
 
 const stage = await services.loadScene(openPlainsManifest, stageContainer, {
   width: window.innerWidth,

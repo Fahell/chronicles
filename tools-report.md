@@ -16,8 +16,12 @@
 
 | Priority | Items |
 | --- | --- |
-| ✅ **Adopt now** | `@pixi/particle-emitter` (v8) + `pixi-filters`, **GSAP** (+ PixiPlugin), **gpt-tokenizer**, **Valibot**, **seedrandom**, **Playwright visual regression** (`toHaveScreenshot`/pixelmatch), **rollup-plugin-visualizer**, i18next companions, **official pixijs skills** |
-| ⚖️ **Evaluate at the right time** | **Ink.js** (scripted arc), **Cytoscape.js** (relationship-web UI), **@playwright/mcp** (scaffold), **GitHub MCP / Memory MCP** (when repo is published), **threejs skills** (when three.js enters) |
+| ✅ **Adopt now** | `@pixi/particle-emitter` (v8) + `pixi-filters`, **GSAP** (+ PixiPlugin), **gpt-tokenizer**, **Valibot**, **seedrandom**, **rollup-plugin-visualizer**, i18next companions, **official pixijs skills** |
+| ⚖️ **Evaluate at the right time** | **Ink.js** (scripted arc), **Cytoscape.js** (relationship-web UI), **GitHub MCP / Memory MCP** (when repo is published), **threejs skills** (now eligible — three.js entered the stack; §10) |
+
+> **Visual regression (owner decision 2026-08):** Playwright is the **second
+> option** to the Chrome DevTools MCP — it is used **only if the CDP MCP
+> becomes unstable for local tests** (avoids tool redundancy). See §7.1.
 | 📌 **Reference / future** | Monogatari, Yarn Spinner, Howler.js / Tone.js, Perchance `upload-plugin`, `music-generation` skill |
 
 ---
@@ -119,17 +123,22 @@
 
 ---
 
-## 7. Visual regression testing (tech-spec §8 e2e tier) — ✅ adopt
+## 7. Visual regression testing (tech-spec §8 e2e tier) — second option
 
 ### 7.1 Playwright `toHaveScreenshot()` (pixelmatch)
-- **What:** native visual comparison in Playwright Test, powered by
-  **pixelmatch** (battle-tested diffing library).
-- **Fit:** a highly visual game benefits from screenshot baselines: scene
-  rendering, letterbox layout, effects, pose placement. Lives in the `e2e`
-  tier with committed baselines; complements (does not replace) the runtime
-  validation done by the Perchance agent via `test-prompt.txt`.
+- **Owner decision (2026-08):** Playwright is the **second option** to the
+  Chrome DevTools MCP — it is used **only if the CDP MCP becomes unstable for
+  local tests**. The CDP MCP (already configured and operational) covers the
+  e2e surface (interaction, a11y snapshot, console/network, Lighthouse,
+  WebMCP tools), so Playwright would be redundant as a primary driver.
+- **What it would add:** native visual comparison in Playwright Test, powered
+  by **pixelmatch** (battle-tested diffing library) — screenshot baselines for
+  scene rendering, letterbox layout, effects, pose placement.
+- **No-Playwright alternative (preferred if needed):** capture screenshots via
+  the CDP MCP and diff with **pixelmatch** directly — keeps the owner's
+  "no Playwright scripts" preference.
 - **Battle-tested evidence:** built into Playwright (Microsoft-maintained),
-  used across the industry.
+  used across the industry — kept on standby, not installed.
 
 ---
 
@@ -164,8 +173,8 @@ option for authored scripted content later.
 
 | Skill | Source | Installs | Verdict |
 | --- | --- | --- | --- |
-| `pixijs/pixijs-skills` (`pixijs`, `pixijs-application`, `pixijs-core-concepts`, `pixijs-scene-graphics`, `pixijs-performance`) | **Official PixiJS team** | ~3.5–4.2K each | ✅ **Install** (pending owner confirmation) |
-| `cloudai-x/threejs-skills` (`threejs-fundamentals`, `threejs-animation`, `threejs-shaders`, …) | Community | 7.5–12K | ⚖️ Install when three.js enters (type B/C) |
+| `pixijs/pixijs-skills` (`pixijs`, `pixijs-application`, `pixijs-core-concepts`, `pixijs-scene-graphics`, `pixijs-performance`) | **Official PixiJS team** | ~3.5–4.2K each | ✅ **Install now (owner-confirmed 2026-08)** — into `.agents/skills/` |
+| `cloudai-x/threejs-skills` (`threejs-fundamentals`, `threejs-animation`, `threejs-shaders`, …) | Community | 7.5–12K | ✅ **Now eligible** — three.js entered the stack (type C approved); installing (owner-confirmed 2026-08) |
 | Environment skills already loaded | `webmcp`, `webapp-testing`, `vite-patterns`, `vitest`, `performance-optimization`, `core-web-vitals`, `memory-leak-debugging`, `tdd-workflow`, … | — | ✅ Already available |
 | Perchance platform skills (per guide) | `music-generation`, `dynamic-metadata` | — | 🔮 Future (audio; `$meta.dynamic`) |
 
@@ -178,7 +187,7 @@ option for authored scripted content later.
 
 | MCP | What it adds | Verdict |
 | --- | --- | --- |
-| **`@playwright/mcp`** (Microsoft, official) | Browser automation over MCP with structured accessibility snapshots — complements the already-configured Chrome DevTools MCP; useful for driving the local harness during e2e work. | ⚖️ Evaluate at scaffold time |
+| **`@playwright/mcp`** (Microsoft, official) | Browser automation over MCP with structured accessibility snapshots. | ❌ **Not needed (owner decision 2026-08)** — the Chrome DevTools MCP is the primary driver; Playwright is the **fallback only if CDP becomes unstable** for local tests (avoids tool redundancy) |
 | **GitHub MCP** (`github/github-mcp-server`, official) | Issues/PRs/CI management once the repo is published. | ⚖️ When publishing |
 | **Memory MCP** (`modelcontextprotocol/servers`) | Agent knowledge-graph memory across sessions — long projects benefit from persisted decisions. | ⚖️ Optional |
 | **Context7** | Docs for PixiJS/three.js/etc. | ✅ Already configured |
@@ -215,12 +224,14 @@ option for authored scripted content later.
 
 ## 14. Pending confirmations & next steps
 
-1. **Owner confirmation** to install the official `pixijs/pixijs-skills`
-   (community skills are not vetted).
+1. ~~Owner confirmation to install the pixijs skills~~ **Done (2026-08):**
+   pixijs + threejs skills installed into `.agents/skills/`.
 2. Scaffold `rpg/` (tech-spec §10) including the adopted libs: `pixi.js`,
    `@pixi/particle-emitter` (v8 path), `pixi-filters`, `gsap`,
    `gpt-tokenizer`, `valibot`, `seedrandom`, i18next companions,
    `rollup-plugin-visualizer`.
-3. Wire Playwright `toHaveScreenshot()` baselines into the `e2e` tier.
-4. Revisit ⚖️ items (Ink, Cytoscape, Playwright/GitHub/Memory MCP, threejs
-   skills) at the milestones listed above.
+3. ~~Wire Playwright `toHaveScreenshot()`~~ **Decision (2026-08):** Playwright
+   is the **second option** — only if the CDP MCP becomes unstable for local
+   tests; CDP screenshots + pixelmatch keep the no-Playwright preference (§7).
+4. Revisit ⚖️ items (Ink, Cytoscape, GitHub/Memory MCP) at the milestones
+   listed above.

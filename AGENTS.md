@@ -329,6 +329,22 @@ After any non-trivial change under `rpg/`, run (in `rpg/`):
 4. `pnpm build` when the change affects the bundle or shipping
 5. `pnpm test:e2e` when the change touches boot/rendering/UI flows
 
+### Shipping to Perchance (the `perchance` branch)
+
+- The Perchance workspace gets a **dedicated branch** (`perchance`), NOT the
+  whole repo — only the upload set (tech-spec §4.3): `index.html`, `main.pjs`,
+  `src/README.md`, `src/test-prompt.txt`, `src/rpg/build/` (the committed
+  bundle) and `src/rpg/src/` (readable TS for the agent). Configs, specs,
+  CI, guides and graphify stay on `main`.
+- **Regenerate it with `./scripts/ship-perchance.sh [--push]`** (from repo
+  root; requires a fresh `pnpm build` inside — the script does it). Run with
+  `--push` to publish the branch to origin. Do NOT edit `perchance` by hand.
+- After any change that alters the app bundle or `test-prompt.txt`, re-ship:
+  `./scripts/ship-perchance.sh --push`.
+- `test-prompt.txt` (repo root) is the **handoff prompt** for the Perchance
+  agent — one per test round; update it with what to check/report before
+  shipping a round.
+
 ### Shut down Chrome after local browser tests (CPU)
 
 The CDP MCP launches a headless Chrome with the project's profile

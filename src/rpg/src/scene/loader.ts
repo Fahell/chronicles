@@ -40,6 +40,6 @@ export async function loadScene(manifestInput: unknown, deps: SceneLoadDeps): Pr
   const stage = await createThreeStage(layout, deps.container);
   stage.resize(deps.viewport.width, deps.viewport.height);
   stage.setTextures(textures);
-  stage.setActors(layout.actors);
+  stage.setActors(layout.actors, textures.actors);
   return stage;
 }

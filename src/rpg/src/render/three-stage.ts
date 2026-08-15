@@ -2,6 +2,15 @@ import type { Mesh, MeshBasicMaterial } from "three";
 import type { SceneTextures } from "../scene/assets";
 import type { ActorPlacement, SceneLayout } from "../scene/layout";
 import type { Stage } from "./stage";
+import { SCENE_FRAME, sceneFrameViewport } from "./viewport";
+
+/**
+ * Sprite plane aspect must match the generated portrait texture (512×768 =
+ * 2:3, guide §7 valid resolutions). Height `actorHeight` world units at
+ * scale 1; width derived so the 2:3 texture maps 1:1 (no stretching).
+ */
+const SPRITE_ASPECT = 2 / 3;
+const SPRITE_HEIGHT = 2.1;
 
 function actorCanvas(label: string, color: string): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
@@ -32,6 +41,10 @@ function actorCanvas(label: string, color: string): HTMLCanvasElement {
  * three.js implementation of the Stage for type-C scenes (tech-spec §2.1).
  * Loads three.js lazily via dynamic import — the initial bundle never pays
  * for the 3D renderer. The app drives the loop by calling tick(dt).
+ *
+ * The stage renders into a centered 3:2 scene frame (letterbox/pillarbox)
+ * sized by `sceneFrameViewport` — the generated art maps 1:1 without
+ * stretching; the area outside the frame shows the container background.
  */
 export async function createThreeStage(
   layout: SceneLayout,
@@ -42,14 +55,21 @@ export async function createThreeStage(
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#0b1c2e");
 
-  const camera = new THREE.PerspectiveCamera(layout.camera.fov, 1, 0.1, 100);
+  const camera = new THREE.PerspectiveCamera(
+    layout.camera.fov,
+    SCENE_FRAME.width / SCENE_FRAME.height,
+    0.1,
+    100,
+  );
   camera.position.set(layout.camera.position.x, layout.camera.position.y, layout.camera.position.z);
   camera.lookAt(layout.camera.lookAt.x, layout.camera.lookAt.y, layout.camera.lookAt.z);
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  container.appendChild(renderer.domElement);
+  const canvas = renderer.domElement;
+  canvas.style.position = "absolute";
+  container.appendChild(canvas);
 
   const ambient = new THREE.AmbientLight(0xffffff, 1);
   const directional = new THREE.DirectionalLight(0xffe3a0, 0.35);
@@ -104,35 +124,48 @@ export async function createThreeStage(
       applyTexture(backdrop, textures.backdrop);
       applyTexture(ground, textures.floor);
     },
-    setActors(actors: ActorPlacement[]) {
+    setActors(actors: ActorPlacement[], textures?: Record<string, string>) {
       for (const actor of actorMeshes.values()) {
         scene.remove(actor.sprite, actor.shadow);
       }
       actorMeshes.clear();
 
       for (const actor of actors) {
-        const label = actor.characterId.split("/").pop() ?? actor.characterId;
-        const canvas = actorCanvas(label, "#8dd8d0");
-        const texture = new THREE.CanvasTexture(canvas);
+        const spriteWidth = SPRITE_HEIGHT * SPRITE_ASPECT * actor.scale;
+        const spriteHeight = SPRITE_HEIGHT * actor.scale;
+
+        // Placeholder until a real generated texture resolves (or in dev).
+        const fallback = actorCanvas(
+          actor.characterId.split("/").pop() ?? actor.characterId,
+          "#8dd8d0",
+        );
+        const texture = new THREE.CanvasTexture(fallback);
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.magFilter = THREE.NearestFilter;
         texture.minFilter = THREE.NearestFilter;
 
         const sprite = new THREE.Mesh(
-          new THREE.PlaneGeometry(1.25 * actor.scale, 2.1 * actor.scale),
+          new THREE.PlaneGeometry(spriteWidth, spriteHeight),
           new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide }),
         );
         sprite.position.set(actor.position.x, actor.position.y, actor.position.z);
 
         const shadow = new THREE.Mesh(
-          new THREE.CircleGeometry(0.48 * actor.scale, 24),
-          new THREE.MeshBasicMaterial({ color: 0x071321, transparent: true, opacity: 0.35 }),
+          new THREE.CircleGeometry(0.42 * actor.scale, 24),
+          new THREE.MeshBasicMaterial({ color: 0x071321, transparent: true, opacity: 0.28 }),
         );
         shadow.rotation.x = -Math.PI / 2;
-        shadow.position.set(actor.position.x, 0.025, actor.position.z);
+        shadow.position.set(actor.position.x, 0.03, actor.position.z);
 
         scene.add(sprite, shadow);
         actorMeshes.set(actor.characterId, { sprite, shadow });
+
+        // Real generated portrait (512×768) replaces the placeholder when it
+        // arrives — async, so the scene mounts instantly and swaps in.
+        const dataUrl = textures?.[actor.characterId];
+        if (dataUrl) {
+          applyTexture(sprite, dataUrl);
+        }
       }
     },
     setActiveSpeaker(characterId: string | null) {
@@ -145,8 +178,12 @@ export async function createThreeStage(
     resize(width: number, height: number) {
       size.width = width;
       size.height = height;
-      renderer.setSize(width, height, false);
-      camera.aspect = width / height;
+      const frame = sceneFrameViewport(width, height);
+      renderer.setSize(frame.width, frame.height, false);
+      canvas.style.left = `${frame.offsetX}px`;
+      canvas.style.top = `${frame.offsetY}px`;
+      // Camera aspect matches the 3:2 frame — never the full viewport.
+      camera.aspect = SCENE_FRAME.width / SCENE_FRAME.height;
       camera.updateProjectionMatrix();
     },
     tick() {
@@ -158,8 +195,8 @@ export async function createThreeStage(
     },
     destroy() {
       renderer.dispose();
-      if (renderer.domElement.parentElement === container) {
-        container.removeChild(renderer.domElement);
+      if (canvas.parentElement === container) {
+        container.removeChild(canvas);
       }
     },
   };

@@ -338,14 +338,18 @@ headless). Once local browser testing is done, kill it — it is NOT owned by
 any daemon and nothing restarts it automatically:
 
 ```bash
-pkill -f "user-data-dir=$PWD/.agents/chrome-profile" 2>/dev/null; sleep 2
-ps -eo pid,%cpu,rss,args | grep -E "\.agents/chrome-profile" | grep -v grep  # expect: none
+pkill -f "/opt/google/chrome/chrome" 2>/dev/null; sleep 2
+ps -eo pid,%cpu,rss,args | grep -E "/opt/google/chrome/chrome" | grep -v grep  # expect: none
 ```
 
 Notes:
-- Kill **only** the Chrome processes (by `user-data-dir`), never the
-  `chrome-devtools` MCP server itself — the MCP relaunches Chrome on demand
-  for the next browser test.
+- **CRITICAL: never match on `user-data-dir` or the string `chrome-profile`**
+  in the `pkill` pattern — the `chrome-devtools-mcp` process itself passes
+  `--user-data-dir=…/chrome-profile` in its own args (see `.agents/mcp.json`),
+  so such a pattern kills the MCP server too, severing the CDP connection
+  for the session. Match the **Chrome binary path only** (`/opt/google/chrome/
+  chrome`) as above — the MCP process (`npx … chrome-devtools-mcp`) never
+  contains that string, so it survives and relaunches Chrome on demand.
 - Before finishing any session that used browser validation, run the `pkill`
   and confirm zero matching processes remain.
 

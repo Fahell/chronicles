@@ -1,5 +1,6 @@
 import { render } from "preact";
 
+import { bootServices } from "./services/boot";
 import { App } from "./ui/App";
 import "./style.css";
 
@@ -9,4 +10,6 @@ if (!mount) {
   throw new Error("Missing #app mount point — the dev harness page must contain one.");
 }
 
-render(<App />, mount);
+const services = bootServices();
+
+render(<App services={services} />, mount);

@@ -1,7 +1,54 @@
 # AGENTS.md
 
 Instructions for AI coding agents working in this repository. **Read this file
-first** — it documents project conventions that are easy to get wrong.
+first** — it documents project conventions that are easy to get wrong. **Start
+with the Session Startup Protocol below: every session must inventory the
+available tools, skills, and MCP servers before writing code** — a new session
+has no memory of what is installed.
+
+## Session Startup Protocol (mandatory)
+
+Do all of this **before writing any code**:
+
+1. **Read this file** (AGENTS.md) — the source of truth for conventions.
+2. **Inventory the available tooling** — a new session forgets what exists:
+   - **MCP servers:** `cat .agents/mcp.json` — currently **chrome-devtools**
+     (CDP; browser automation, console/network, Lighthouse, WebMCP) and
+     **context7** (up-to-date library docs).
+   - **Skills:** `ls .agents/skills/` — currently **62**, including the
+     official **pixijs** (26) and **threejs** (10) sets, plus `vitest`,
+     `vite-patterns`, `webapp-testing`, `graphify`, `webmcp`, and the
+     pre-loaded baseline (coding-standards, systematic-debugging,
+     tdd-workflow, performance-optimization, …). Load the matching one with
+     the `skill` tool when a task touches its domain.
+   - **CLI / project tools:** `graphify` (knowledge graph, via `./graphify.sh`
+     or `graphify`), `rg` (ripgrep search), and the pnpm scripts in
+     `rpg/package.json` (`dev`, `build`, `analyze`, `typecheck`, `lint`,
+     `test`/`test:unit`/`test:integration`/`test:e2e`, `format`).
+3. **Consult the knowledge graph first:** if `graphify-out/graph.json`
+   exists, run `graphify query "<question>"` / `graphify god-nodes` before
+   reading files — it maps the specs and code without burning context.
+   Rebuild it with `./graphify.sh` after specs change (it sources `.env`).
+4. **Read the specs relevant to the task** (index below) before designing.
+   The specs are the contract; code follows them, and spec changes are
+   deliberate.
+5. **Use the installed tooling, never hand-rolled substitutes.** If a skill,
+   MCP server, or library for the job is already installed (see "Tools,
+   Skills & MCP"), use it. Don't reinvent what the toolchain already has.
+
+**Spec index** (all at the repo root):
+
+| Spec | Covers |
+| --- | --- |
+| `tech-spec.md` | Stack, architecture, build/ship pipeline, test tiers, adapter/cache design |
+| `vn-rpg-spec.md` | Scenes & visual techniques (type A/B/C), assets, poses |
+| `narrative-spec.md` | Dialogue system, context payload/taxonomy, choices, i18n policy |
+| `relationships-spec.md` | Relationship web + the two systems |
+| `day-cycle-spec.md` | Day structure, per-character logs, summarization, end-of-day scoring |
+| `gameplay-spec.md` | Stats/inventory/progression (deferred) |
+| `pending-decisions.md` | Open decisions & their status |
+| `tools-report.md` | Adopted/evaluated tools, skills, MCP (installation state) |
+| `research-resolutions.md` | Research findings applied to the specs (versions, formats) |
 
 ## Project Overview
 
@@ -76,13 +123,13 @@ Why:
 
 ## Technology Decisions
 
-- **TypeScript-first; stack TBD.** The game is built as a normal, typed
-  codebase — TypeScript at minimum. The framework and tooling are **not yet
-  decided**; confirm with the project owner before assuming one. Perchance's
-  list syntax is avoided inside the app because it is not valid TS/JS and
-  reproducing the engine in local mocks is impractical; anything pjs can do
-  (weighted random selection, alternation, ranges, templates) is done in the
-  app codebase instead.
+- **TypeScript-first; stack APPROVED** (`tech-spec.md` §2): TypeScript
+  (strict), pnpm, Vite, Preact + signals, three.js (lazy async chunk) +
+  PixiJS v8 (2D overlay stack), Dexie/IndexedDB, i18next, Biome, Vitest
+  (tiered tests per §8). Perchance's list syntax is avoided inside the app
+  because it is not valid TS/JS and reproducing the engine in local mocks is
+  impractical; anything pjs can do (weighted random selection, alternation,
+  ranges, templates) is done in the app codebase instead.
 - **Perchance layer = plugin imports only.** `main.pjs` should contain nothing
   beyond the plugin imports:
   ```
@@ -96,8 +143,45 @@ Why:
     → `{ dataUrl }` (async)
   - `root.generateText({ instruction })` → `{ generatedText | text | string }`
     (async)
-  - Keep their call sites isolated in a small adapter module so the rest of the
-    app can run and be tested without them.
+  - Keep their call sites isolated in the adapter module
+    (`rpg/src/services/perchance-runtime.ts`) so the rest of the app can run
+    and be tested without them.
+
+## Tools, Skills & MCP (installed — use them)
+
+Everything here is **already installed and should be used**; a new session
+forgets this list, so re-inventory from the actual state (startup protocol
+step 2) — this section is the map, not the source of truth.
+
+### MCP servers (`~/.agents/mcp.json`)
+
+| Server | What it's for |
+| --- | --- |
+| `chrome-devtools` (CDP MCP) | **Primary browser/e2e driver** (owner preference, `tech-spec.md` §8): navigate/click/fill, console & network, a11y snapshot, Lighthouse, WebMCP tools. Dev server default URL: `http://127.0.0.1:5173` (Vite). |
+| `context7` | Up-to-date library docs (PixiJS, three.js, Preact, Dexie, …) — query before guessing APIs. |
+
+Playwright is the **second option** to the CDP MCP — only if CDP becomes
+unstable for local tests (avoid tool redundancy; `tools-report.md` §7/§11).
+
+### Agent skills (`.agents/skills/`, gitignored)
+
+Installed sets: **pixijs** (26, official), **threejs** (10, community),
+**graphify** (official), plus the environment baseline (vite-patterns, vitest,
+webapp-testing, webmcp, coding-standards, systematic-debugging, tdd-workflow,
+performance-optimization, etc.). Load the matching skill with the `skill` tool
+when a task touches its domain. `skills-lock.json` at the repo root records
+origin+hash of the community installs (recovery reference).
+
+### CLI / project tooling
+
+- `./graphify.sh` — rebuild/query the **knowledge graph** (sources `.env` for
+  the Gemini key; never run the CLI directly without it). Consult the graph
+  before reading specs/code when possible.
+- `rg` — ripgrep (fast project search; the `code_search` tool wraps it).
+- **pnpm scripts** (`rpg/package.json`): `dev`, `build`, `analyze` (bundle
+  treemap → `rpg/reports/`, gitignored), `typecheck`, `lint`/`lint:fix`,
+  `format`, `test` (unit+integration), `test:unit` / `test:integration` /
+  `test:e2e` / `test:all`, `test:watch`.
 
 ## Development Environment (ephemeral Cloud Shell)
 
@@ -149,9 +233,11 @@ be validated without the Perchance runtime; the platform handles the rest.
 
 ### Phase 1 — Local development & CI (this repo)
 
-- **Game code (`rpg/`):** typed codebase (stack TBD). Developed and tested
-  locally; the dev/test setup is defined once the stack is chosen. CI validates
-  build, typecheck, unit tests, and lint.
+- **Game code (`rpg/`):** typed codebase (stack approved, `tech-spec.md` §2).
+  Developed and tested locally with the tiered setup (§8); CI validates build,
+  typecheck, unit tests, and lint. The mock harness (`rpg/src/services/mock/`)
+  is dev-only and must stay out of the production bundle (tree-shaken by the
+  inline `import.meta.env.DEV` gate in `boot.ts`).
 - **Platform files (`main.pjs`, `index.html`):** edit in the repo, copy-paste
   into the Perchance editor panels. Only the platform runs the pjs engine and
   resolves platform-relative paths.
@@ -188,8 +274,63 @@ the platform.
 **AI generation** can take up to a minute: always show a loading indicator and
 cache results where sensible.
 
-## Conventions
+## Coding Conventions
 
-- Keep `rpg/` self-contained; use relative imports only.
-- No secrets anywhere — everything shipped to Perchance is public.
+### Stack & tooling rules
+
+- **TypeScript strict** everywhere under `rpg/` (`tsconfig.json` — strict,
+  moduleResolution bundler, TS 7.x, Preact JSX via `jsxImportSource: "preact"`).
+- **JSX goes in `.tsx` files** — `.ts` rejects JSX under TS 7.
+- **Use the pinned versions** (`research-resolutions.md` §5.2, `package.json`);
+  re-pin deliberately, not casually.
+- **No app-level retry/timeout on plugin content** (owner decision,
+  `pending-decisions.md` §5): the plugins self-retry; we only surface loading
+  state. The adapter never aborts in-flight generations.
+- **Modes drive behavior**: dev vs prod (`RuntimeMode`) selects
+  `removeBackground`, the Dexie DB name (`rpg_dev` / `rpg`), and the mock.
+  Never hardcode a mode-specific value in a service.
+
+### Structure & imports
+
+- Keep `rpg/` self-contained; **relative imports** only (`@/` alias exists but
+  relative is the convention; `tech-spec.md` §3 layout).
+- **Only `perchance-runtime.ts` touches `root.*`** — everything else depends
+  on the typed `ImageService`/`TextService` interfaces.
+- Effects are **declarative in the scene manifest** and each effect is an
+  isolated, unit-testable module (tech-spec §5.2).
+- Pure logic (payload builder, choice parser, graph ops, manifest validation)
+  lives **outside** stores so it is unit-testable without DOM/Preact
+  (tech-spec §7.1).
+
+### Testing (tiered — decide per change)
+
+| Tier | What it covers | When to run |
+| --- | --- | --- |
+| `unit` | Pure logic: payload builder + budget, choice parser, scene manifest validation, relationship graph ops, seeded RNG | CI + local, always fast |
+| `integration` | Stores/services with mocks: dialogue machine + always-escape, memory/summarizer, relationships systems, Dexie via `fake-indexeddb` | CI + local |
+| `e2e` | Browser against the **committed build** with mock harness + WebMCP tools, driven by **Chrome DevTools MCP** (no Playwright scripts) | Local on demand; flagged in CI |
+| `perf` | Playwright traces / Lighthouse / FPS sampling against soft targets | Manual / on demand |
+
+- `pnpm test` = unit + integration (the always-on suite).
+- **Decision rule (owner mandate):** the primary dev agent decides which tiers
+  to run on each change — unit+integration after most edits; e2e when the
+  change touches boot/rendering/UI flows; perf when performance is at stake.
+- **E2E driver:** Chrome DevTools MCP + WebMCP harness (owner preference).
+  Drive browser tests directly through the CDP MCP instead of maintaining
+  Playwright scripts.
+
+### Validation before finishing
+
+After any non-trivial change under `rpg/`, run (in `rpg/`):
+
+1. `pnpm typecheck`
+2. `pnpm lint` (Biome; `lint:fix` for autofixable issues)
+3. `pnpm test` (unit + integration)
+4. `pnpm build` when the change affects the bundle or shipping
+5. `pnpm test:e2e` when the change touches boot/rendering/UI flows
+
+### Conventions from the ecosystem
+
+- No secrets anywhere — everything shipped to Perchance is public; `.env` is
+  gitignored and local-only.
 - Commit messages in English.

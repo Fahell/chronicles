@@ -1,8 +1,9 @@
 # VN-RPG — Technical Spec (Stack, Tooling & Architecture)
 
-> **Status:** Draft — proposal. The stack is now *decided at a high level*
-> (interview with the project owner), but exact versions and several
-> implementation details remain open and will be pinned during setup.
+> **Status:** **Approved** (stack approval turn, 2026-08). The stack is
+> decided (§2), versions are pinned (`research-resolutions.md` §5.2), and the
+> `rpg/` scaffold is built and green. Implementation details marked "open" in
+> §11 remain to be validated during development.
 > **Scope:** development stack, tooling, build/ship pipeline, and the app's
 > technical architecture. It translates the ideation specs
 > (`vn-rpg-spec.md`, `narrative-spec.md`, `relationships-spec.md`) into
@@ -593,9 +594,10 @@ sampling; targets are documented, not enforced as hard failures for now:
 1. ~~Owner approves this spec~~ **Done (stack approval turn):** `AGENTS.md`
    and `README.md` updated (stack decided; ship = `rpg/build/`; test tiers per
    §8).
-2. Scaffold `rpg/` with the tooling checklist (§10) — pnpm + Vite + TS strict
-   + Biome + Vitest wired and green.
-3. Implement the mock harness + adapter + dev/prod cache split.
+2. ~~Scaffold `rpg/` with the tooling checklist (§10) — pnpm + Vite + TS strict
+   + Biome + Vitest wired and green.~~ **Done (2026-08, commit `97c2f0f`).**
+3. ~~Implement the mock harness + adapter + dev/prod cache split.~~ **Done
+   (2026-08, commit `363bd24`).**
 4. Build the **type-C open-variant scene slice** (MVP): three.js floor +
    backdrop planes per the approved open-scene POC
    (`templates/open-scene-poc/`), placeholder sprites standing on the floor,

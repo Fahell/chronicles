@@ -6,7 +6,7 @@
 > or removed at any time.
 > **Scope:** narrative system — world narrator, AI character dialogue, and
 > context management. Complements `vn-rpg-spec.md` (scenes & visual
-> techniques). Stack/tooling are still TBD.
+> techniques). Stack/tooling are approved — see `tech-spec.md` §2.
 > **Owner:** project owner + primary dev agent
 > **Related:** `vn-rpg-spec.md`, `relationships-spec.md`, `gameplay-spec.md`,
 > `day-cycle-spec.md` (day structure, day logs, two-tier summarization),

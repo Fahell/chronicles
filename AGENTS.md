@@ -329,8 +329,26 @@ After any non-trivial change under `rpg/`, run (in `rpg/`):
 4. `pnpm build` when the change affects the bundle or shipping
 5. `pnpm test:e2e` when the change touches boot/rendering/UI flows
 
+### Git & GitHub conventions
+
+- **Commit messages:** English, **Conventional Commits** (`feat:` `fix:`
+  `docs:` `chore:` `refactor:` `test:`), with an **optional scope** — use
+  `rpg` for app changes (`feat(rpg): …`). Describe the *why*, not just the
+  *what*. Body: wrap at ~72 cols; no AI-trailer needed beyond the standard
+  footer used by the dev agent.
+- **Ship artifact:** when the app bundle changes, commit the regenerated
+  `rpg/build/` alongside the source (it is the Perchance upload set).
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`) runs on push to `main`
+  and on PRs: typecheck → Biome → unit+integration → build → e2e build gate →
+  upload `rpg/build` artifact. It activates once the repo is pushed.
+- **PRs:** use `.github/pull_request_template.md`; run the validation
+  checklist there before opening. The full e2e tier (browser) is local-only
+  via the CDP MCP — flag it in the PR when the change touches
+  boot/rendering/UI flows.
+- **No secrets anywhere** — everything shipped to Perchance is public; `.env`
+  is gitignored and local-only.
+
 ### Conventions from the ecosystem
 
-- No secrets anywhere — everything shipped to Perchance is public; `.env` is
-  gitignored and local-only.
-- Commit messages in English.
+- Commit messages in English (see Git & GitHub above).
+- Keep `rpg/` self-contained; use relative imports only.

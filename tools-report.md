@@ -192,11 +192,11 @@ option for authored scripted content later.
 | **Memory MCP** (`modelcontextprotocol/servers`) | Agent knowledge-graph memory across sessions — long projects benefit from persisted decisions. | ⚖️ Optional |
 | **Context7** | Docs for PixiJS/three.js/etc. | ✅ Already configured |
 
-> **Environment note:** `.agents/mcp.json` previously pointed the Chrome
-> DevTools MCP at the old **mathema** project (URL `127.0.0.1:4173` + mathema
-> chrome profile). It has been repointed to the **rpg** dev server (Vite
-> default `127.0.0.1:5173`) with a project-local chrome profile. It takes
-> effect once `rpg/` is scaffolded and `pnpm dev` is running.
+> **Environment note:** `.agents/mcp.json` points the Chrome DevTools MCP at
+> the **rpg** dev server (Vite default `127.0.0.1:5173`) with a project-local
+> chrome profile. (Historical: it previously targeted the old **mathema**
+> project at `127.0.0.1:4173`.) The scaffold exists and `pnpm dev` runs the
+> harness page — the MCP connects to it directly.
 
 ---
 

@@ -188,7 +188,7 @@ option for authored scripted content later.
 | MCP | What it adds | Verdict |
 | --- | --- | --- |
 | **`@playwright/mcp`** (Microsoft, official) | Browser automation over MCP with structured accessibility snapshots. | ❌ **Not needed (owner decision 2026-08)** — the Chrome DevTools MCP is the primary driver; Playwright is the **fallback only if CDP becomes unstable** for local tests (avoids tool redundancy) |
-| **GitHub MCP** (`github/github-mcp-server`, official) | Issues/PRs/CI management once the repo is published. | ⚖️ When publishing |
+| **GitHub MCP** (`github/github-mcp-server`, official) | Issues/PRs/CI management. | ✅ **Eligible now (2026-08):** repo published — `Fahell/chronicles` (public). Install when convenient; the `github-ops` skill (gh CLI) is already usable. |
 | **Memory MCP** (`modelcontextprotocol/servers`) | Agent knowledge-graph memory across sessions — long projects benefit from persisted decisions. | ⚖️ Optional |
 | **Context7** | Docs for PixiJS/three.js/etc. | ✅ Already configured |
 
@@ -236,5 +236,5 @@ option for authored scripted content later.
 3. ~~Wire Playwright `toHaveScreenshot()`~~ **Decision (2026-08):** Playwright
    is the **second option** — only if the CDP MCP becomes unstable for local
    tests; CDP screenshots + pixelmatch keep the no-Playwright preference (§7).
-4. Revisit ⚖️ items (Ink, Cytoscape, GitHub/Memory MCP) at the milestones
-   listed above.
+4. Revisit ⚖️ items (Ink, Cytoscape, Memory MCP) at the milestones listed
+   above. **GitHub MCP:** repo published (2026-08) — see §11.

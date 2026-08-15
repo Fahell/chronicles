@@ -41,10 +41,7 @@ describe("resolveSceneTextures (fake-indexeddb)", () => {
   it("rejects non-type-C manifests", async () => {
     const assets = cache();
     await expect(
-      resolveSceneTextures(
-        { ...openPlainsManifest, type: "A" },
-        assets,
-      ),
+      resolveSceneTextures({ ...openPlainsManifest, type: "A" }, assets),
     ).rejects.toThrow(/only type C/);
     await assets.close();
   });

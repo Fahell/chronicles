@@ -35,7 +35,7 @@ The local repo root mirrors the Perchance generator root. Content types:
 | --- | --- |
 | `main.pjs` | **Symbolic file.** Its content is copy-pasted into the Perchance *Lists* panel. Holds only plugin imports. |
 | `index.html` | **Symbolic file.** Its content is copy-pasted into the Perchance *HTML* panel. **The current content is example/placeholder only** — do not treat it as the real project; the real shell is written later. |
-| `rpg/` | The actual game app (typed codebase; stack TBD). Maps to the `src/rpg/` tree on the platform. |
+| `rpg/` | The actual game app (typed codebase; **stack approved** — see Tech spec §2). Maps to the `src/rpg/` tree on the platform. `rpg/build/` is the committed ship artifact. |
 | `README.md` | **Ships to Perchance** (platform-facing orientation doc). See "Ship Policy" below. |
 | `PERCHANCE-GUIDE.md`, `AGENTS.md`, docs | **Local-only** documentation (never uploaded). |
 | `test-prompt.txt` | **Transient handoff artifact** (English, generated on demand): the runtime-test prompt handed to the Perchance AI agent. See "Development Workflow". |

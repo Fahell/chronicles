@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" role="img" aria-labelledby="title description">
+  <title id="title">Abstract guardian placeholder artwork</title>
+  <desc id="description">An original translucent, sweeping fantasy guardian made of watercolor-like strokes.</desc>
+  <defs>
+    <linearGradient id="wing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#356eaa" stop-opacity=".82"/>
+      <stop offset=".35" stop-color="#5cae9b" stop-opacity=".78"/>
+      <stop offset=".72" stop-color="#c6da9e" stop-opacity=".65"/>
+      <stop offset="1" stop-color="#8e7da7" stop-opacity=".12"/>
+    </linearGradient>
+    <linearGradient id="body" x1=".3" y1="0" x2=".7" y2="1">
+      <stop stop-color="#c9deab" stop-opacity=".9"/>
+      <stop offset=".48" stop-color="#6ab8bf" stop-opacity=".88"/>
+      <stop offset="1" stop-color="#3b6ea3" stop-opacity=".75"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#325d92"/>
+      <stop offset=".5" stop-color="#6976a4"/>
+      <stop offset="1" stop-color="#4b9f93"/>
+    </linearGradient>
+    <filter id="soften">
+      <feGaussianBlur stdDeviation="1.3"/>
+    </filter>
+  </defs>
+
+  <g fill="none" stroke="url(#ink)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M470 160C560 72 700 72 800 166c-102-35-170-8-239 70-53 60-118 80-197 61 67-19 73-75 106-137Z" fill="url(#wing)" stroke-width="4"/>
+    <path d="M436 210c112-42 248-12 348 75-115-20-196 8-278 84-54 50-108 68-177 49 81-33 51-129 107-208Z" fill="url(#wing)" stroke-width="3" opacity=".78"/>
+    <path d="M513 190C600 140 694 132 778 160M484 230c115-35 220-18 304 39M444 281c104-29 199-17 288 21" stroke-width="2" opacity=".78"/>
+    <path d="M574 224c-12 98-39 175-90 247-42 59-57 139-22 225 29 72 69 120 121 146-14-90 18-150 54-211 48-82 73-173 54-286-16-90-54-121-117-121Z" fill="url(#body)" stroke-width="4"/>
+    <path d="M596 232c-22 87-17 168 8 238 26 71 12 130-28 194M651 231c15 89 11 165-20 245-28 73-19 132 23 186" stroke-width="2.8"/>
+    <path d="M584 270c-23 45-36 86-34 122 25 15 56 14 88-2-5-42-22-81-54-120Z" fill="#dfe6ba" fill-opacity=".72" stroke-width="3"/>
+    <path d="M595 385c-45 25-71 64-80 118 32 31 69 44 112 38 19-54 10-103-32-156Z" fill="#75bec0" fill-opacity=".72" stroke-width="3"/>
+    <path d="M625 540c-54 28-78 70-73 126 35 30 74 36 116 16 17-54 2-101-43-142Z" fill="#4e82b0" fill-opacity=".74" stroke-width="3"/>
+    <path d="M582 708c-12 45-6 91 19 137M654 685c6 49 0 92-22 132" stroke-width="4"/>
+    <path d="M559 840c23 17 51 21 82 12M622 848c37 5 64-5 81-29" stroke-width="5"/>
+    <path d="M560 308c-35-25-57-60-64-104M552 348c-47-13-83-35-108-67M549 402c-52 7-91-3-119-29" stroke-width="2.3"/>
+    <path d="M696 240c55-38 101-43 138-17M687 274c73-12 122 3 149 47M678 311c71 13 112 42 126 86" stroke-width="2.3"/>
+    <path d="M731 115c31 32 43 64 36 97M770 110c22 26 28 54 18 83M815 132c8 27 3 48-15 63" stroke-width="2" opacity=".7"/>
+    <path d="M422 205C350 135 267 113 176 140c107 15 160 63 205 141M382 244C290 201 217 202 159 246c98-11 159 26 214 103M350 289C271 274 207 299 169 359c74-37 137-21 204 38" stroke-width="4" opacity=".75"/>
+    <path d="M302 114C245 85 188 89 133 128M250 177c-71-13-125 3-163 46M218 250c-52 11-88 37-108 78" stroke-width="3" opacity=".55"/>
+  </g>
+
+  <g fill="#253d66" opacity=".7">
+    <circle cx="595" cy="310" r="7"/>
+    <circle cx="651" cy="310" r="7"/>
+  </g>
+  <g fill="none" stroke="#f6f7e0" stroke-width="3" opacity=".75">
+    <path d="M566 351c18 16 38 18 60 4M626 355c19 13 39 10 56-6"/>
+  </g>
+  <g fill="none" stroke="#4e7eaf" stroke-width="2" opacity=".5" filter="url(#soften)">
+    <path d="M475 90c-42-38-92-50-151-37M449 121c-62-29-116-25-162 11M736 460c54 13 90 42 108 86M715 499c67 30 98 66 95 108"/>
+  </g>
+</svg>

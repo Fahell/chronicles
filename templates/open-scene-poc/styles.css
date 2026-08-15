@@ -1,0 +1,269 @@
+:root {
+  color-scheme: dark;
+  --panel: rgba(8, 17, 29, 0.82);
+  --panel-border: rgba(162, 215, 207, 0.3);
+  --text: #eaf5f0;
+  --muted: #a8c3c0;
+  --accent: #f3ce76;
+  --accent-cool: #8dd8d0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+  background: #071321;
+}
+
+body {
+  overflow: hidden;
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 1px solid rgba(141, 216, 208, 0.36);
+  background: rgba(9, 28, 40, 0.78);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button:hover,
+button:focus-visible {
+  border-color: var(--accent-cool);
+  outline: 2px solid rgba(141, 216, 208, 0.35);
+  outline-offset: 2px;
+}
+
+.scene-shell,
+#scene-canvas {
+  width: 100%;
+  height: 100svh;
+}
+
+.scene-shell {
+  position: relative;
+  overflow: hidden;
+  background: #0b1c2e;
+}
+
+#scene-canvas {
+  display: block;
+}
+
+.hud {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(1rem, 3vw, 2rem);
+  pointer-events: none;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.55);
+}
+
+.hud-heading,
+.control-panel,
+.help-panel,
+.scene-status {
+  pointer-events: auto;
+}
+
+.hud-heading {
+  max-width: 23rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.4rem;
+  color: var(--accent-cool);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0.35rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.8rem, 4vw, 3.6rem);
+  line-height: 0.95;
+}
+
+.subtitle {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.control-panel {
+  width: min(22rem, calc(100vw - 2rem));
+  margin-top: auto;
+  padding: 1rem;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(10px);
+  text-shadow: none;
+}
+
+.panel-heading,
+.control-row,
+.button-row {
+  display: flex;
+  align-items: center;
+}
+
+.panel-heading {
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.panel-heading h2 {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.panel-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.35rem;
+}
+
+#reset-button,
+#diagnostics-toggle {
+  padding: 0.28rem 0.55rem;
+  font-size: 0.68rem;
+}
+
+.control-panel.is-collapsed {
+  width: auto;
+  min-width: 13rem;
+}
+
+.control-panel.is-collapsed .control-row,
+.control-panel.is-collapsed .button-row {
+  display: none;
+}
+
+.control-panel.is-collapsed .panel-heading {
+  margin-bottom: 0;
+}
+
+.hud.diagnostics-collapsed .help-panel,
+.hud.diagnostics-collapsed .scene-status {
+  display: none;
+}
+
+.control-row {
+  position: relative;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.72rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.control-row output {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.control-row input {
+  width: 100%;
+  accent-color: var(--accent-cool);
+}
+
+.button-row {
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.button-row button {
+  flex: 1;
+  padding: 0.45rem 0.35rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+}
+
+.help-panel {
+  width: min(22rem, calc(100vw - 2rem));
+  margin-top: 0.65rem;
+  color: rgba(234, 245, 240, 0.78);
+  font-size: 0.65rem;
+  line-height: 1.45;
+}
+
+.help-panel p {
+  margin-bottom: 0.2rem;
+}
+
+.scene-status {
+  margin: 0.5rem 0 0;
+  color: var(--accent);
+  font-size: 0.68rem;
+}
+
+.unsupported {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  padding: 2rem;
+  background: #0b1c2e;
+  color: var(--text);
+  text-align: center;
+}
+
+.unsupported[hidden] {
+  display: none;
+}
+
+.unsupported h1 {
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 700px) {
+  .hud {
+    padding: 0.8rem;
+  }
+
+  .hud-heading {
+    max-width: 17rem;
+  }
+
+  .control-panel {
+    padding: 0.75rem;
+  }
+
+  .help-panel {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

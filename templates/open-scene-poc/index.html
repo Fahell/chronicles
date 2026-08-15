@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Chronicles open scene Three.js visual proof of concept"
+    />
+    <title>Chronicles — Type C Scene Proof of Concept (Open)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="scene-shell">
+      <canvas id="scene-canvas" aria-label="Interactive open scene preview"></canvas>
+
+      <section class="hud" aria-label="Open scene proof of concept controls">
+        <header class="hud-heading">
+          <p class="eyebrow">CHRONICLES / SCENE PROTOTYPE / TYPE C — APPROVED</p>
+          <h1>Open Scene Variant</h1>
+          <p class="subtitle">
+            Hybrid three.js + plugin images · separate 3D ground plane + distant landscape backdrop
+          </p>
+        </header>
+
+        <section class="control-panel" aria-labelledby="controls-title">
+          <div class="panel-heading">
+            <h2 id="controls-title">Scene diagnostics</h2>
+            <div class="panel-actions">
+              <button id="reset-button" type="button">Reset</button>
+              <button id="diagnostics-toggle" type="button" aria-expanded="true">Minimize</button>
+            </div>
+          </div>
+
+          <label class="control-row" for="camera-height">
+            <span>Camera height</span>
+            <output id="camera-height-value" for="camera-height">3.2</output>
+            <input id="camera-height" type="range" min="1.5" max="6" step="0.1" value="3.2" />
+          </label>
+
+          <label class="control-row" for="camera-pitch">
+            <span>View pitch</span>
+            <output id="camera-pitch-value" for="camera-pitch">2.2</output>
+            <input id="camera-pitch" type="range" min="0.8" max="4.5" step="0.1" value="2.2" />
+          </label>
+
+          <label class="control-row" for="background-depth">
+            <span>Backdrop depth</span>
+            <output id="background-depth-value" for="background-depth">-10.0</output>
+            <input id="background-depth" type="range" min="-24" max="-6" step="0.5" value="-10" />
+          </label>
+
+          <label class="control-row" for="background-height">
+            <span>Backdrop height</span>
+            <output id="background-height-value" for="background-height">6.3</output>
+            <input id="background-height" type="range" min="2" max="12" step="0.1" value="6.3" />
+          </label>
+
+          <label class="control-row" for="background-scale">
+            <span>Backdrop scale</span>
+            <output id="background-scale-value" for="background-scale">1.00</output>
+            <input id="background-scale" type="range" min="0.7" max="1.5" step="0.05" value="1" />
+          </label>
+
+          <label class="control-row" for="ground-depth">
+            <span>Ground depth</span>
+            <output id="ground-depth-value" for="ground-depth">-2.2</output>
+            <input id="ground-depth" type="range" min="-8" max="3" step="0.2" value="-2.2" />
+          </label>
+
+          <label class="control-row" for="floor-scale">
+            <span>Ground scale</span>
+            <output id="floor-scale-value" for="floor-scale">0.70</output>
+            <input id="floor-scale" type="range" min="0.5" max="1.5" step="0.05" value="0.7" />
+          </label>
+
+          <label class="control-row" for="field-of-view">
+            <span>Field of view</span>
+            <output id="field-of-view-value" for="field-of-view">52</output>
+            <input id="field-of-view" type="range" min="35" max="70" step="1" value="52" />
+          </label>
+
+          <div class="button-row">
+            <button id="debug-button" type="button" aria-pressed="false">Debug guides</button>
+            <button id="characters-button" type="button" aria-pressed="true">Hide actors</button>
+          </div>
+        </section>
+
+        <section class="help-panel" aria-label="Prototype controls help">
+          <p><strong>Move PLAYER:</strong> WASD or arrow keys</p>
+          <p><strong>Goal:</strong> evaluate scale, horizon contact, and depth separation</p>
+        </section>
+
+        <p id="scene-status" class="scene-status" role="status">Loading scene assets…</p>
+      </section>
+
+      <div id="unsupported" class="unsupported" hidden>
+        <h1>WebGL is unavailable</h1>
+        <p>This proof of concept requires a browser with WebGL support.</p>
+      </div>
+    </main>
+
+    <script type="module" src="scene.js"></script>
+  </body>
+</html>

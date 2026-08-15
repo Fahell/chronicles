@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Chronicles title-screen visual proof of concept"
+    />
+    <title>Chronicles — Title Screen Prototype</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500..900&family=Libre+Baskerville:wght@400;700&family=Montserrat:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="title-screen" aria-labelledby="game-title">
+      <div class="atmosphere atmosphere-left" aria-hidden="true"></div>
+      <div class="atmosphere atmosphere-bottom" aria-hidden="true"></div>
+      <div class="grain" aria-hidden="true"></div>
+
+      <figure class="key-art" aria-label="Temporary Chronicles key-art placeholder">
+        <img src="placeholder-art.svg" alt="" />
+      </figure>
+
+      <section class="brand" aria-label="Game title">
+        <h1 id="game-title">CHRONICLES</h1>
+        <div class="brand-rule" aria-hidden="true"></div>
+      </section>
+
+      <nav class="main-menu" aria-label="Main menu">
+        <button class="menu-item" type="button" data-screen="new-game">
+          <img class="menu-hand" src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/svgs/solid/hand-point-right.svg" alt="" referrerpolicy="no-referrer" />
+          <span>NEW GAME</span>
+        </button>
+        <button class="menu-item is-active" type="button" data-screen="load-game">
+          <img class="menu-hand" src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/svgs/solid/hand-point-right.svg" alt="" referrerpolicy="no-referrer" />
+          <span>LOAD GAME</span>
+        </button>
+        <button class="menu-item" type="button" data-screen="settings">
+          <img class="menu-hand" src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/svgs/solid/hand-point-right.svg" alt="" referrerpolicy="no-referrer" />
+          <span>SETTINGS</span>
+        </button>
+      </nav>
+
+      <footer class="credits">
+        <p>CHRONICLES — VISUAL PROOF OF CONCEPT</p>
+        <p>Original placeholder artwork · Font Awesome hand pointer (CC BY 4.0) · Interface concept</p>
+      </footer>
+
+      <section class="dialog" aria-live="polite" aria-hidden="true" hidden>
+        <div class="dialog-panel" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+          <p class="dialog-eyebrow">CHRONICLES</p>
+          <h2 id="dialog-title">New Game</h2>
+          <p id="dialog-copy">This screen is a visual template. The identity wizard will be integrated later.</p>
+          <button class="dialog-back" type="button">RETURN</button>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      (() => {
+        const menuItems = [...document.querySelectorAll('.menu-item')];
+        const dialog = document.querySelector('.dialog');
+        const dialogTitle = document.querySelector('#dialog-title');
+        const dialogCopy = document.querySelector('#dialog-copy');
+        const dialogBack = document.querySelector('.dialog-back');
+        let selectedIndex = 1;
+        let lastFocusedItem = menuItems[0];
+
+        const screenCopy = {
+          'new-game': {
+            title: 'New Game',
+            copy: 'This screen is a visual template. The identity wizard will be integrated later.'
+          },
+          'load-game': {
+            title: 'Load Game',
+            copy: 'Save slots will appear here once the persistence flow is integrated.'
+          },
+          settings: {
+            title: 'Settings',
+            copy: 'Language, accessibility, and display settings will be added here.'
+          }
+        };
+
+        function selectItem(index) {
+          selectedIndex = (index + menuItems.length) % menuItems.length;
+          menuItems.forEach((item, itemIndex) => {
+            item.classList.toggle('is-active', itemIndex === selectedIndex);
+          });
+        }
+
+        function openDialog(item) {
+          const content = screenCopy[item.dataset.screen];
+          if (!content) return;
+          lastFocusedItem = item;
+          dialogTitle.textContent = content.title;
+          dialogCopy.textContent = content.copy;
+          dialog.hidden = false;
+          dialog.setAttribute('aria-hidden', 'false');
+          dialogBack.focus();
+        }
+
+        function closeDialog() {
+          dialog.hidden = true;
+          dialog.setAttribute('aria-hidden', 'true');
+          lastFocusedItem.focus();
+        }
+
+        menuItems.forEach((item, index) => {
+          item.addEventListener('mouseenter', () => selectItem(index));
+          item.addEventListener('focus', () => selectItem(index));
+          item.addEventListener('click', () => openDialog(item));
+        });
+
+        dialogBack.addEventListener('click', closeDialog);
+
+        document.addEventListener('keydown', (event) => {
+          if (!dialog.hidden) {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              closeDialog();
+            }
+            return;
+          }
+
+          if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+            event.preventDefault();
+            selectItem(selectedIndex + 1);
+            menuItems[selectedIndex].focus();
+          }
+
+          if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+            event.preventDefault();
+            selectItem(selectedIndex - 1);
+            menuItems[selectedIndex].focus();
+          }
+
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openDialog(menuItems[selectedIndex]);
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

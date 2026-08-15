@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -18,5 +18,12 @@ describe("committed production build", () => {
     const entries = readdirSync(buildDir);
 
     expect(entries.filter((e) => e.endsWith(".js"))).toEqual(["rpg.js"]);
+  });
+
+  it("keeps three.js out of the initial bundle (lazy chunk)", () => {
+    const entry = readFileSync(resolve(buildDir, "rpg.js"), "utf8");
+
+    // three.js must not be bundled into the entry — it loads via async chunk.
+    expect(entry.includes("WebGLRenderer")).toBe(false);
   });
 });

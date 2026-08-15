@@ -44,6 +44,7 @@
     "@biomejs/biome": "2.5.8",
     "@preact/preset-vite": "2.10.6",
     "@types/node": "24.10.1",
+    "@types/three": "0.185.0",
     "fake-indexeddb": "6.2.5",
     "rollup-plugin-visualizer": "7.0.1",
     "typescript": "7.0.2",

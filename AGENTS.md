@@ -96,6 +96,49 @@ Why:
   - Keep their call sites isolated in a small adapter module so the rest of the
     app can run and be tested without them.
 
+## Development Environment (ephemeral Cloud Shell)
+
+The Cloud Shell VM is **ephemeral**: `/tmp` and system installs are wiped on
+every VM boot; `$HOME` persists but has **limited space**. The project lives in
+`$HOME/projects/rpg` (survives resets); the dev tooling is rebuilt by a
+bootstrap on every fresh shell.
+
+**Bootstrap:** `~/.bashrc` calls `~/.local/bin/ensure-ephemeral-tools`, which
+runs idempotent `ensure-*` steps (Chrome, ripgrep, Playwright, Freebuff, btop,
+Graphify). All heavy artifacts go to **ephemeral `/tmp` storage** via the
+`CLOUDSHELL_TOOL_ROOT` / `CLOUDSHELL_BIN_DIR` / `CLOUDSHELL_CACHE_ROOT` env
+vars — **never install tools into `$HOME`** (space is limited). The bootstrap
+is marker-gated (`/tmp/cloudshell-bootstrap.done`) and versioned
+(`BOOTSTRAP_VERSION` in the orchestrator).
+
+**When installing a new tool/dependency, follow the same pattern:**
+
+1. Create `~/.local/bin/ensure-<tool>` in the style of the existing `ensure-*`
+   scripts: idempotent (exit early when the pinned version is already
+   present), install into the ephemeral dirs (e.g. `$BIN_DIR`), validate the
+   installed version before exiting.
+2. Wire it into `~/.local/bin/ensure-ephemeral-tools`: add a
+   `run_step '<Name>' "$SCRIPT_DIR/ensure-<tool>"` call, add a version check to
+   `marker_is_current()`, and **bump `BOOTSTRAP_VERSION`** — otherwise the new
+   step is skipped on VMs that already ran an older bootstrap.
+3. Test the step standalone, then run the orchestrator once to validate the
+   full flow. Confirm `bash -n` on both scripts (they run on every shell).
+4. Record the pinned version here and in `README.md` when relevant.
+
+Provisioned tools and pins: ripgrep `14.1.0`, playwright `1.62.0`, btop
+(latest), graphify `0.9.43` (via `uv tool install "graphifyy[svg,gemini]"`).
+
+Notes:
+
+- `uv` is at `/usr/bin/uv` (not dpkg-owned; may not survive a reset).
+  `ensure-graphify` falls back to a standalone `uv` download if it is absent.
+- `tmux` is also not dpkg-owned; used only for ad-hoc preview servers
+  (`python3 -m http.server` on a port inside a tmux session, then VS Code port
+  forwarding).
+- The Graphify Gemini key lives in the repo's `.env` (gitignored, local-only,
+  survives resets with `$HOME`). The CLI does **not** read `.env`
+  automatically — `./graphify.sh` sources it.
+
 ## Development Workflow
 
 **Two validation phases.** Local development + CI validate everything that can

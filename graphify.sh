@@ -19,4 +19,10 @@ fi
 
 export PATH="$HOME/.local/bin:$PATH"
 
+# The CLI may live in the ephemeral bootstrap dir (Cloud Shell) — add it if
+# present so the script also works from non-interactive shells.
+if [[ -d "${CLOUDSHELL_BIN_DIR:-/tmp/cloudshell-bin}" ]]; then
+  export PATH="${CLOUDSHELL_BIN_DIR:-/tmp/cloudshell-bin}:$PATH"
+fi
+
 exec graphify extract . "$@"

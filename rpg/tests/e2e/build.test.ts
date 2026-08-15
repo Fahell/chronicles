@@ -22,8 +22,12 @@ describe("committed production build", () => {
 
   it("keeps three.js out of the initial bundle (lazy chunk)", () => {
     const entry = readFileSync(resolve(buildDir, "rpg.js"), "utf8");
+    const chunks = readdirSync(resolve(buildDir, "chunks"));
 
-    // three.js must not be bundled into the entry — it loads via async chunk.
-    expect(entry.includes("WebGLRenderer")).toBe(false);
+    // `WebGLProgram` is internal to the three.js library body (never written
+    // by app code) — its absence proves the renderer ships as a lazy chunk,
+    // not inside the entry bundle (tech-spec §2.1).
+    expect(entry.includes("WebGLProgram")).toBe(false);
+    expect(chunks.some((c) => c.startsWith("three.module"))).toBe(true);
   });
 });

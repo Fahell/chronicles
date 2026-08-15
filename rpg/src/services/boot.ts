@@ -1,3 +1,5 @@
+import type { Stage } from "../render/stage";
+import { loadScene as loadSceneImpl } from "../scene/loader";
 import { AssetCache } from "./generation";
 import { installMockRoot } from "./mock";
 import {
@@ -12,6 +14,12 @@ export interface BootServices {
   mocked: boolean;
   runtime: PerchanceRuntime;
   assets: AssetCache;
+  /** Loads a scene into the given container (type C slice). */
+  loadScene: (
+    manifest: unknown,
+    container: HTMLElement,
+    viewport: { width: number; height: number },
+  ) => Promise<Stage>;
 }
 
 /**
@@ -43,5 +51,11 @@ export function bootServices(): BootServices {
 
   const runtime = createPlatformRuntime(root, mode);
   const assets = new AssetCache(mode, runtime.image);
-  return { mode, mocked, runtime, assets };
+  const loadScene = (
+    manifest: unknown,
+    container: HTMLElement,
+    viewport: { width: number; height: number },
+  ) => loadSceneImpl(manifest, { assets, container, viewport });
+
+  return { mode, mocked, runtime, assets, loadScene };
 }

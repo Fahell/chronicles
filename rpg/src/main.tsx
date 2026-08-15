@@ -1,5 +1,6 @@
 import { render } from "preact";
 
+import { openPlainsManifest } from "./scene/manifest/openPlains";
 import { bootServices } from "./services/boot";
 import { App } from "./ui/App";
 import "./style.css";
@@ -11,5 +12,20 @@ if (!mount) {
 }
 
 const services = bootServices();
+const stageContainer = document.createElement("div");
+stageContainer.id = "stage-container";
+mount.appendChild(stageContainer);
 
-render(<App services={services} />, mount);
+const stage = await services.loadScene(openPlainsManifest, stageContainer, {
+  width: window.innerWidth,
+  height: window.innerHeight,
+});
+
+function frame(prev: number) {
+  const now = performance.now();
+  stage.tick((now - prev) / 1000);
+  requestAnimationFrame(() => frame(now));
+}
+requestAnimationFrame(() => frame(performance.now()));
+
+render(<App services={services} stage={stage} />, mount);

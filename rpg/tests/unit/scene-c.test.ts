@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { parseSceneManifest } from "../../src/scene/loader";
+import { openPlainsManifest } from "../../src/scene/manifest/openPlains";
 import type { SceneManifest } from "../../src/scene/types";
 
 const openPlains: SceneManifest = {
@@ -60,5 +61,11 @@ describe("type C manifest (schema v1 extended)", () => {
         actors: [{ characterId: "x", pose: "idle", position: { x: 1 } }],
       }),
     ).toThrow(/Invalid scene manifest/);
+  });
+
+  it("openPlainsManifest parses as a valid type-C manifest", () => {
+    const parsed = parseSceneManifest(openPlainsManifest);
+    expect(parsed.type).toBe("C");
+    expect(parsed.floor?.assetKey).toBe("scenes/open-plains/floor");
   });
 });

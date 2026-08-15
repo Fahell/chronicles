@@ -1,20 +1,32 @@
 import { signal } from "@preact/signals";
 
-export interface DialogueLine {
-  speaker: string;
-  text: string;
-}
+import {
+  advanceDialogue as advanceMachine,
+  beginDialogue,
+  chooseOption,
+  escapeDialogue,
+  initialMachine,
+  type DialogueMachine,
+} from "../dialogue/machine";
+
+export const dialogueMachine = signal<DialogueMachine>(initialMachine);
 
 export const dialogueVisible = signal(false);
 
-export const currentLine = signal<DialogueLine | null>(null);
-
-export function showLine(line: DialogueLine) {
-  currentLine.value = line;
+export function showTurn(speaker: string, text: string, options: string[] = []) {
+  dialogueMachine.value = beginDialogue({ speaker, text, options });
   dialogueVisible.value = true;
 }
 
+export function selectOption(index: number) {
+  dialogueMachine.value = chooseOption(dialogueMachine.value, index);
+}
+
 export function closeDialogue() {
+  dialogueMachine.value = escapeDialogue(dialogueMachine.value);
   dialogueVisible.value = false;
-  currentLine.value = null;
+}
+
+export function advanceDialogue() {
+  dialogueMachine.value = advanceMachine(dialogueMachine.value);
 }

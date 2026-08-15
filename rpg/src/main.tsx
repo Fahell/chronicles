@@ -23,10 +23,18 @@ stageContainer.id = "stage-container";
 stageContainer.className = "stage";
 mount.parentElement?.insertBefore(stageContainer, mount);
 
+// First scene generation can take ~50s on the platform (real plugin) — show a
+// boot overlay so the screen is never silent during it.
+const bootOverlay = document.createElement("div");
+bootOverlay.id = "boot-loader";
+bootOverlay.textContent = "Generating scene…";
+mount.parentElement?.insertBefore(bootOverlay, mount);
+
 const stage = await services.loadScene(openPlainsManifest, stageContainer, {
   width: window.innerWidth,
   height: window.innerHeight,
 });
+bootOverlay.remove();
 
 function frame(prev: number) {
   const now = performance.now();
@@ -34,5 +42,8 @@ function frame(prev: number) {
   requestAnimationFrame(() => frame(now));
 }
 requestAnimationFrame(() => frame(performance.now()));
+
+const onResize = () => stage.resize(window.innerWidth, window.innerHeight);
+window.addEventListener("resize", onResize);
 
 render(<App services={services} stage={stage} />, mount);

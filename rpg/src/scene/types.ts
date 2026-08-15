@@ -16,6 +16,15 @@ const actorSchemaV1 = object({
   pose: string(),
   position: object({ x: number(), z: number() }),
   scale: optional(number()),
+  /** Character sprite generation config (portrait 512×768). Optional: actors without it fall back to placeholders. */
+  sprite: optional(
+    object({
+      /** Cache key → generated portrait image. */
+      assetKey: string(),
+      /** Character generation prompt (feeds the AssetCache). */
+      prompt: optional(string()),
+    }),
+  ),
 });
 
 /**

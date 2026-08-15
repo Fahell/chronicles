@@ -1,0 +1,60 @@
+Build é produção e os plugins reais estão ativos (prod · platform runtime). Vou verificar o cache do IndexedDB e o estado das texturas.
+
+Cache já tem as duas texturas geradas (backdrop ~20s, floor ~20s na geração). Agora vou verificar visualmente a cena e o estado do DOM.
+
+O canvas está em branco no capture — típico do WebGL sem preserveDrawingBuffer (o buffer é limpo após o frame). Preciso verificar se é só a captura ou se a cena não renderiza. Vou instrumentar o reload com um patch de harness (não mexe no código do app) que força preserveDrawingBuffer, e conferir o CSS do stage.
+
+Vou fazer um reload com preambleJs que força preserveDrawingBuffer:true (só instrumentação de captura) e então medir os pixels reais do canvas.
+
+A 2D context não pode ser criada sobre um canvas WebGL. Vou ler os pixels direto via gl.readPixels.
+
+A cena está renderizando (mean luma 109, variação rica — o branco era só o buffer do WebGL). Agora a captura visual deve funcionar:
+
+Cena renderiza e bate com o esperado (castelo à direita, espiões à esquerda, piso de grama, 2 sprites). Vou conferir a geometria do layout para avaliar aquele detalhe "preto no topo" (pode ser o fundo #0b1c2e aparecendo se o backdrop não cobre a viewport).
+
+Layout confere (backdrop cobre o topo; o "preto" no topo é arte da geração, não bug de código). Agora o teste do diálogo — clico em "Talk to the elder" e espero a resposta da IA real (pode levar até 1 min):
+
+O diálogo abre, mas vejo um problema real: a IA não usou o formato [choices] — devolveu markdown * **[Opção]** ..., então o parser não extraiu opções (só "Continue" + "Leave"). Vou ler a máquina de estados e testar o fluxo completo.
+
+Máquina confirmada. Fluxo atual: Continue→"ended" mantém a caixa visível (só Leave fecha). Vou testar a interação completa agora:
+
+O teste ficou inconsistente (possível race de re-render). Vou refazer com pausas entre cliques e mais inspeção:
+
+Diálogo confirmado: abre, texto aparece, Continue encerra o turno (caixa fica), Leave sempre fecha. Agora o teste de cache/reload. Primeiro: reload com cache (deve ser rápido, sem regerar):
+
+Cache funciona: reload instantâneo (~6ms), mesmas texturas, sem regenerar (vs ~20s na primeira geração). Agora limpo o cache e meço a geração fresca:
+
+Agora meço a geração fresca (pode levar ~1 min):
+
+Geração fresca: ~51s para as duas texturas (paralelas), sem erros. Vou conferir visualmente esta nova geração:
+
+A faixa escura no topo aparece nas DUAS gerações independentes — preciso distinguir se é arte ou render. Vou extrair a textura do backdrop do cache e inspecioná-la diretamente:
+
+A arte em si tem o defeito (topo com patches pretos e smear azul) — é qualidade da geração do backdrop, não bug de render. Faço um reload limpo final para confirmar o boot sem o patch de captura:
+
+Relatório final (sem tocar no código):
+
+1. BOOT — PASS
+Página carrega, runtime prod · platform runtime, cena 3D renderiza (verifiquei pixels: média de luma 109, não vazio) e zero erros de console. Únicas mensagens são warnings internos do plugin durante geração de imagem (Unknown model class "custom", dtype ... q8) — inofensivos. O #app já estava corrigido do problema anterior.
+
+2. IMAGES — PASS (com ressalva de qualidade)
+Piso de grama aplicado sob os sprites ✓; backdrop de crepúsculo com castelo à direita e espiões rochosos à esquerda ✓.
+Geração fresca (cache limpo): ~51s para as duas texturas (geradas em paralelo; o floor foi ~21s mais lento que o backdrop). A primeira geração da sessão anterior mostrou o mesmo padrão (~20s cada).
+Ressalva: o topo do backdrop tem uma faixa de arte corrompida — patches pretos irregulares + smear azul/brilhante na borda superior. Apareceu nas duas gerações independentes, então é a arte gerada, não render (verifiquei a textura PNG extraída direto do cache). Regenerável depois, quando a UX de re-roll existir. O restante do backdrop é bom; o piso está bom.
+3. DIALOGUE — PARCIAL / ISSUE
+Caixa abre, speaker "Elder", texto da IA renderiza (~11s e ~15s nas duas chamadas) ✓.
+Always-escape confirmado: "Leave" sempre presente e sempre fecha, tanto direto quanto depois de "Continue" ✓.
+Problema principal: opções nunca aparecem. A IA não emite o bloco [choices] — respondeu com Markdown (* **[Apologize]** "..."), que o parseChoices (espera [choices] + N. texto) ignora. A instrução em App.tsx:16 ("Give them a short response with choices...") não especifica o formato, então o parser nunca recebe entrada válida. O caminho "clicar opção" é código morto na prática.
+Menor: "Continue" encerra o turno mas deixa a caixa aberta (só sobra o Leave).
+4. RELOAD/CACHE — PASS
+Reload com cache: ~6ms até pronto, mesmas texturas (mesmo createdAt no IndexedDB, zero regeneração) vs ~51s da primeira carga. Cache IndexedDB funciona perfeitamente.
+
+5. OBSERVAÇÕES
+Sem indicador de carregamento durante geração (primeiro boot ~50s de tela parada; resposta do elder ~11-15s). Recomendo um spinner/"elder is thinking".
+Sem tratamento de erro no generateText (falha do plugin = rejection não tratada, sem feedback).
+Sprites levemente "colados" no chão (sombras a 35% de opacidade, sutis) — menor.
+HUD legível, caixa de diálogo utilizável, sem crashes/glitches além da faixa do backdrop.
+Resumo: 4/5 checks passaram (boot, imagens, reload/cache, estabilidade). O único blocker real: a instrução do elder nunca pede o formato [choices], então a mecânica de opções nunca dispara — é o que vale corrigir primeiro (um ajuste no prompt em App.tsx resolve).
+Além disso, há pontos importantes que invalidam um teste total. os personagens foram carregados como placeholders, então não foram gerados pelo plugin de imagem, e mesmo com o refresh eles continuavam como placeholders. os personagens na cena parecem grande demais para a cena, e há um problema de preenchimento.
+s imagens do cenário esticam a uma resolução que distorce as imagens em tela cheia. a resolução máxima de imagens do plugin do perchance é de 768x512 (Paisagem / Horizontal). se o cenário esticar pra preencher a tela, a resolução ficará muito ruim. o correto é deixar que o cenário ocupe o espaço ideal na tela, como um frame de cenário. Isso deixará espaços nas bordas, mas é a única forma de ter uma boa resolução sem distorção e perda de qualidade.
+Os espaços vazios podem ser usados para mostrar outros tipos de informações.

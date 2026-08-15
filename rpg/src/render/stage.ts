@@ -13,7 +13,8 @@ export interface Stage {
 
   mount(container: HTMLElement): void;
   setTextures(textures: SceneTextures): void;
-  setActors(actors: ActorPlacement[]): void;
+  /** Place actors; optional generated portraits keyed by characterId. */
+  setActors(actors: ActorPlacement[], textures?: Record<string, string>): void;
   setActiveSpeaker(characterId: string | null): void;
 
   /** Resize the stage surface (contain/letterbox handled by the viewport). */

@@ -13,6 +13,9 @@ export const dialogueMachine = signal<DialogueMachine>(initialMachine);
 
 export const dialogueVisible = signal(false);
 
+/** True while a text generation is in flight (thinking state). */
+export const dialoguePending = signal(false);
+
 export function showTurn(speaker: string, text: string, options: string[] = []) {
   dialogueMachine.value = beginDialogue({ speaker, text, options });
   dialogueVisible.value = true;

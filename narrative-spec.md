@@ -184,6 +184,7 @@ Context must be organized into distinct types, with a clear rule for each:
 | --- | --- | --- |
 | **System instructions** | Voice rules, style, language, format | **Never summarized** — always full |
 | **Scene description** | What the backdrop shows (derived from the scene prompt) | **Never summarized** (narrator needs it complete) |
+| **Place / location** | Named place + brief description of where the scene happens — a **dedicated section**: narrator **and** NPCs need to know where they are | **Never summarized** — refilled per scene |
 | **Visual descriptions** | What each character/scene looks like (derived from prompts) | **Never summarized** — injected into narrator/NPC payloads |
 | **Character background** | Who each character *is* | Full for its own character; **never shared** with others (current stage) |
 | **Game lore** | What happens in dialogues and in the game world | **Summarizable** — this is the main thing that gets summarized |
@@ -235,6 +236,17 @@ for the current story's lore.
 
 Both versions derive from the same authored story; the payload version is the
 budgeted one (≤ ~300 chars), while the UI version is not context-bound.
+
+**Life history (two-layer background, Wildermyth-inspired — owner-confirmed):**
+beyond the static origin, a character's story **grows** as they live. Important
+events append to a **life history** stored in full (character data, observable
+like `dayLogs`). In the payload the life history is **summarizable** — it rolls
+into the voice's lore (daily + window tiers, §5.5/§5.6); the **complete
+biography** (origin + life events) is player-readable in the character stats
+menu (UI version, `relationships-spec.md` §6). Origin and life history must not
+be confused: the **origin** stays immutable in the payload; only the **life
+history** is compressed. (Wildermyth: *upbringing* is permanent at creation;
+*history entries* are appended by events and capped/curated.)
 
 ### 5.5 Summarization baseline (initial design, from `research-resolutions.md` §3)
 
@@ -288,6 +300,65 @@ they are **two complementary mechanics** (defined in detail in
   summarized.
 - Calibration (budgets, the ~22k trigger) happens on-platform via
   `test-prompt.txt`; the tokenizer gives exact counts locally.
+
+### 5.7 Payload composition per voice — permanence map
+
+Every piece of a payload has a **permanence class** (owner-confirmed) that
+says how it can change over time:
+
+| Class | Behavior |
+| --- | --- |
+| **Immutable** | Never changes after creation: character definition prompt, system instructions, identity (locked to the save, §7) |
+| **Stable** | Changes only by authoring or regeneration: background origin (payload version), visual description, image seed (asset regen, `vn-rpg-spec.md` §4.3) |
+| **Per scene** | Refilled whenever the scene changes: place/location, scene description, visual descriptions of present characters, time of day |
+| **Rolling** | Only lore: the rolling summary (game lore + life history) — compressed by the daily and window tiers |
+| **Appended** | Grows by appending, compressed in place: recent turns (verbatim), the daily-summaries pile, the current exchange |
+
+**NPC payload** (per present NPC):
+
+| Section | Source | Permanence | Summarizable? |
+| --- | --- | --- | --- |
+| System instructions | voice rules, style, language | Immutable | Never |
+| Place / location | scene definition | Per scene | Never |
+| Visual descriptions (present) | appearances of the user + co-present NPCs (§2.2) | Per scene | Never |
+| Own background — origin (payload v.) | ≤ ~300 chars, English (§5.4) | Stable (locked to save) | Never |
+| Lore — rolling summary | game lore + **life history** (§5.4) | Rolling | **YES** |
+| Recent turns (verbatim) | last ~8–10 turns (§5.5) | Appended | Compressible in place |
+| Daily summaries pile | `daySummaries` for this NPC (`day-cycle-spec.md` §6) | Appended | **YES** (window tier) |
+| Time of day (period) | day system (`day-cycle-spec.md` §3) | Per scene | Never |
+
+**Narrator payload:**
+
+| Section | Source | Permanence | Summarizable? |
+| --- | --- | --- | --- |
+| System instructions | narrator rules, style, language | Immutable | Never |
+| Scene description | full backdrop (derived, §2.2) | Per scene | Never |
+| Place / location | scene definition | Per scene | Never |
+| Visual descriptions (all present) | user + NPCs (§2.2) | Per scene | Never |
+| Time of day (period) | day system | Per scene | Never |
+| Lore — rolling summary (world memory) | unified world lore (§5.1) | Rolling | **YES** |
+| Recent turns (verbatim) | last turns | Appended | Compressible in place |
+
+> The narrator has **no own background** (it is a voice, not a character); a
+> narrator-level daily world summary is open (see §10).
+
+**User — routing table** (the user has no generation payload; its identity
+pieces are **routed** to the voices that need them):
+
+| Data | Routed to | Never routed to | Permanence |
+| --- | --- | --- | --- |
+| Name | title screen; NPCs (address); narrator | — | Immutable (locked to save, §7) |
+| Appearance → visual description | NPCs present; narrator (§2.2) | — | Stable/Immutable (locked after creation) |
+| Background origin (payload v.) | user's own context only | NPCs, narrator (strangers, §2.1) | Immutable |
+| Background origin (UI v.) | character stats menu (own view) | NPCs, narrator | Immutable |
+| Life history | user's own store → user-adjacent lore (recaps) | NPCs, narrator (private) | Rolling |
+| Selected choices | lore — the player's own action (§3.1) | offered/unselected options are filtered out | Appended → lore |
+
+**The summarizable block** — the only sections ever compressed are the
+**Rolling** rows (lore = game lore + life history) and, when space demands,
+the **Appended** rows (older verbatim turns, the daily-summaries pile).
+Everything else is **never summarized** (§5.3). The dev context inspector
+highlights exactly this block (`tech-spec.md` §6.4).
 
 ## 6. Relationship System & NPC Poses
 
@@ -408,7 +479,9 @@ for a missing sibling / sworn to protect a hidden village.
 | Scene options & user-driven progression details | Bridges with the scene spec |
 | Relationship tiers ↔ poses | Currently decoupled; may reconnect — see `relationships-spec.md` |
 | Language list & i18n resources | Pinned: en, zh, hi, es, ar (§8.1) — list-agnostic architecture |
-| Background dual versions (payload vs UI) | Payload budget vs UI presentation — how both derive from one authored story (§5.4) |
+| Background dual versions (payload vs UI) | **Resolved (§5.4):** origin story keeps both versions (payload ≤ ~300 chars / UI full); the **growing life history** joins the summarizable lore, full biography player-readable in the stats menu |
+| Life history growth mechanics | Wildermyth-style: what counts as an appendable life event, caps/curation, UI presentation — open (§5.4) |
+| Narrator-level daily world summary | Whether the narrator gets its own daily summary tier — open (§5.7) |
 | Stack, tooling, framework | Decided after the ideation phase |
 
 ## 11. Next Steps

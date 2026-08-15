@@ -169,8 +169,12 @@ daily summary does **not** replace the window summary:
   day count.
 - **What is summarized: only the lore context** — the daily summaries that keep
   populating each character's window. **Everything else is never summarized**
-  (the taxonomy of `narrative-spec.md` §5.3 — instructions, scene/visual
-  descriptions, own background, time-of-day).
+  (the taxonomy of `narrative-spec.md` §5.3 — instructions, place/location,
+  scene/visual descriptions, own background, time-of-day).
+- **Life history joins the summarizable lore:** a character's growing life
+  history (`narrative-spec.md` §5.4) is compressed by the same two tiers —
+  daily summaries cover a day's events; the window tier compresses the
+  accumulated pile including life history.
 - **Naming matters:** each piece of information that goes into context is
   **named** (the taxonomy's rows) so there is no confusion about what can and
   cannot be summarized.

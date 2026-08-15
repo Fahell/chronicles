@@ -1,0 +1,4 @@
+//neste arquivo fica o conteúdo que fica no painel de listas do perchance)
+
+generateImage = {import:text-to-image-plugin}
+generateText = {import:ai-text-plugin}

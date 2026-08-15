@@ -53,7 +53,7 @@ Anything in this spec must respect these platform facts:
 | Package manager | **pnpm** | Fast, disk-efficient, workspace-ready; owner's choice. |
 | Dev server / bundler | **Vite** (dev + build) | HMR in dev; production build with `base: './'` (relative paths work inside the Perchance iframe). Code-splitting for lazy three.js. |
 | Scene rendering | **PixiJS v8** (scene type A + effects) | Best-in-class 2D WebGL/WebGPU renderer for layered sprites, particles, and 2.5D effects; high performance on mobile. |
-| 3D rendering | **three.js** (lazy async chunk) | Only for scene types B/C when prototyped; dynamically imported so it never costs initial load until a 3D scene exists. |
+| 3D rendering | **three.js** (lazy async chunk) | **Approved baseline for scene construction** (type C hybrid, `vn-rpg-spec.md` §3.8). Dynamically imported so it never costs initial load until a 3D scene exists. |
 | UI layer | **Preact + signals/context** | Tiny (~4 KB) React-compatible runtime; `@preact/signals` gives fine-grained reactivity for the dialogue/choices/HUD overlay. |
 | Persistence | **Dexie / IndexedDB** | Standard web API: works identically locally and on the platform; testable in CI; one DB, several tables. (Precedent: previous Mathema project.) |
 | i18n | **i18next** | Mature, pluralization + interpolation + lazy resources; feeds the language variable into AI payloads (narrative-spec §8). (Precedent: Mathema.) |
@@ -62,20 +62,25 @@ Anything in this spec must respect these platform facts:
 | CI | **GitHub Actions** (once the repo is pushed) | Typecheck + lint + unit/integration tests + production build. |
 | Build artifact | **`rpg/build/` committed to git** | The upload step is a plain copy of tracked files; the Perchance agent sees exactly what is in production. |
 
-### 2.1 Why PixiJS first, three.js later (owner decision)
+### 2.1 Rendering strategy — PixiJS 2D layers + three.js for type C (owner decision, updated)
 
-- Scene type A (static image + code effects) is the first experiment and is a
-  **2D problem**: layered sprites over a backdrop with particles, fog, dynamic
-  lighting, day/night. PixiJS is the fastest, most mature 2D renderer and keeps
-  type A simple and performant on mobile.
-- Scene types B/C are 3D; when prototyped, **three.js is dynamically imported**
-  (async chunk) and the scene layer is designed so a scene declares which
-  renderer it needs. Type C (papercraft) is three.js + images; type B is pure
-  three.js.
-- To keep the door open, the render layer exposes a **thin `Stage` interface**
-  (add/remove layers, resize, tick) with a PixiJS implementation now and a
-  three.js implementation later — the rest of the app never imports a renderer
-  directly.
+- **Scene type C (hybrid three.js + plugin images) is now the APPROVED
+  baseline for scene construction** (owner decision after the open-scene POC,
+  `vn-rpg-spec.md` §3.8). three.js is therefore a **primary** renderer for
+  scene construction, not a later experiment.
+- Scene type A (static image + code effects) remains a **valid fallback** for
+  selected moments/settings, but its floor/scale challenges (§3.6) are not yet
+  solved; type B (pure three.js) is not excluded.
+- **three.js is still loaded lazily** (async chunk) and the scene layer
+  declares which renderer it needs, so initial load never pays for a 3D
+  renderer until a 3D scene is actually instantiated.
+- **PixiJS v8 remains** for the 2D overlay stack that complements hybrid
+  scenes: UI sprites, particles, fog, dynamic lighting, day/night effects, and
+  sprite layers that live on top of the 3D stage.
+- The render layer exposes a **thin `Stage` interface** (add/remove layers,
+  resize, tick) with a three.js implementation for scenes and a PixiJS
+  implementation for 2D overlays — the rest of the app never imports a
+  renderer directly.
 
 ---
 

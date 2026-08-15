@@ -154,7 +154,7 @@ All characters — NPCs **and the user's avatar** — are placed **in the scene*
 - **Portrait assets:** every speaker needs a **portrait** — a new asset type
   in the pipeline (§4). v1: **one neutral portrait per character**; pose-linked
   portraits may come later (ties to the pose sets, `narrative-spec.md` §6).
-- Scene types B/C remain to be verified; this presence model is the baseline.
+- Scene types B/C remain to be verified; this presence model is the baseline. (Update: **type C is now approved** — see §3.8 status.)
 
 ### 3.8 Scene type C — hybrid idea (three.js + images)
 
@@ -181,6 +181,28 @@ being heuristics**:
 **Expected style:** a "papercraft" look — 2D assets in a 3D world. With the
 right treatment this should look good — likely **better than the heuristic of
 type A**.
+
+> **Status: ✅ APPROVED — primary scene format (owner decision, after POC).**
+> The **open-scene hybrid proof of concept** (`templates/open-scene-poc/`)
+> validated the idea in practice with two generated images (one floor texture,
+> one landscape backdrop): a real 3D floor plane plus a distant backdrop
+> solved the floor/scale alignment problem for the open case, and the
+> diagnostic sliders made the junction tunable (depth, height, scale, FOV).
+>
+> Decision recorded:
+>
+> - **Type C (hybrid three.js + plugin images) is the approved baseline for
+>   scene construction.**
+> - **Type A (pure static image + code effects) is NOT discarded.** It can
+>   still be used in selected moments/settings — it remains a valid fallback —
+>   but its fundamental challenges (§3.6) still need better solutions before it
+>   is relied upon.
+> - Type B (pure three.js) is not excluded either; nothing in this decision
+>   removes it from consideration.
+> - The open-scene POC only validated the **open** variant of type C.
+>   **Closed scenes** (interior/enclosed variants) still need their own
+>   validation (different floor/wall/ceiling, occlusion, and camera needs) —
+>   recorded as future work in `templates/open-scene-poc/README.md`.
 
 ## 4. Assets & AI Generation Pipeline
 

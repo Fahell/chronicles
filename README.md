@@ -40,7 +40,11 @@ Setup (one-time):
 
 1. Copy `.env.example` to `.env` and fill in `GEMINI_API_KEY`
    (<https://aistudio.google.com/apikey>) and, optionally, `GRAPHIFY_GEMINI_MODEL`.
-2. Install the CLI (Python 3.10+): `uv tool install "graphifyy[svg]"`.
+2. The CLI is auto-provisioned by the Cloud Shell bootstrap
+   (`~/.local/bin/ensure-graphify`, wired into `ensure-ephemeral-tools`): it
+   installs to `/tmp` (ephemeral, recreated per boot) and keeps nothing in
+   `$HOME`. For other environments, install manually:
+   `uv tool install "graphifyy[svg,gemini]"`.
 
 Rebuild the graph:
 

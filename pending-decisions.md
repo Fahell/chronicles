@@ -63,9 +63,9 @@
 | --- | --- |
 | **Status** | ✅ **Answered** (dedicated turn) |
 | **Why it matters** | Defines the Preact UI structure, app boot, and the first `test-prompt.txt`; the MVP slice includes identity creation, which needs a home screen flow. |
-| **Owner answer** | Flow + contents defined in **`vn-rpg-spec.md` §8**: title ("Chronicles of {player name}" + New Game / Load / Settings / Credits / Help — look based on a **reference image the owner will share**); **New Game = identity wizard** (name → appearance → background → review, with random/template paths; creates a new slot, overwrite prompt when full; **identity locked to the save**); **Load** = slot grid (3–6 + autosave) with thumbnail + name + day/period + scene + date (disabled without saves); **Settings** = tabs (Language / Accessibility / Display / Audio-future); **Credits + Help** screens; **pause menu v1** = Save / Settings / Quit (Esc). MVP: title + wizard complete; Load/Settings/Credits/Help as navigable stubs. |
+| **Owner answer** | Flow + contents defined in **`vn-rpg-spec.md` §8**: title ("Chronicles of {player name}" + New Game / Load / Settings / Credits / Help — look based on the **reference image the owner shared**, POC: `templates/title-screen-poc/`); **New Game = identity wizard** (name → appearance → background → review, with random/template paths; creates a new slot, overwrite prompt when full; **identity locked to the save**); **Load** = slot grid (3–6 + autosave) with thumbnail + name + day/period + scene + date (disabled without saves); **Settings** = tabs (Language / Accessibility / Display / Audio-future); **Credits + Help** screens; **pause menu v1** = Save / Settings / Quit (Esc). MVP: title + wizard complete; Load/Settings/Credits/Help as navigable stubs. |
 | **Landing spot** | `vn-rpg-spec.md` §8.1–8.3 (screen & presentation). |
-| **Open details** | Title **look/layout** pending the owner's reference image; Display tab contents; in-game Load and Sleep placement (scene-level action candidate). |
+| **Open details** | **Title look/layout resolved** (reference image + POC, `templates/title-screen-poc/`); Display tab contents; in-game Load and Sleep placement (scene-level action candidate). |
 
 ---
 
@@ -130,6 +130,18 @@
 
 ---
 
+## 8. Stack & tooling
+
+| | |
+| --- | --- |
+| **Status** | ✅ **Answered** (dedicated approval turn) |
+| **Why it matters** | The port of entry for development — without the stack approved there is no scaffolding, tooling checklist, or CI. |
+| **Owner answer** | APPROVED in **`tech-spec.md` §2**: TypeScript (strict), pnpm, Vite, Preact + signals, three.js (lazy async chunk; **type C** baseline) + PixiJS v8 (2D overlays), Dexie/IndexedDB, i18next, Biome, Vitest (tiers per §8) + E2E via CDP MCP/WebMCP; GitHub Actions on push; build artifact `rpg/build/` committed. Exact versions re-pinned at setup. |
+| **Landing spot** | `tech-spec.md` §2; propagated to `AGENTS.md` and `README.md`. |
+| **Immediate impact** | `rpg/` can be scaffolded (pnpm + Vite + TS strict + Biome + Vitest); MVP scene slice = **type C open variant** (§12.4). |
+
+---
+
 ## Quick status table
 
 | # | Definition | Status |
@@ -141,6 +153,7 @@
 | 5 | Error & degradation policy (plugins) | ✅ Answered (`tech-spec.md` §6.1, `vn-rpg-spec.md` §5) |
 | 6 | Support matrix & accessibility baseline | ✅ Answered (`tech-spec.md` §5.5) |
 | 7 | Version testing on Perchance | ✅ Answered (`tech-spec.md` §4.3) |
+| 8 | Stack & tooling | ✅ **Answered** (approval turn — `tech-spec.md` §2) |
 
 ---
 

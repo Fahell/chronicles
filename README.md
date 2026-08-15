@@ -3,8 +3,9 @@
 > Official project name: **TBD**.
 
 An RPG game built as a [Perchance](https://perchance.org) generator. The game
-itself is a normal web app (TypeScript-first codebase; stack TBD); the Perchance
-platform provides the hosting shell and the AI plugins used at runtime.
+itself is a normal web app (TypeScript-first; **stack approved** in
+`tech-spec.md` §2); the Perchance platform provides the hosting shell and the
+AI plugins used at runtime.
 
 ## What this project is
 

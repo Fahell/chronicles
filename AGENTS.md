@@ -8,9 +8,12 @@ first** — it documents project conventions that are easy to get wrong.
 - **What:** an RPG game built as a generator on the **Perchance** platform
   (https://perchance.org), using the platform's AI plugins for text and image
   generation.
-- **Stack:** **not yet defined.** The minimum requirement is **TypeScript**;
-  framework and tooling decisions are still pending and will be made with the
-  project owner. Do not assume a specific framework, bundler, or runtime.
+- **Stack:** **APPROVED** (`tech-spec.md` §2): TypeScript (strict), pnpm,
+  Vite, Preact + signals, **three.js** (lazy async chunk; type-C scene
+  baseline) + **PixiJS v8** (2D overlay stack), Dexie/IndexedDB, i18next,
+  Biome, Vitest (test tiers per `tech-spec.md` §8), E2E via Chrome DevTools
+  MCP + WebMCP harness; CI via GitHub Actions once pushed. Exact versions are
+  re-pinned at setup (`research-resolutions.md` §5.2).
   Perchance's list syntax (pjs) is used only at the platform boundary (see
   "Technology Decisions").
 - **Platform reference:** `PERCHANCE-GUIDE.md` at the repo root is the in-depth

@@ -45,7 +45,11 @@ Anything in this spec must respect these platform facts:
 
 ---
 
-## 2. Stack Decision (summary)
+## 2. Stack Decision (approved)
+
+> **Status: APPROVED by the owner** (dedicated turn). This is the baseline for
+> scaffolding `rpg/`. Exact versions are re-pinned at setup
+> (`research-resolutions.md` §5.2).
 
 | Concern | Choice | Rationale |
 | --- | --- | --- |
@@ -572,26 +576,31 @@ sampling; targets are documented, not enforced as hard failures for now:
 | Summarizer implementation | Cadence/budget tuned on-platform via `test-prompt.txt`; **two-tier (daily + window)** per `day-cycle-spec.md` §6 |
 | End-of-day scoring run | System 1 batched per day (`day-cycle-spec.md` §5): batch of 2, parseable output, re-call cap, delta application — prototype with mocks |
 | Output-limit verification | ~3.5k chars per call (§1) — confirm 2-NPC batching or fall back to 1 per call |
-| Save slots & schema | **v1 decided:** 3–6 manual slots + autosave (§7.2); autosave trigger to define (day-end is a natural point, `day-cycle-spec.md` §5) |
+| Save slots & schema | **v1 decided:** 3–6 manual slots + autosave (§7.2); **autosave trigger decided: end of day** (same run as the day-cycle processing, `day-cycle-spec.md` §5) |
 | Asset regeneration wiring | Adapter hook exists (§6.1); **decided: re-roll button on the asset + new seed** (`vn-rpg-spec.md` §4.3) — wire cache-key semantics (mode+entity+prompt+seed) for re-rolls |
-| Onboarding screens | **Resolved (`vn-rpg-spec.md` §8):** flow + contents defined; MVP = title + wizard complete, Load/Settings/Credits/Help stubs |
+| Onboarding screens | **Resolved (`vn-rpg-spec.md` §8):** flow + contents defined; MVP = title + wizard complete, Load/Settings/Credits/Help stubs. **Title look resolved** via the reference image + POC (`templates/title-screen-poc/`) |
 | Language list & i18n resources | 5 most spoken languages, fallback EN (narrative-spec §8.1) |
 | WebMCP tool list | Refined as tests are written |
 | A11y settings UI | Text size + skip + reduced-motion toggle in Settings — **post-MVP** (`§5.5`) |
 | Lighthouse a11y gating | Via CDP MCP — **post-MVP** (`§5.5`) |
 | Scene manifest schema v1 | Baseline drafted in §5.3 (`research-resolutions.md` §2) — refined in the first scene experiment |
-| Floor/scale strategy | Open (vn-rpg-spec §9) — manifest hooks + debug overlay are ready |
+| Floor/scale strategy | **Type C (open variant) resolves it** (§2.1/§3.8): 3D floor + backdrop fix scale/floor alignment; type A's floor/scale stays open (fallback use only) |
 | GitHub repo + Actions | When the owner pushes the repo |
 | Upload automation | Manual copy for now; a script (local-only) may be added later |
 
 ## 12. Next Steps
 
-1. Owner approves this spec; update `AGENTS.md` (stack decided; test-tier
-   decision rule) and `README.md` (ship = `rpg/build/`).
+1. ~~Owner approves this spec~~ **Done (stack approval turn):** `AGENTS.md`
+   and `README.md` updated (stack decided; ship = `rpg/build/`; test tiers per
+   §8).
 2. Scaffold `rpg/` with the tooling checklist (§10) — pnpm + Vite + TS strict
    + Biome + Vitest wired and green.
 3. Implement the mock harness + adapter + dev/prod cache split.
-4. Build the **type-A scene slice** (MVP): PixiJS stage, backdrop, particles/
-   fog/lighting/day-night, layered sprite, dialogue UI (Preact), always-escape.
+4. Build the **type-C open-variant scene slice** (MVP): three.js floor +
+   backdrop planes per the approved open-scene POC
+   (`templates/open-scene-poc/`), placeholder sprites standing on the floor,
+   dialogue UI (Preact), always-escape. The PixiJS 2D overlay stack
+   (particles/fog/lighting/day-night) lands as the complementary layer; type A
+   stays a fallback for selected moments (§2.1).
 5. Validate locally (unit/integration/e2e) → commit `rpg/build/` → hand the
    first `test-prompt.txt` to the Perchance agent for runtime validation.

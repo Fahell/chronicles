@@ -378,22 +378,25 @@ Title
 | Facing mechanics | Sprites mirrored/positioned at runtime to face the interlocutor; whether dedicated side/back orientations are ever needed (§3.7) |
 | Asset regeneration UI | **Resolved (§4.3):** re-roll button on the asset + **new seed** |
 | Pre-generated webp assets | Which assets (if any) ship pre-generated (§4.2) |
-| Onboarding screens | **Resolved (§8.1–8.3):** flow + contents defined (wizard, load slots, settings tabs, credits/help, pause); **title look pending the owner's reference image** |
+| Onboarding screens | **Resolved (§8.1–8.3):** flow + contents defined (wizard, load slots, settings tabs, credits/help, pause); **title look resolved** via the reference image + POC (`templates/title-screen-poc/`) |
 | Narrative system | Separate spec (text plugin) |
 | Audio (music/SFX) | Future phase; out of scope now |
-| Stack, tooling, framework | Decided after this ideation phase |
+| Stack, tooling, framework | **Resolved:** APPROVED stack in `tech-spec.md` §2 (pnpm / Vite / Preact+signals / three.js / PixiJS / Dexie / i18next / Biome / Vitest) |
 | Project name | **Chronicles** (working title) — title screen shows "Chronicles of {player name}" (§8) |
 
 ## 10. Next Steps
 
-1. Prototype **approach A** (static image + code effects) as the first scene
-   experiment.
+1. **Type C (open variant) is the approved baseline** (§3.8) — the MVP scene
+   slice builds on it: three.js floor + backdrop planes with placeholder
+   sprites (validated by `templates/open-scene-poc/`).
 2. Build the dev pipeline around mocked `generateImage`/`generateText` with
    dev/prod modes and separate caches.
-3. Use the prototype to settle the **scene definition format** (§3.5).
-4. Iterate effects priority (§3.3) on the prototype.
-5. **De-risk floor/scale early:** experiment with prompt angle consistency and
-   scene layout (floor line, scale anchors) as the top risk for type A (§3.6).
-6. Prototype the **type C hybrid idea** (floor + backdrop images with feathered
-   edges, §3.8) and compare it against type A.
-7. Later: define the narrative spec (separate document).
+3. Use the first scene build to settle the **scene definition format** (§3.5).
+4. Iterate effects priority (§3.3) — the PixiJS 2D overlay stack
+   (particles/fog/lighting/day-night) complements the 3D stage.
+5. Keep **type A** as a valid fallback for selected moments (§3.8); its
+   floor/scale alignment (§3.6) remains to be solved when it is actually used.
+6. Validate the **closed variant** of type C (walls/ceiling, occlusion,
+   camera) as a future prototype.
+7. Later: scene definition content (style/composition/angle), audio
+   (music/SFX), and world-generation content.

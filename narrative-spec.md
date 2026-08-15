@@ -450,7 +450,8 @@ where the player can actually see the text:
 Purpose: validate the base loop with minimal complexity — only the basics that
 work initially.
 
-- **One scene** (the first scene type: static image + effects).
+- **One scene** (the first scene type: the approved **type C open variant** —
+  three.js floor + backdrop, `vn-rpg-spec.md` §3.8).
 - **One character** drawn from **3 example types** (see examples below).
 - **One background** drawn from **3 example context stories**.
 - The **user creates their identity** (template or custom, with visual

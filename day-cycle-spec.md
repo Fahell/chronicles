@@ -3,8 +3,9 @@
 > **Status:** Draft — **highly speculative and initial**, like the other
 > ideation specs. This is **not a statute**: it will change, gain and lose
 > items as the project evolves.
-> **Scope:** the in-game time structure (days and periods), the **day-log
-> store** (world lore), and the **end-of-day processing run** — the batched
+> **Scope:** the in-game time structure (days and periods), the
+> **per-character log store** (world lore, raw layer), and the
+> **end-of-day processing run** — the batched
 > evolution of System 1 (relationship scoring) plus the two-tier summarization
 > that keeps character context within budget.
 > **Owner:** project owner + primary dev agent
@@ -75,22 +76,65 @@ LLM understands the full context of a day's conversation and can score it.
   structural clock: the period drives both the visual effect and the payload
   context.
 
-## 4. The Day-Log Store (world lore)
+## 4. The Per-Character Log Store (world lore, raw layer)
 
-**Table `dayLogs`** (Dexie — `tech-spec.md` §7.2): full verbatim transcripts of
-the day's interactions, keyed by **(dayId, character pair / NPC)** and
-**period**, with a stored **character count** per log (used by the batching
-safety check, §5).
+The raw layer is **append-only and never deleted** — the opposite of the
+payload: **the payload compresses, the log preserves**. It is the source of
+truth and the corpus for on-demand retrieval (§7).
 
-- **Scope:** user↔NPC interactions **and** NPC↔NPC interactions that happen in
-  scenes. The NPC↔NPC logs are kept **for future scoring** — the loop-control
-  concern is **pending** (they are not scored yet; `relationships-spec.md` §4.2
-  remains pure code).
+**One logical document per character** (owner decision — "um arquivo por
+personagem"): everything a character is and has lived — full background
+(origin), life history, day transcripts, and events — is scoped to that
+character, so search is **directed** (per-character, §7).
+
+**Physical model — table `characterLogs`** (Dexie — `tech-spec.md` §7.2): one
+row per **entry**, tagged for search (**per-entry granularity**, owner
+decision):
+
+| Column | Meaning |
+| --- | --- |
+| `characterId` | the owning character — the search scope |
+| `entryId` | stable id |
+| `type` | the entry-type tag (the primary search axis) |
+| `owner` | voice / pair / world — who the entry belongs to |
+| `dayId`, `period`, `ts` | time scope |
+| `text` | raw verbatim content |
+| `chars` | length (batching safety check, §5.2) |
+
+**Entry types (the categorization of the raw log):**
+
+| type | What it holds |
+| --- | --- |
+| `turn` | verbatim dialogue exchange (who said what) |
+| `action` | a selected choice = the player's own action (`narrative-spec.md` §3.1); NPC actions |
+| `scene` | scene entered/left, period change, sleep — time/place markers |
+| `world-event` | System 2 NPC↔NPC events (`relationships-spec.md` §4.2) |
+| `life-event` | a life-history entry (decisions, promises, emotional shifts, open threads — the summarization extract targets, `narrative-spec.md` §5.5) |
+| `relation-event` | bond changes from end-of-day scoring (§5.4) |
+| `item` | item lore the character knows (`gameplay-spec.md` §8) |
+| `summary` | derived (daily/rolling summaries) — stored and queryable, but **not raw** |
+
+> **Reconciliation:** the earlier `dayLogs` (day-level pair transcripts) and
+> `lifeHistory` merge into `characterLogs` as `turn`/`action`/`life-event`
+> entries. `dayLogs` remains as the **day-level aggregation view** (turn/action
+> entries grouped by `dayId`) used by the end-of-day run (§5). The NPC↔NPC
+> logs stay kept for future scoring (loop control pending,
+> `relationships-spec.md` §4.2).
+
 - **Content:** **full transcripts** (selected choices count as the player's own
   actions — lore, per `narrative-spec.md` §3.1).
-- **Persistence: keep everything**, with **observability** to monitor how the
-  table grows (Dexie handles large text well, unlike localStorage). Dev/WebMCP
-  tooling can report table sizes.
+- **Delimited raw context before summarization:** before any daily summary of a
+  day happens, the **full raw log enters the payload with organized
+  delimitation** — the current day's entries are injected as clearly delimited
+  sections (per period), so the voice acts on the real record, not on a
+  summary. Summarization applies only once the day ends (§6).
+- **Persistence: keep everything**, with **observability** to monitor growth
+  (Dexie handles large text well, unlike localStorage); Dev/WebMCP tooling can
+  report table sizes.
+- **Retention: persistent, tied to the save lifecycle** (owner decision):
+  deleting a save deletes its character logs. (Supersedes the earlier
+  session-scoped memory note — per-voice memory records are entries in this
+  store.)
 - **Not discarded:** the raw log is the source of truth. Only **summaries**
   enter payloads (§6); the raw log remains queryable (§7).
 
@@ -182,17 +226,50 @@ daily summary does **not** replace the window summary:
   visible in the **dev context inspector** (`tech-spec.md` §6.4) per voice,
   alongside the budget bar against the ~24k window.
 
-## 7. On-Demand Retrieval from Day Logs (future — v2+)
+## 7. On-Demand Retrieval from the Log (the search)
 
-When an NPC lacks context for something the user mentions (its window was
-compressed by summaries), the NPC can **query the day-log store** — its full
-interaction history with the user — **instead of inventing**.
+When a voice's window was compressed by summaries and it lacks context for
+something mentioned, it **queries its own character log instead of inventing**
+— the LLM-driven loop.
 
-This **extends the on-demand retrieval idea** (`gameplay-spec.md` §8) from item
-lore / backgrounds to **per-character interaction history**. The mechanics (a
-multi-call generation loop: the LLM requests a log → the app fetches → a second
-pass with the log injected), feasibility, and retrieval technique are **to be
-prototyped later** — complexity is explicitly flagged.
+**No native plugin function calling** (owner decision): the text plugin is not
+required to support tools. The **LLM writes a parseable tool call** in its own
+output; our code captures, parses, executes the search, and feeds the results
+back in a second generation pass.
+
+**Format (line-oriented, like the choice format — `narrative-spec.md` §3.1):**
+the system instructions tell each voice how to use the tool; when it needs
+context, it appends the block at the **end** of its output:
+
+```
+[retrieve]
+character: <characterId>
+query: <what it needs to know>
+```
+
+**Contract (robust, never crashes):**
+
+- marker `[retrieve]` alone on its own line starts the block; `character:` and
+  `query:` lines follow; block is appended at the end of the output;
+- marker absent → no retrieval; malformed block → **dropped**, output kept;
+- a literal `\[retrieve\]` inside text is escaped;
+- **bounded loop:** after parsing, the app runs the search and issues a second
+  generation pass with the results injected as a context section; retrieval
+  rounds are **capped per dialogue turn (1–2)** — never an infinite loop.
+
+**Search:** scoped per character — `searchCharacterLog(characterId, query,
+ topK)` runs BM25-style keyword search over that character's entries
+(`characterLogs`). Candidate library: **MiniSearch** (in-browser BM25, mature;
+no embeddings, no vector store — consistent with the project's local-first
+stance). Structured filters (`type`, `day`, `period`) narrow results. The
+retrieval technique (RAG vs BM25) stays **to be prototyped**
+(`gameplay-spec.md` §8); the parseable protocol is technique-agnostic.
+
+**Same mechanics apply to:** item lore (`gameplay-spec.md` §8 — an
+`[retrieve] item: ...` variant) and the narrator (its own world log). This
+**extends the on-demand retrieval idea** from item lore / backgrounds to
+**per-character interaction history**; feasibility and the exact technique
+remain flagged for prototyping (v2+).
 
 ## 8. Platform Facts (recorded here for the processing run)
 
@@ -233,7 +310,8 @@ Both new tables are **mode-aware** (dev/prod DBs separated, `tech-spec.md`
 | Attempt cap | 2–3 re-calls per NPC — exact value |
 | Output-limit verification | ~3.5k chars — confirm 2 summaries per call or fall back to 1 |
 | NPC↔NPC log scoring | Logs stored; scoring **future** — loop-control pending |
-| On-demand retrieval from day logs | Mechanics/feasibility (v2+) — extends `gameplay-spec.md` §8 |
+| On-demand retrieval from the log | Protocol decided (§7): parseable `[retrieve]` tool call, bounded loop, BM25 per-character (MiniSearch candidate) — technique (RAG vs BM25) still to prototype |
+| Per-character log tuning | Entry-type taxonomy, `[retrieve]` format details, round cap — calibrate on-platform via `test-prompt.txt` |
 | Day summary UI | Recap + discreet bond-change indicators — layout/contents |
 | Observability for `dayLogs` growth | Monitor table size in dev/WebMCP tooling |
 

@@ -247,6 +247,9 @@ menu (UI version, `relationships-spec.md` §6). Origin and life history must not
 be confused: the **origin** stays immutable in the payload; only the **life
 history** is compressed. (Wildermyth: *upbringing* is permanent at creation;
 *history entries* are appended by events and capped/curated.)
+Life-history entries are stored in the **per-character log**
+(`day-cycle-spec.md` §4) as `life-event` entries — the raw layer that is also
+the retrieval corpus scoped per character (§7).
 
 ### 5.5 Summarization baseline (initial design, from `research-resolutions.md` §3)
 

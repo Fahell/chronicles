@@ -453,8 +453,9 @@ visualizes — it must not fork state.
 | `save` | game snapshots — **v1: 3–6 manual slots + autosave** (owner decision): identity, scene, progress, flags |
 | `characters` | registry: user identity + NPCs (visual description, background, pose availability) |
 | `relationships` | the web: edges `(from, to, type, intensity, direction)` |
-| `memory` | per-voice memory records (session-scoped initially; summarization later) |
-| `dayLogs` | day-cycle: full interaction transcripts `(dayId, characterId/pair, period, transcript, chars)` — world lore (`day-cycle-spec.md` §4) |
+| `memory` | per-voice memory records — now entries in `characterLogs` (per-character raw store, `day-cycle-spec.md` §4) |
+| `characterLogs` | **the per-character raw log** (retrieval corpus): one row per tagged entry `(characterId, entryId, type, owner, dayId, period, ts, text, chars)` — `day-cycle-spec.md` §4; **retention tied to the save lifecycle** (deleting a save deletes its logs) |
+| `dayLogs` | day-level **aggregation view** of `characterLogs` (`turn`/`action` grouped by `dayId`, `characterId/pair`, `period`, `chars`) — feeds the end-of-day run (`day-cycle-spec.md` §5) |
 | `daySummaries` | day-cycle: per-character daily summaries + scores `(dayId, characterId, summary, scoreUserToNpc, scoreNpcToUser, reason)` (`day-cycle-spec.md` §9) |
 
 - Dexie **versioning** migrations from day one; DB name carries the mode

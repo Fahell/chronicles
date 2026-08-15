@@ -2,81 +2,51 @@
 
 > Official project name: **TBD**.
 
-An RPG game built as a [Perchance](https://perchance.org) generator. The game
-itself is a normal web app (TypeScript-first; **stack approved** in
-`tech-spec.md` §2); the Perchance platform provides the hosting shell and the
-AI plugins used at runtime.
+An RPG built as a [Perchance](https://perchance.org) generator. The game is a
+normal web app (TypeScript + Vite + Preact + three.js); the Perchance platform
+provides the hosting shell and the two AI plugins used at runtime
+(`generateImage`, `generateText`).
 
-## What this project is
+This branch (`perchance`) is the **minimal upload set** for the Perchance
+workspace. It contains the app code plus this README — nothing else (no
+configs, no CI, no specs, no dev tooling).
 
-- A playable RPG with AI-generated text (dialogue) and images (sprites/art).
-- Runs inside the Perchance platform, which supplies two runtime services via
-  the `root` global:
-  - `root.generateImage(...)` → AI image generation
-  - `root.generateText(...)` → AI text generation
-- The Perchance list syntax (pjs) is used only to import those plugins; all
-  game logic is written as a normal typed codebase.
+## What runs here
 
-## Repository ↔ Platform mapping
+- **Main menu flow** (title / new game / settings): planned, not yet built.
+- **Scene (type C — open variant):** a 3D scene built with three.js — a
+  **floor plane** and a **landscape backdrop**, each textured by an
+  AI-generated image (see prompts in `src/rpg/src/scene/manifest/openPlains.ts`).
+  Two placeholder character sprites stand on the floor.
+- **Dialogue:** a Preact overlay. `Talk to the elder` (in the top-left HUD)
+  asks the text AI for a line; if the AI includes a `[choices]` block (see
+  below), the options become clickable buttons. A fixed **Leave** button
+  always ends the interaction (always-escape).
 
-| Local (git repo) | Perchance platform |
+## Platform ↔ code mapping
+
+| Perchance | This branch |
 | --- | --- |
-| `main.pjs` | *Lists* panel (content copy-pasted) |
-| `index.html` | *HTML* panel (content copy-pasted) |
-| `rpg/` | `src/rpg/` |
-| `README.md` (this file) | `src/README.md` |
+| *Lists* panel (`main.pjs`) | imports the AI plugins (`generateImage`, `generateText`) |
+| *HTML* panel (`index.html`) | loads the app bundle |
+| `src/rpg/build/` | the compiled production bundle (`rpg.js`, `rpg.css`, `chunks/`) |
+| `src/rpg/src/` | readable TypeScript source (for agent navigation) |
+| `src/README.md` | this file |
+| `src/test-prompt.txt` | the handoff prompt for each test round |
 
-> Only the app code and this file are uploaded to Perchance. Everything else
-> (configs, CI, guides, agent instructions) stays local.
+The game code boots against `window.root`:
+- `root.generateImage(opts)` → AI image generation (the floor/backdrop textures)
+- `root.generateText(opts)` → AI text generation (dialogue)
 
-## Project knowledge graph (Graphify)
+## How to test (for the Perchance AI agent)
 
-[Graphify](https://github.com/Graphify-Labs/graphify) turns the specs into an
-interactive knowledge graph: `graphify-out/graph.html` (clickable, searchable),
-a written `graphify-out/GRAPH_REPORT.md` and a queryable `graphify-out/graph.json`.
-It is a dev-only tool — everything under `graphify-out/` is gitignored and never
-uploaded to Perchance.
+Read **`src/test-prompt.txt`** first — it lists exactly what to check, click,
+measure, and report for this round. The AI plugins only execute inside the
+platform; the generator runs in a cross-origin iframe, so runtime validation
+is your job.
 
-Setup (one-time):
+## For local development
 
-1. Copy `.env.example` to `.env` and fill in `GEMINI_API_KEY`
-   (<https://aistudio.google.com/apikey>) and, optionally, `GRAPHIFY_GEMINI_MODEL`.
-2. The CLI is auto-provisioned by the Cloud Shell bootstrap
-   (`~/.local/bin/ensure-graphify`, wired into `ensure-ephemeral-tools`): it
-   installs to `/tmp` (ephemeral, recreated per boot) and keeps nothing in
-   `$HOME`. For other environments, install manually:
-   `uv tool install "graphifyy[svg,gemini]"`.
-
-Rebuild the graph:
-
-```bash
-./graphify.sh            # full extract (AST + semantic pass over docs)
-./graphify.sh --force    # full re-scan, ignoring the incremental cache
-```
-
-Then open `graphify-out/graph.html` (e.g. `python3 -m http.server` + VS Code
-port forwarding) and skim `graphify-out/GRAPH_REPORT.md`.
-
-Query the graph:
-
-```bash
-graphify query "how does the relationship web work?"
-graphify explain "memory pipeline"
-graphify path "scene type C" "day cycle"
-```
-
-> The semantic pass over docs calls the Gemini API — the only step that leaves
-the machine. Code parsing is local and deterministic (tree-sitter), and only
-kicks in once real source code exists.
-
-## For the Perchance AI agent (runtime testing)
-
-This project relies on you for final runtime validation: the AI plugins only
-execute inside the platform, and the generator runs in a cross-origin iframe
-that is unreachable from outside.
-
-- Read the handoff prompt `test-prompt.txt` (delivered with each test round) —
-  it lists exactly what to check, click, measure, and report.
-- The app flow: *(to be described once the app is built — title screen, scenes,
-  dialogue, settings)*.
-- Report results clearly; they feed back into local fixes and CI.
+Local development, tooling, CI, and specs live on the `main` branch of
+<https://github.com/Fahell/chronicles>. This branch is generated by
+`./scripts/ship-perchance.sh` — do not edit it by hand.

@@ -4,9 +4,9 @@ import {
   advanceDialogue as advanceMachine,
   beginDialogue,
   chooseOption,
+  type DialogueMachine,
   escapeDialogue,
   initialMachine,
-  type DialogueMachine,
 } from "../dialogue/machine";
 
 export const dialogueMachine = signal<DialogueMachine>(initialMachine);

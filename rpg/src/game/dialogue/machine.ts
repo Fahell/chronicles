@@ -40,10 +40,7 @@ export function beginDialogue(
   };
 }
 
-export function chooseOption(
-  machine: DialogueMachine,
-  index: number,
-): DialogueMachine {
+export function chooseOption(machine: DialogueMachine, index: number): DialogueMachine {
   if (machine.state !== "choices" || index < 0 || index >= machine.options.length) {
     return machine;
   }

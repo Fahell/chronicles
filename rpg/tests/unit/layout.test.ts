@@ -10,9 +10,7 @@ const manifest: SceneManifest = {
   backdrop: { assetKey: "b", description: "d", depth: -10, height: 6.3, scale: 1 },
   floor: { assetKey: "f", depth: -2.2, scale: 0.7 },
   effects: [],
-  actors: [
-    { characterId: "npc/elder", pose: "idle", position: { x: -2.2, z: -3.4 } },
-  ],
+  actors: [{ characterId: "npc/elder", pose: "idle", position: { x: -2.2, z: -3.4 } }],
   camera: { mode: "fixed", fov: 52, height: 2, pitch: 2 },
 };
 

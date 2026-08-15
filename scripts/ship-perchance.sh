@@ -67,6 +67,9 @@ cp README.md "$WORKTREE/src/README.md"
 cp test-prompt.txt "$WORKTREE/src/test-prompt.txt"
 cp -R rpg/build "$WORKTREE/src/rpg/build"
 cp -R rpg/src "$WORKTREE/src/rpg/src"
+# The Vite-emitted build/index.html is not part of the Perchance upload set —
+# the platform's *HTML* panel is driven by the root index.html instead.
+rm -f "$WORKTREE/src/rpg/build/index.html"
 
 # 4. Commit.
 echo "→ committing..."

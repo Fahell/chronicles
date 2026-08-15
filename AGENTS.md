@@ -343,13 +343,18 @@ ps -eo pid,%cpu,rss,args | grep -E "/opt/google/chrome/chrome" | grep -v grep  #
 ```
 
 Notes:
+- **The MCP relaunches Chrome on EVERY tool call** (`list_pages`, navigate,
+  click, screenshot, …) — killing Chrome once is not enough; it comes back
+  the next time the browser is touched. Therefore run the `pkill` **every
+  time you finish using the CDP MCP**, not just at session end: the last
+  browser-related action of any task must be the shutdown below.
 - **CRITICAL: never match on `user-data-dir` or the string `chrome-profile`**
   in the `pkill` pattern — the `chrome-devtools-mcp` process itself passes
   `--user-data-dir=…/chrome-profile` in its own args (see `.agents/mcp.json`),
   so such a pattern kills the MCP server too, severing the CDP connection
   for the session. Match the **Chrome binary path only** (`/opt/google/chrome/
   chrome`) as above — the MCP process (`npx … chrome-devtools-mcp`) never
-  contains that string, so it survives and relaunches Chrome on demand.
+  contains that string, so it survives.
 - Before finishing any session that used browser validation, run the `pkill`
   and confirm zero matching processes remain.
 

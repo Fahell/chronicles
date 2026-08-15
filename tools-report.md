@@ -204,7 +204,7 @@ option for authored scripted content later.
 
 | Tool | What it adds | Verdict |
 | --- | --- | --- |
-| **`rollup-plugin-visualizer`** | Treemap of bundle composition — verifies where the weight is against the ≤500 KB-gzipped initial target. | ✅ Adopt |
+| **`rollup-plugin-visualizer`** | Treemap of bundle composition — verifies where the weight is against the ≤500 KB-gzipped initial target. | ✅ Adopt — **wired (2026-08):** `pnpm analyze` (separate `vite.analyze.config.ts`; report → `rpg/reports/bundle.html`, gitignored — kept out of the Perchance upload set). First run: rpg.js **36 kB gz** vs 500 kB target. |
 | **Lighthouse CI** | On-demand performance auditing in the `perf` tier. | ✅ Adopt (perf tier) |
 | **`size-limit`** | Hard bundle gates — only if soft gates prove insufficient later. | 🔮 Optional |
 
@@ -226,10 +226,13 @@ option for authored scripted content later.
 
 1. ~~Owner confirmation to install the pixijs skills~~ **Done (2026-08):**
    pixijs + threejs skills installed into `.agents/skills/`.
-2. Scaffold `rpg/` (tech-spec §10) including the adopted libs: `pixi.js`,
+2. ~~Scaffold `rpg/` (tech-spec §10) including the adopted libs: `pixi.js`,
    `@pixi/particle-emitter` (v8 path), `pixi-filters`, `gsap`,
    `gpt-tokenizer`, `valibot`, `seedrandom`, i18next companions,
-   `rollup-plugin-visualizer`.
+   `rollup-plugin-visualizer`.~~ **Done (2026-08):** all installed; visualizer
+   wired via `pnpm analyze` (§12). The remaining installed libs
+   (`gpt-tokenizer`, `seedrandom`, i18next companions, `gsap`) activate when
+   their milestone code lands (payload builder, System 2, i18n, tweens).
 3. ~~Wire Playwright `toHaveScreenshot()`~~ **Decision (2026-08):** Playwright
    is the **second option** — only if the CDP MCP becomes unstable for local
    tests; CDP screenshots + pixelmatch keep the no-Playwright preference (§7).

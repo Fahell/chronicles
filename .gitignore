@@ -17,6 +17,9 @@ dist/
 graphify-out/
 raw/
 
+# Bundle analysis reports (regenerable with pnpm analyze)
+rpg/reports/
+
 # Segredos
 .env
 .env.*

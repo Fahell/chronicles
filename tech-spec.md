@@ -365,6 +365,71 @@ Richer than the guide's minimal stub, deterministic and controllable:
 - This gives CDP/Playwright tests a stable, semantic interface instead of
   reaching into the DOM.
 
+### 6.4 Dev context inspector (NPC / narrator / user debug panel)
+
+A **dev panel in the UI** that shows everything that defines a voice at the
+current moment — everything that goes into its LLM payload, the source
+artifacts the payload derives from, and its live state. Target audience: the
+owner during development and the Perchance agent during runtime tests.
+
+**Availability & gating (owner decisions from interview):**
+
+- Exists in **both dev and prod builds**, but is **off by default**. Enabled
+  via a build flag / URL param / settings switch — so the Perchance agent can
+  turn it on during runtime tests on the deployed build.
+- **Toggle:** a discreet **HUD button** (no keyboard shortcut). The button is
+  rendered only when the feature is enabled.
+- **Voice selector:** **one voice at a time** — dropdown listing the NPCs
+  present in the scene + the **narrator** + the **user**.
+
+**Per-voice content (what the panel shows):**
+
+- **Payload sections** — every **named section** of the context taxonomy
+  (`narrative-spec.md` §5.3), exactly as the payload builder emitted them:
+  system instructions, scene description, visual descriptions, own background
+  (payload version), lore / rolling summary, recent turns (verbatim), the
+  daily-summaries pile, time of day, and the user-identity pieces.
+- **Image prompt** — the raw generation prompt (which never enters the
+  payload; `narrative-spec.md` §2.2).
+- **Visual description** — the derived compact description that is what
+  actually goes into narrator/NPC payloads (§2.2).
+- **Background dual versions** — **payload version** (English, compact) vs
+  **UI version** (translated/full) side by side (§5.4).
+- **Summarizable marker** — every section flagged as **never-summarized** or
+  **summarizable** (the taxonomy's policy column, §5.3); the **summarizable
+  lore section** (rolling summary + day-summaries pile) is visually
+  highlighted — the section that undergoes the **daily and window summaries**
+  (`day-cycle-spec.md` §6).
+
+**Counts:**
+
+- **Per-section** char count (+ token estimate) and a **total with a budget
+  bar** against the **~24k chars** window (narrative §5.2/§5.5);
+- a **window-summary trigger indicator** when the voice's total approaches
+  **~22k chars** (the two-tier trigger, `day-cycle-spec.md` §6);
+- the daily-summaries pile shown with the most recent summary.
+
+**State section:** current scene, current time period (day-cycle §3), the
+voice's relevant web edges (relationship with the user + notable bonds,
+`relationships-spec.md` §2), available poses (`narrative-spec.md` §6), and the
+last daily summary.
+
+**Interaction (owner decisions):**
+
+- **Snapshot + refresh:** the panel shows the state from when it was opened;
+  a manual **Refresh** button re-reads the payload; auto-refresh on voice
+  switch.
+- **Copy payload:** a button exports the selected voice's payload as readable
+  text — for `test-prompt.txt` handoffs to the Perchance agent.
+- **WebMCP tool:** the same data is exposed as a dev WebMCP tool (e.g.
+  `get_context_panel`) returning JSON, so automated tests can inspect the
+  panel's contents through CDP (§6.3 gating).
+
+**Constraints:** off by default in prod (never a visible surface without the
+flag); shows no data beyond what payloads already contain (no new secrets);
+reads from the same payload builder / memory / relationship stores it
+visualizes — it must not fork state.
+
 ---
 
 ## 7. State, Memory & Relationships (technical)

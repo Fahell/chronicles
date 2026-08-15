@@ -174,6 +174,9 @@ daily summary does **not** replace the window summary:
 - **Naming matters:** each piece of information that goes into context is
   **named** (the taxonomy's rows) so there is no confusion about what can and
   cannot be summarized.
+- **Dev observability:** the ~22k trigger and the daily-summaries pile are
+  visible in the **dev context inspector** (`tech-spec.md` §6.4) per voice,
+  alongside the budget bar against the ~24k window.
 
 ## 7. On-Demand Retrieval from Day Logs (future — v2+)
 

@@ -204,6 +204,12 @@ to act correctly (instructions, scene/visual descriptions, own identity) stays
 complete.** The narrator always gets the full scene + visual descriptions;
 NPCs must not have non-lore information summarized.
 
+> **Dev observability:** this taxonomy (section names, policy, and the
+> summarizable marker) is surfaced live by the **dev context inspector** — the
+> NPC/narrator/user debug panel (`tech-spec.md` §6.4), which shows each
+> section exactly as the payload builder emitted it, with counts against the
+> window budget.
+
 ### 5.4 Content size limits (protecting the lore budget)
 
 The window must reserve space for the **current story's lore**. Initial limits

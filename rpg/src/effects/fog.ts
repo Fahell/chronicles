@@ -29,7 +29,7 @@ export function fogParams(spec: Pick<EffectSpec, "params">): FogParams {
 }
 
 /** Soft radial-gradient texture reused by every layer (tinted). */
-function makeFogTexture(app: Application, color: number): Texture {
+function makeFogTexture(color: number): Texture {
   const size = 512;
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -86,7 +86,7 @@ export async function createFogEffect(
   root.alpha = params.opacity;
   app.stage.addChild(root);
 
-  const texture = makeFogTexture(app, params.color);
+  const texture = makeFogTexture(params.color);
   const blobs: FogBlob[] = [];
   let frame = { width: 1, height: 1, offsetX: 0, offsetY: 0 };
 

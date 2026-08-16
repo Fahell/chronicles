@@ -126,6 +126,14 @@ export async function createFogEffect(
   applyFrame();
 
   let t = 0;
+  // Render throttle: the fog drifts slowly, so re-rasterizing the PixiJS
+  // canvas every rAF frame is wasted work — on software WebGL (SwiftShader,
+  // headless harness) it pinned the GPU process near 100%+. Positions keep
+  // updating every frame (the sine phase must stay smooth); only the
+  // rasterize is throttled to every ~3rd frame (~20fps), visually
+  // indistinguishable for this effect and ~66% cheaper.
+  const RENDER_EVERY = 3;
+  let frameCount = 0;
   return {
     update(dt: number) {
       t += dt;
@@ -133,6 +141,8 @@ export async function createFogEffect(
         b.sprite.x = b.baseX + Math.sin(t * b.speed + b.phase) * b.ampX;
         b.sprite.y = b.baseY + Math.sin(t * b.speed * 0.6 + b.phase) * b.ampY;
       }
+      frameCount = (frameCount + 1) % RENDER_EVERY;
+      if (frameCount !== 0) return;
       app.render();
     },
     resize(width: number, height: number) {

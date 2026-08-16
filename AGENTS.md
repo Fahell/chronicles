@@ -195,7 +195,7 @@ step 2) — this section is the map, not the source of truth.
 
 | Server | What it's for |
 | --- | --- |
-| `chrome-devtools` (CDP MCP) | **Primary browser/e2e driver** (owner preference, `tech-spec.md` §8): navigate/click/fill, console & network, a11y snapshot, Lighthouse, WebMCP tools. Dev server default URL: `http://127.0.0.1:5173` (Vite). |
+| `chrome-devtools` (CDP MCP) | **Primary browser/e2e driver** (owner preference, `tech-spec.md` §8): navigate/click/fill, console & network, a11y snapshot, Lighthouse, WebMCP tools. Dev server default URL: `http://127.0.0.1:5173` (Vite). **CPU**: the config pins `--window-size=1280,800` — do NOT remove it. Without it the MCP defaults to the host's `--screen-info={3840x2160}` and SwiftShader (software WebGL) pins the GPU process at ~90%+ CPU even on `about:blank` (measured 94% vs 0.5% at 1280×800, 2026-08-16). |
 | `context7` | Up-to-date library docs (PixiJS, three.js, Preact, Dexie, …) — query before guessing APIs. |
 
 Playwright is the **second option** to the CDP MCP — only if CDP becomes
@@ -395,18 +395,27 @@ After any non-trivial change under `rpg/`, run (in `rpg/`):
 ### Shut down Chrome after local browser tests (CPU)
 
 The CDP MCP launches a headless Chrome with the project's profile
-(`.agents/chrome-profile`). It spawns **~13 processes / ~1.7 GB RSS**, and the
+(`.agents/chrome-profile`). It spawns **~13 processes / ~1.7 GB RSS**. The
 **GPU process burns CPU continuously** (SwiftShader software WebGL in
 headless — no real GPU, every frame is rasterized on the CPU).
 
+**Measured cause (2026-08-16):** the viewport resolution. The MCP defaulted to
+the host's `--screen-info={3840x2160}` and the GPU process pinned at **~94%
+CPU even on `about:blank`**; the same Chrome at `--window-size=1280,800` idles
+at **~0.5%**. The `.agents/mcp.json` now pins the window size — keep it.
+
 The app itself renders **on demand** (dirty-flag render loop in
-`three-stage.ts` — the scene is static, so an idle scene costs ~0% CPU);
-whatever CPU remains after boot is Chrome's software rasterization, not the
-app. Even so, once local browser testing is done, kill Chrome — it is NOT
-owned by any daemon and nothing restarts it automatically:
+`three-stage.ts` — the scene is static, so an idle scene costs ~0% CPU).
+PixiJS overlay effects animate every frame but rasterize on a **render
+throttle** (`fog.ts`: positions every frame, `app.render()` every 3rd — on
+SwiftShader each WebGL frame is expensive). Whatever CPU remains after boot
+is Chrome's software rasterization, not the app. Even so, once local browser
+testing is done, kill Chrome — but note the CDP MCP **auto-restarts it**
+within seconds (same profile dir); to actually stop the burn, also exit the
+MCP session (or kill the `chrome-devtools-mcp` process):
 
 ```bash
-pkill -f "/opt/google/chrome/chrome" 2>/dev/null; sleep 2
+pkill -f "chrome-devtools-mcp" 2>/dev/null; pkill -f "/opt/google/chrome/chrome" 2>/dev/null; sleep 2
 ps -eo pid,%cpu,rss,args | grep -E "/opt/google/chrome/chrome" | grep -v grep  # expect: none
 ```
 

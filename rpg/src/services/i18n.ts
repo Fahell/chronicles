@@ -74,6 +74,17 @@ const en = {
     display: "Display",
     audio: "Audio",
   },
+  pause: {
+    title: "Paused",
+    save: "Save",
+    settings: "Settings",
+    quit: "Quit to title",
+    saved: "Saved.",
+    quitConfirm: "Save before quitting?",
+    yes: "Yes",
+    no: "No",
+    cancel: "Cancel",
+  },
   credits: {
     title: "Credits",
   },

@@ -14,12 +14,14 @@ import {
   pendingSpeaker,
   showTurn,
 } from "../game/state/dialogue";
+import { pauseOpen, togglePause } from "../game/state/pause";
 import type { Stage } from "../render/stage";
 import { resolveCharacterSprite, resolvePortrait, type SpriteRequest } from "../scene/assets";
 import type { BootServices } from "../services/boot";
 import { currentLanguage, englishName, t } from "../services/i18n";
 import { setRemovalQueue } from "../services/progress";
 import { DialogueBox } from "./DialogueBox";
+import { PauseMenu } from "./screens/PauseMenu";
 
 interface AppProps {
   services: BootServices;
@@ -102,6 +104,19 @@ export function App({ services, stage }: AppProps) {
     });
   }, [services, session]);
 
+  // Esc dual behavior (vn-rpg-spec §8.2, round-10 decision): with a dialogue
+  // open, Esc closes it (the DialogueBox handler runs first and calls
+  // preventDefault — the pause handler must not fire then); with no dialogue
+  // open, Esc toggles the pause menu.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      togglePause();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   // Free-form player action (round 10, owner decision): submit appends the
   // typed action + the finished NPC turn to the conversation, shows the
   // player's turn with their portrait, then asks the NPC follow-up.
@@ -181,6 +196,7 @@ export function App({ services, stage }: AppProps) {
         </button>
       </div>
       <DialogueBox onSubmitAction={submitPlayerAction} />
+      {pauseOpen.value && <PauseMenu services={services} />}
     </main>
   );
 }

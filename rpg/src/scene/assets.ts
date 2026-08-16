@@ -25,18 +25,24 @@ export async function resolveSceneTextures(
     throw new Error("resolveSceneTextures: type-C manifest needs floor + backdrop prompts");
   }
 
+  // Planes request landscape 768×512 (guide §7) — the only size that maps
+  // 1:1 onto the 3:2 scene frame (viewport.ts SCENE_FRAME). The plugin's
+  // default 512×512 would stretch ~1.5× horizontally on the 3:2 planes
+  // (Perchance round 2 finding).
   const [backdrop, floor] = await Promise.all([
     assets.getOrGenerate({
       entity: manifest.id,
       pose: "backdrop",
       prompt: manifest.backdrop.prompt,
       seed: `${manifest.id}:backdrop:v1`,
+      resolution: "768x512",
     }),
     assets.getOrGenerate({
       entity: manifest.id,
       pose: "floor",
       prompt: manifest.floor.prompt,
       seed: `${manifest.id}:floor:v1`,
+      resolution: "768x512",
     }),
   ]);
 

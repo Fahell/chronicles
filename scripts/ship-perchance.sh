@@ -71,6 +71,30 @@ cp -R rpg/src "$WORKTREE/src/rpg/src"
 # the platform's *HTML* panel is driven by the root index.html instead.
 rm -f "$WORKTREE/src/rpg/build/index.html"
 
+# 3b. Validate the upload set is COMPLETE. rpg.js lazy-loads three.js from
+# chunks/ (three-stage.ts dynamic import); if a referenced chunk is missing
+# from the ship, the app boots to a "Failed to fetch dynamically imported
+# module" and dies on the loading overlay (seen in Perchance round 2). Fail
+# the ship loudly instead of publishing a broken upload set.
+echo "→ validating upload set..."
+if [ ! -f "$WORKTREE/src/rpg/build/rpg.js" ]; then
+  echo "ERROR: src/rpg/build/rpg.js missing from upload set — build output incomplete" >&2
+  exit 1
+fi
+mapfile -t CHUNK_REFS < <(grep -o 'chunks/[A-Za-z0-9._-]*\.js' "$WORKTREE/src/rpg/build/rpg.js" | sort -u || true)
+if [ "${#CHUNK_REFS[@]}" -gt 0 ]; then
+  for ref in "${CHUNK_REFS[@]}"; do
+    if [ ! -f "$WORKTREE/src/rpg/build/$ref" ]; then
+      echo "ERROR: rpg.js references '$ref' but the file is missing from the upload set" >&2
+      echo "       The Perchance workspace needs the FULL src/rpg/build/ tree." >&2
+      exit 1
+    fi
+  done
+  echo "  ok: ${#CHUNK_REFS[@]} chunk(s) present ($(printf '%s, ' "${CHUNK_REFS[@]}"))"
+else
+  echo "  ok: no lazy chunks referenced"
+fi
+
 # 4. Commit.
 echo "→ committing..."
 git -C "$WORKTREE" add -A
@@ -91,3 +115,10 @@ fi
 
 echo "→ done. Branch '$BRANCH' now contains:"
 git -C "$WORKTREE" ls-tree -r --name-only "$BRANCH" | sed 's/^/    /' | head -40
+
+echo
+if [ "${#CHUNK_REFS[@]}" -gt 0 ]; then
+  echo "REMINDER: when uploading the workspace to Perchance, make sure the"
+  echo "src/rpg/build/chunks/ folder is included — the app cannot boot without"
+  echo "it (lazy-loaded three.js)."
+fi

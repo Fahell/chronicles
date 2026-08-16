@@ -38,8 +38,9 @@ describe("resolveSceneTextures (fake-indexeddb)", () => {
     expect(textures.actors.player).toMatch(/^data:image\//);
     expect(textures.actors["npc/elder"]).not.toBe(textures.actors.player);
 
-    // Planes stay at the plugin default; characters request portrait 512×768.
-    const planeCalls = seen.filter((s) => !s.resolution);
+    // Planes request landscape 768×512 (1:1 with the 3:2 frame); characters
+    // request portrait 512×768.
+    const planeCalls = seen.filter((s) => s.resolution === "768x512");
     const actorCalls = seen.filter((s) => s.resolution === "512x768");
     expect(planeCalls).toHaveLength(2);
     expect(actorCalls).toHaveLength(2);
@@ -48,6 +49,26 @@ describe("resolveSceneTextures (fake-indexeddb)", () => {
     const again = await resolveSceneTextures(openPlainsManifest, assets);
     expect(again.backdrop).toBe(textures.backdrop);
     expect(again.actors["npc/elder"]).toBe(textures.actors["npc/elder"]);
+
+    await assets.close();
+  });
+
+  it("busts the cache when the plane resolution changes", async () => {
+    const { assets, seen } = cache();
+    await resolveSceneTextures(openPlainsManifest, assets);
+    const first = seen.length;
+
+    // Same manifest, second run — everything hits the cache (no new calls).
+    await resolveSceneTextures(openPlainsManifest, assets);
+    expect(seen.length).toBe(first);
+
+    // A manifest with a different backdrop prompt regenerates (key bust).
+    const variant = {
+      ...openPlainsManifest,
+      backdrop: { ...openPlainsManifest.backdrop, prompt: "a different twilight sky" },
+    };
+    await resolveSceneTextures(variant, assets);
+    expect(seen.length).toBeGreaterThan(first);
 
     await assets.close();
   });

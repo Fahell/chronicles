@@ -1,60 +1,54 @@
-Build é produção e os plugins reais estão ativos (prod · platform runtime). Vou verificar o cache do IndexedDB e o estado das texturas.
+First, a clean boot to observe console errors and load behavior.
 
-Cache já tem as duas texturas geradas (backdrop ~20s, floor ~20s na geração). Agora vou verificar visualmente a cena e o estado do DOM.
+The scene never boots. Let me confirm the plugins themselves loaded (the only other boot-relevant piece) before writing the report.
 
-O canvas está em branco no capture — típico do WebGL sem preserveDrawingBuffer (o buffer é limpo após o frame). Preciso verificar se é só a captura ou se a cena não renderiza. Vou instrumentar o reload com um patch de harness (não mexe no código do app) que força preserveDrawingBuffer, e conferir o CSS do stage.
+Interesting — textures resolve before the three.js import. Let me check whether the image plugin actually ran and cached the 4 assets despite the boot failure.
 
-Vou fazer um reload com preambleJs que força preserveDrawingBuffer:true (só instrumentação de captura) e então medir os pixels reais do canvas.
+All 4 assets were generated and cached before the boot failed. Let me inspect their sizes and check if they're usable images.
 
-A 2D context não pode ser criada sobre um canvas WebGL. Vou ler os pixels direto via gl.readPixels.
+Both character sprites were generated fresh on this boot; backdrop+floor served from cache. Let me verify the cached assets decode to the right resolutions (portrait sprites vs landscape textures).
 
-A cena está renderizando (mean luma 109, variação rica — o branco era só o buffer do WebGL). Agora a captura visual deve funcionar:
+Asset resolution check: sprites are correct 512×768 portraits; but backdrop/floor are 512×512 (square) — not the 768×512 the scene frame expects. Now let me verify cache behavior across a reload (section 4).
 
-Cena renderiza e bate com o esperado (castelo à direita, espiões à esquerda, piso de grama, 2 sprites). Vou conferir a geometria do layout para avaliar aquele detalhe "preto no topo" (pode ser o fundo #0b1c2e aparecendo se o backdrop não cobre a viewport).
+Validation complete. Here is the structured report.
 
-Layout confere (backdrop cobre o topo; o "preto" no topo é arte da geração, não bug de código). Agora o teste do diálogo — clico em "Talk to the elder" e espero a resposta da IA real (pode levar até 1 min):
+RUNTIME VALIDATION REPORT — Round 2
+1. BOOT: FAIL
+The page loads and the plugin imports succeed (root.generateImage / root.generateText are both present), but the app never boots past the scene stage and is permanently stuck on the "Generating scene…" overlay.
 
-O diálogo abre, mas vejo um problema real: a IA não usou o formato [choices] — devolveu markdown * **[Opção]** ..., então o parser não extraiu opções (só "Continue" + "Leave"). Vou ler a máquina de estados e testar o fluxo completo.
+Console errors (verbatim):
 
-Máquina confirmada. Fluxo atual: Continue→"ended" mantém a caixa visível (só Leave fecha). Vou testar a interação completa agora:
+uncaught: Uncaught TypeError: Failed to fetch dynamically imported module:
+  https://perchance.org/src/rpg/build/chunks/three.module-C5rh5wLt.js  (ay5ujnpy9h#edit:0)
+perchanceErrors: TypeError: Failed to fetch dynamically imported module: https://perchance.org/src/rpg/build/chunks/three.module-C5rh5wLt.js
 
-O teste ficou inconsistente (possível race de re-render). Vou refazer com pausas entre cliques e mais inspeção:
+Root cause: rpg.js code-splits three.js into ./chunks/three.module-C5rh5wLt.js (lazy-imported in three-stage.ts), but the src/rpg/build/chunks/ directory is entirely missing from the shipped workspace — only rpg.js and rpg.css exist. Direct fetch of the chunk URL returns HTTP 404. createThreeStage rejects → loadScene rejects → bootOverlay.remove() and the App render never run. Verified live: #boot-loader still visible ("Generating scene…"), #app has 0 children, no canvas, no HUD.
 
-Diálogo confirmado: abre, texto aparece, Continue encerra o turno (caixa fica), Leave sempre fecha. Agora o teste de cache/reload. Primeiro: reload com cache (deve ser rápido, sem regerar):
+Letterbox frame: cannot be validated — the three.js canvas is never created.
 
-Cache funciona: reload instantâneo (~6ms), mesmas texturas, sem regenerar (vs ~20s na primeira geração). Agora limpo o cache e meço a geração fresca:
+2. IMAGES: PARTIAL — generation pipeline passes, display unverifiable
+Generation does run (textures resolve before the three.js import) and all four assets generated without plugin errors. All are cached in IndexedDB rpg/assets (key prefix prod|).
 
-Agora meço a geração fresca (pode levar ~1 min):
+Asset	Resolution	Size	When generated
+floor	512×512	795 KB	cache-served (previous session, ~41 min before this test)
+backdrop	512×512	709 KB	cache-served (previous session, ~41 min before)
+player sprite	512×768 ✓	647 KB	fresh, during this test's first boot
+elder sprite	512×768 ✓	502 KB	fresh, ~20s after player finished
+Both sprites are correct portrait 2:3 (512×768) — matches the 2:3 sprite plane, no sprite distortion expected.
+Issue: floor and backdrop came out square 512×512, not the 768×512 the code comments say is needed for 1:1 mapping (viewport.ts claims "native landscape resolution"). assets.ts:36 only passes resolution: "512x768" for actors; floor/backdrop default to the plugin's 512×512, so both textures get stretched ~1.5× horizontally onto their 3:2 planes. Round-1's letterbox fix removed the screen-level stretch, but the per-texture stretch remains.
+Generation time (this boot): both sprites were generated within the ~2-minute first boot, completing ~20 s apart (plugin appears to serialize them). Backdrop/floor came from cache instantly.
+"Floor under characters / backdrop behind / sensible scale": unverifiable — scene never renders.
+3. DIALOGUE: BLOCKED (untestable)
+The App never mounts, so the "Talk to the elder" button, dialogue box, thinking indicator, options, and Leave button do not exist on the page. No code path exists to exercise them. Error/retry handling also unverifiable. (The [choices] prompt fix and always-escape logic are in the shipped source but cannot be validated at runtime.)
 
-Geração fresca: ~51s para as duas texturas (paralelas), sem erros. Vou conferir visualmente esta nova geração:
+4. RELOAD / CACHE: PASS (mechanism) — visual comparison blocked
+After a hard reload, createdAt timestamps for player/elder are unchanged → they were served from IndexedDB, not regenerated. No new plugin generations were triggered.
+Backdrop/floor likewise survived across a ~41-minute gap from the previous session with no regeneration.
+So the IndexedDB cache works exactly as designed. However, "loads noticeably faster / no visual change" cannot be observed because every load still dies on the missing three.js chunk.
+5. OBSERVATIONS
+The blocker is a missing shipped file, not code: src/rpg/build/chunks/three.module-C5rh5wLt.js must be uploaded alongside rpg.js. Per the README, chunks/ is documented as part of the build — the upload set is incomplete. (Reminder: src/ ships publicly, so the ~1 MB three.js chunk belongs in src/rpg/build/chunks/.)
+Secondary finding: floor/backdrop generated at 512×512 instead of 768×512 → ~1.5× horizontal stretch on the 3:2 planes (minor, but contradicts the "no resolution distortion" intent).
+No crashes beyond the boot error; nothing else could be exercised.
+Summary: 2 of 7 checks passed (image generation pipeline, IndexedDB cache-hit mechanism) — 3 failed/blocked (boot, dialogue, visual checks) — 1 partial (image display) — 1 unverifiable (letterbox).
 
-A faixa escura no topo aparece nas DUAS gerações independentes — preciso distinguir se é arte ou render. Vou extrair a textura do backdrop do cache e inspecioná-la diretamente:
-
-A arte em si tem o defeito (topo com patches pretos e smear azul) — é qualidade da geração do backdrop, não bug de render. Faço um reload limpo final para confirmar o boot sem o patch de captura:
-
-Relatório final (sem tocar no código):
-
-1. BOOT — PASS
-Página carrega, runtime prod · platform runtime, cena 3D renderiza (verifiquei pixels: média de luma 109, não vazio) e zero erros de console. Únicas mensagens são warnings internos do plugin durante geração de imagem (Unknown model class "custom", dtype ... q8) — inofensivos. O #app já estava corrigido do problema anterior.
-
-2. IMAGES — PASS (com ressalva de qualidade)
-Piso de grama aplicado sob os sprites ✓; backdrop de crepúsculo com castelo à direita e espiões rochosos à esquerda ✓.
-Geração fresca (cache limpo): ~51s para as duas texturas (geradas em paralelo; o floor foi ~21s mais lento que o backdrop). A primeira geração da sessão anterior mostrou o mesmo padrão (~20s cada).
-Ressalva: o topo do backdrop tem uma faixa de arte corrompida — patches pretos irregulares + smear azul/brilhante na borda superior. Apareceu nas duas gerações independentes, então é a arte gerada, não render (verifiquei a textura PNG extraída direto do cache). Regenerável depois, quando a UX de re-roll existir. O restante do backdrop é bom; o piso está bom.
-3. DIALOGUE — PARCIAL / ISSUE
-Caixa abre, speaker "Elder", texto da IA renderiza (~11s e ~15s nas duas chamadas) ✓.
-Always-escape confirmado: "Leave" sempre presente e sempre fecha, tanto direto quanto depois de "Continue" ✓.
-Problema principal: opções nunca aparecem. A IA não emite o bloco [choices] — respondeu com Markdown (* **[Apologize]** "..."), que o parseChoices (espera [choices] + N. texto) ignora. A instrução em App.tsx:16 ("Give them a short response with choices...") não especifica o formato, então o parser nunca recebe entrada válida. O caminho "clicar opção" é código morto na prática.
-Menor: "Continue" encerra o turno mas deixa a caixa aberta (só sobra o Leave).
-4. RELOAD/CACHE — PASS
-Reload com cache: ~6ms até pronto, mesmas texturas (mesmo createdAt no IndexedDB, zero regeneração) vs ~51s da primeira carga. Cache IndexedDB funciona perfeitamente.
-
-5. OBSERVAÇÕES
-Sem indicador de carregamento durante geração (primeiro boot ~50s de tela parada; resposta do elder ~11-15s). Recomendo um spinner/"elder is thinking".
-Sem tratamento de erro no generateText (falha do plugin = rejection não tratada, sem feedback).
-Sprites levemente "colados" no chão (sombras a 35% de opacidade, sutis) — menor.
-HUD legível, caixa de diálogo utilizável, sem crashes/glitches além da faixa do backdrop.
-Resumo: 4/5 checks passaram (boot, imagens, reload/cache, estabilidade). O único blocker real: a instrução do elder nunca pede o formato [choices], então a mecânica de opções nunca dispara — é o que vale corrigir primeiro (um ajuste no prompt em App.tsx resolve).
-Além disso, há pontos importantes que invalidam um teste total. os personagens foram carregados como placeholders, então não foram gerados pelo plugin de imagem, e mesmo com o refresh eles continuavam como placeholders. os personagens na cena parecem grande demais para a cena, e há um problema de preenchimento.
-s imagens do cenário esticam a uma resolução que distorce as imagens em tela cheia. a resolução máxima de imagens do plugin do perchance é de 768x512 (Paisagem / Horizontal). se o cenário esticar pra preencher a tela, a resolução ficará muito ruim. o correto é deixar que o cenário ocupe o espaço ideal na tela, como um frame de cenário. Isso deixará espaços nas bordas, mas é a única forma de ter uma boa resolução sem distorção e perda de qualidade.
-Os espaços vazios podem ser usados para mostrar outros tipos de informações.
+Single most important issue: the missing src/rpg/build/chunks/three.module-C5rh5wLt.js file — the app cannot boot past the three.js dynamic import, blocking every other check. Everything downstream (scene render, dialogue, reload UX) is unreachable until it ships.

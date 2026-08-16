@@ -37,4 +37,16 @@ describe("assetCacheKey", () => {
       assetCacheKey("dev", { ...base, prompt: "a different prompt" }),
     );
   });
+
+  it("busts on resolution change", () => {
+    expect(assetCacheKey("dev", base)).not.toBe(
+      assetCacheKey("dev", { ...base, resolution: "768x512" }),
+    );
+  });
+
+  it("busts on negativePrompt change", () => {
+    expect(assetCacheKey("dev", base)).not.toBe(
+      assetCacheKey("dev", { ...base, negativePrompt: "blurry, low quality" }),
+    );
+  });
 });

@@ -35,9 +35,18 @@ export const DEFAULT_SCENE_CONFIG = {
   lookAtY: 2,
   lookAtZ: -6,
   fov: 52,
-  groundWidth: 24,
+  // Seam-free ground↔backdrop junction (Perchance round 3 finding): in
+  // perspective the rectangular floor becomes a trapezoid whose far edge is
+  // narrower than the backdrop — exposing the backdrop's below-horizon band
+  // as holes at the upper sides. Two invariants fix it:
+  //   1. far edge reaches the backdrop plane:  depth + height*scale/2 == backdropDepth
+  //      (here -2.35 + 22*0.7/2 = -10.05 — 0.05 behind the backdrop, so the
+  //      backdrop occludes the overlap and no z-fighting occurs at the seam);
+  //   2. far edge spans the backdrop's width: width*scale/2 >= backdropWidth/2
+  //      (here 44*0.7/2 = 15.4 >= 15) — the below-horizon band is fully hidden.
+  groundWidth: 44,
   groundHeight: 22,
-  groundDepth: -2.2,
+  groundDepth: -2.35,
   groundScale: 0.7,
   backdropWidth: 30,
   backdropHeight: 20,

@@ -13,6 +13,15 @@ export interface AssetRow {
   createdAt: number;
 }
 
+/** One processed cut-out (RMBG + matte) — derived from a raw AssetRow. */
+export interface CutoutRow {
+  /** cutoutCacheKey(rawKey) — embeds the raw key + pipeline version. */
+  key: string;
+  dataUrl: string;
+  mode: RuntimeMode;
+  createdAt: number;
+}
+
 /**
  * The game's Dexie database. DB name carries the mode (`rpg_dev` / `rpg`)
  * so development generations never pollute the production cache
@@ -20,15 +29,17 @@ export interface AssetRow {
  *
  * Schema is versioned from day one; further tables (save, characters,
  * relationships, characterLogs, dayLogs, daySummaries — tech-spec §7.2)
- * land with their milestones as v2+ migrations.
+ * land with their milestones as v3+ migrations.
  */
 export class RpgDatabase extends Dexie {
   assets!: Table<AssetRow, string>;
+  cutouts!: Table<CutoutRow, string>;
 
   constructor(mode: RuntimeMode, dbName?: string) {
     super(dbName ?? (mode === "dev" ? "rpg_dev" : "rpg"));
-    this.version(1).stores({
+    this.version(2).stores({
       assets: "key, mode, createdAt",
+      cutouts: "key, mode, createdAt",
     });
   }
 }

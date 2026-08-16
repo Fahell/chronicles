@@ -1,3 +1,4 @@
+import { CutoutStore } from "./cutout-cache";
 import { RpgDatabase } from "./db";
 import { fnv1a } from "./hash";
 import type { ImageOpts, ImageService, RuntimeMode } from "./perchance-runtime";
@@ -19,6 +20,8 @@ export interface AssetRequest {
 export interface CachedAsset {
   dataUrl: string;
   fromCache: boolean;
+  /** The computed cache key — lets derived assets (cut-outs) key off the raw generation. */
+  key: string;
 }
 
 export type GenerationLogEntry =
@@ -62,6 +65,8 @@ export class AssetCache {
   private seedCounter = 0;
 
   readonly mode: RuntimeMode;
+  /** Cut-out store (RMBG-processed sprites) — prod only, see cutout-cache.ts. */
+  readonly cutouts: CutoutStore;
   /** Append-only log for assertions and the dev context inspector (§6.4). */
   readonly log: GenerationLogEntry[] = [];
 
@@ -73,6 +78,7 @@ export class AssetCache {
     this.mode = mode;
     this.image = image;
     this.db = new RpgDatabase(mode, options?.dbName);
+    this.cutouts = new CutoutStore(this.db.cutouts, mode);
     this.seedFactory = options?.seedFactory ?? (() => `roll-${++this.seedCounter}-${Date.now()}`);
   }
 
@@ -81,12 +87,12 @@ export class AssetCache {
     const row = await this.db.assets.get(key);
     if (row) {
       this.log.push({ kind: "hit", key, chars: row.dataUrl.length, at: Date.now() });
-      return { dataUrl: row.dataUrl, fromCache: true };
+      return { dataUrl: row.dataUrl, fromCache: true, key };
     }
 
     this.log.push({ kind: "miss", key, chars: req.prompt.length, at: Date.now() });
     const result = await this.generateAndStore(req, key);
-    return { dataUrl: result, fromCache: false };
+    return { dataUrl: result, fromCache: false, key };
   }
 
   /** Re-roll: new seed → new key → fresh generation (vn-rpg-spec §4.3). */
@@ -95,7 +101,7 @@ export class AssetCache {
     const key = assetCacheKey(this.mode, { ...req, seed });
     this.log.push({ kind: "regenerate", key, chars: req.prompt.length, at: Date.now() });
     const result = await this.generateAndStore({ ...req, seed }, key);
-    return { dataUrl: result, fromCache: false };
+    return { dataUrl: result, fromCache: false, key };
   }
 
   /** Count of cached generations (used by the dev harness / inspector). */
@@ -105,6 +111,7 @@ export class AssetCache {
 
   async clear(): Promise<void> {
     await this.db.assets.clear();
+    await this.db.cutouts.clear();
     this.log.length = 0;
   }
 

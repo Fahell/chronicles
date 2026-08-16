@@ -23,10 +23,18 @@ configs, no CI, no specs, no dev tooling).
   cleaned, and rendered with a **black outline** plane behind it.
 
   ⚠️ On first boot the browser downloads the ~45 MB removal model (cached
-  afterwards) — the loading overlay takes longer than before. A sprite
-  generated before the model is ready waits for it; if the model CDN is
-  unreachable, the app falls back to the platform's `removeBackground`
-  (console warning).
+  afterwards) — an **animated loading screen** reports the live stages and a
+  corner chip shows removal progress ("Removing background 1/2…"). The
+  inference runs **off the main thread** (ONNX Runtime proxy worker) so the
+  UI stays responsive. A sprite generated before the model is ready waits
+  for it; if the model CDN is unreachable, the app falls back to the
+  platform's `removeBackground` (console warning — the fallback is never
+  cached, so the next boot re-attempts the model).
+
+  **Processed cut-outs are cached**: after the first removal each sprite's
+  cut-out is stored in IndexedDB (`cutouts` table). Reloads serve them with
+  **no re-inference** — expect a fast reload (seconds) and the console line
+  `[rpg] cutout-cache: hit <id> (skip inference)`.
 - **Dialogue:** a Preact overlay. `Talk to the elder` (in the top-left HUD)
   asks the text AI for a line; if the AI includes a `[choices]` block (see
   below), the options become clickable buttons. A fixed **Leave** button

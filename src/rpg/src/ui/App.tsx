@@ -5,6 +5,7 @@ import { dialoguePending, dialogueVisible, showTurn } from "../game/state/dialog
 import type { Stage } from "../render/stage";
 import type { BootServices } from "../services/boot";
 import { DialogueBox } from "./DialogueBox";
+import { RemovalChip } from "./RemovalChip";
 
 interface AppProps {
   services: BootServices;
@@ -50,6 +51,7 @@ export function App({ services, stage }: AppProps) {
           Talk to the elder
         </button>
       </div>
+      <RemovalChip />
       <DialogueBox />
     </main>
   );

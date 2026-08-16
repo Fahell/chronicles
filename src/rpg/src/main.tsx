@@ -3,7 +3,9 @@ import { render } from "preact";
 import { openPlainsManifest } from "./scene/manifest/openPlains";
 import { preloadBackgroundRemoval } from "./services/bg-removal";
 import { bootServices } from "./services/boot";
+import { installProgressLogger } from "./services/progress";
 import { App } from "./ui/App";
+import { LoadingScreen } from "./ui/LoadingScreen";
 import "./style.css";
 
 // Accept both the canonical `#app` and the older `[data-rpg-app]` marker so
@@ -16,6 +18,7 @@ if (!mount) {
 }
 
 const services = bootServices();
+installProgressLogger();
 
 // Start the RMBG-1.4 model download at boot (prod only) so sprite removal
 // never blocks the UI; remove() awaits it if a sprite is generated first
@@ -31,18 +34,14 @@ stageContainer.id = "stage-container";
 stageContainer.className = "stage";
 mount.parentElement?.insertBefore(stageContainer, mount);
 
-// First scene generation can take ~50s on the platform (real plugin) — show a
-// boot overlay so the screen is never silent during it.
-const bootOverlay = document.createElement("div");
-bootOverlay.id = "boot-loader";
-bootOverlay.textContent = "Generating scene…";
-mount.parentElement?.insertBefore(bootOverlay, mount);
+// Animated boot loading screen — live stage updates come from the progress
+// store (the main thread is free because inference runs in the proxy worker).
+render(<LoadingScreen />, mount);
 
 const stage = await services.loadScene(openPlainsManifest, stageContainer, {
   width: window.innerWidth,
   height: window.innerHeight,
 });
-bootOverlay.remove();
 
 function frame(prev: number) {
   const now = performance.now();

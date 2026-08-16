@@ -95,17 +95,21 @@ function getRemover(): Promise<BackgroundRemover> {
 async function createRemover(): Promise<BackgroundRemover> {
   const mod = (await import("@huggingface/transformers")) as unknown as TransformersModule;
 
-  // Single-threaded, main-thread WASM: no SharedArrayBuffer requirement and
-  // no worker dependency (robust in the Perchance generator iframe). wasmPaths
-  // keeps the library default (jsdelivr, exact bundled ort version — ABI-safe).
+  // Single-threaded WASM moved OFF the main thread via the ORT proxy worker:
+  // no SharedArrayBuffer / cross-origin isolation required (numThreads=1),
+  // and the heavy inference no longer blocks the UI (removal-pipeline-spec
+  // §4 — research: ORT docs confirm the proxy worker works without COI).
   const onnxEnv = mod.env.backends.onnx;
   if (onnxEnv?.wasm) {
     onnxEnv.wasm.numThreads = 1;
-    onnxEnv.wasm.proxy = false;
+    onnxEnv.wasm.proxy = true;
+    console.log("[rpg] bg-removal: proxy worker active (wasm proxy=true, numThreads=1)");
   }
 
   // RMBG-1.4 is a custom IS-Net architecture — the official demo loads it as
   // a raw ONNX graph via `model_type: "custom"` with an explicit processor.
+  console.log("[rpg] bg-removal: model loading… (first visit downloads ~42 MB)");
+  const modelStart = performance.now();
   const model = (await mod.AutoModel.from_pretrained("briaai/RMBG-1.4", {
     config: { model_type: "custom" },
     dtype: "q8", // 8-bit quantized (~45 MB) — the in-browser sweet spot
@@ -125,11 +129,16 @@ async function createRemover(): Promise<BackgroundRemover> {
       size: { width: 1024, height: 1024 },
     },
   })) as Processor;
+  console.log(`[rpg] bg-removal: model ready (${Math.round(performance.now() - modelStart)} ms)`);
 
   return async (dataUrl: string): Promise<string> => {
     const image = await mod.RawImage.fromURL(dataUrl);
     const { pixel_values } = await processor(image);
+    const inferStart = performance.now();
     const { output } = await model({ input: pixel_values });
+    console.log(
+      `[rpg] bg-removal: inference done (${Math.round(performance.now() - inferStart)} ms)`,
+    );
     const maskTensor = output[0];
     if (!maskTensor) throw new Error("bg-removal: empty model output");
     const mask = await mod.RawImage.fromTensor(maskTensor.mul(255).to("uint8")).resize(

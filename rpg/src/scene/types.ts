@@ -23,6 +23,8 @@ const actorSchemaV1 = object({
       assetKey: string(),
       /** Character generation prompt (feeds the AssetCache). */
       prompt: optional(string()),
+      /** Negative prompt — also a cache-key component (busts on change). */
+      negativePrompt: optional(string()),
     }),
   ),
 });

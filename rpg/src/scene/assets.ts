@@ -88,8 +88,7 @@ export async function resolveSceneTextures(
     spriteActors.map(async (actor) => {
       const prompt = actor.sprite?.prompt;
       if (!actor.sprite?.assetKey || !prompt) return;
-      // Task 6 adds negativePrompt to the schema; read defensively until then.
-      const negativePrompt = (actor.sprite as { negativePrompt?: string }).negativePrompt;
+      const negativePrompt = actor.sprite?.negativePrompt;
       const generate = (removeBackground: boolean) =>
         assets.getOrGenerate({
           entity: actor.characterId,

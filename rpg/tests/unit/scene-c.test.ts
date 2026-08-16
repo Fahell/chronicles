@@ -63,6 +63,26 @@ describe("type C manifest (schema v1 extended)", () => {
     ).toThrow(/Invalid scene manifest/);
   });
 
+  it("parses a sprite negativePrompt (cache-key component)", () => {
+    const manifest = parseSceneManifest({
+      ...openPlains,
+      actors: [
+        {
+          characterId: "npc/elder",
+          pose: "idle",
+          position: { x: 0, z: -1 },
+          sprite: {
+            assetKey: "characters/elder/idle",
+            prompt: "elder",
+            negativePrompt: "gradient, vignette",
+          },
+        },
+      ],
+    });
+
+    expect(manifest.actors[0]?.sprite?.negativePrompt).toBe("gradient, vignette");
+  });
+
   it("openPlainsManifest parses as a valid type-C manifest", () => {
     const parsed = parseSceneManifest(openPlainsManifest);
     expect(parsed.type).toBe("C");

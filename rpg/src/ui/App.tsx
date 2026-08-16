@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { SPRITE_NEGATIVE_PROMPT } from "../content/sprite";
 import { parseChoices } from "../game/dialogue/parse-choices";
 import { buildNpcInstruction } from "../game/payload/builder";
-import { conversationSignal, sessionSignal } from "../game/session";
+import { ensurePortrait, portraitsSignal } from "../game/portraits";
+import { conversationSignal, npcPortraitSeed, sessionSignal } from "../game/session";
 import {
   dialogueMachine,
   dialoguePending,
@@ -12,7 +13,7 @@ import {
   showTurn,
 } from "../game/state/dialogue";
 import type { Stage } from "../render/stage";
-import { resolveCharacterSprite, type SpriteRequest } from "../scene/assets";
+import { resolveCharacterSprite, resolvePortrait, type SpriteRequest } from "../scene/assets";
 import type { BootServices } from "../services/boot";
 import { currentLanguage, englishName, t } from "../services/i18n";
 import { setRemovalQueue } from "../services/progress";
@@ -88,6 +89,17 @@ export function App({ services, stage }: AppProps) {
     void talk(conversationSignal.value);
   }, [dialogueMachine.value, session, talk]);
 
+  // NPC bust portrait (round 10): fire-and-forget at scene boot so the
+  // dialogue box has it by the first turn (async — adds zero wait time).
+  useEffect(() => {
+    if (!session) return;
+    void ensurePortrait(services.assets, {
+      entity: session.npc.id,
+      seed: npcPortraitSeed(session.npc.id, session.save.scene.sceneId),
+      prompt: session.npc.portraitPrompt,
+    });
+  }, [services, session]);
+
   // Sprite re-roll (vn-rpg-spec §4.3, owner decision: sprites only): a fresh
   // seed busts the raw cache key → RMBG + matte re-run → the stage swaps the
   // actor's textures. The identity sprite is never re-rolled.
@@ -107,6 +119,14 @@ export function App({ services, stage }: AppProps) {
       const textures = await resolveCharacterSprite(services.assets, req);
       if (isProd) setRemovalQueue(1, 1);
       stage.updateActor(session.npc.id, textures);
+      // The portrait re-rolls together with the sprite (same seed → same
+      // cache key family; round-10 owner decision).
+      const portrait = await resolvePortrait(services.assets, {
+        entity: session.npc.id,
+        seed: req.seed,
+        prompt: session.npc.portraitPrompt,
+      });
+      portraitsSignal.value = { ...portraitsSignal.value, [session.npc.id]: portrait };
     } finally {
       setRerolling(false);
     }

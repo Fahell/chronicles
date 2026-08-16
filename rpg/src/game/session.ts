@@ -59,6 +59,16 @@ export function npcActor(npc: NpcDefinition): SceneManifest["actors"][number] {
   };
 }
 
+/**
+ * The NPC portrait's seed — mirrors the sprite's default seed
+ * (`${sceneId}:${characterId}:${pose}:v1`, assets.ts resolveCharacterSprite)
+ * so the portrait and sprite live under the same cache key and a re-roll
+ * regenerates both together (round-10 owner decision).
+ */
+export function npcPortraitSeed(npcId: string, sceneId: string): string {
+  return `${sceneId}:${npcId}:idle:v1`;
+}
+
 /** Builds a session from a loaded save; throws if the NPC id is unknown. */
 export function startSession(save: SaveGame): GameSession {
   // A fresh session always starts with an empty conversation — reset before

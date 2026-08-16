@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { NPC_POOL } from "../../src/content/npcPool";
 import { buildIdentity } from "../../src/game/identity";
-import { conversationSignal, npcActor, startSession, userActor } from "../../src/game/session";
+import {
+  conversationSignal,
+  npcActor,
+  npcPortraitSeed,
+  startSession,
+  userActor,
+} from "../../src/game/session";
 import { parseSceneManifest } from "../../src/scene/loader";
 
 const identity = buildIdentity({
@@ -39,6 +45,15 @@ describe("session", () => {
     expect(npcActor(npc).characterId).toBe(npc.id);
     // the sprite prompt describes the NPC's look (not the name)
     expect(npcActor(npc).sprite?.prompt).toContain(npc.type);
+  });
+
+  it("npcPortraitSeed matches the sprite's default seed so re-rolls regenerate both (round 10)", () => {
+    const npc = NPC_POOL[0]!;
+    const seed = npcPortraitSeed(npc.id, "scene.open.plains");
+    // assets.ts resolveCharacterSprite default: `${manifestId}:${characterId}:${pose}:v1`
+    expect(seed).toBe(`scene.open.plains:${npc.id}:idle:v1`);
+    // the user portrait reuses the identity seed (wizard-time cache hit)
+    expect(userActor(identity).sprite?.seed).toBe(`identity:${identity.appearanceSeed}`);
   });
 
   it("startSession throws for an unknown NPC id and resets the conversation", () => {

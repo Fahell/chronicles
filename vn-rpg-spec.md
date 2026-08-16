@@ -65,7 +65,12 @@ A classic VN "stage" stacked back-to-front:
 Must-have first, in the first scene prototype:
 
 - **Particles** (rain, snow, embers, dust, falling petals)
-- **Fog / haze** (atmospheric depth)
+- **Fog / haze** (atmospheric depth) — shipped in the MVP slice as a
+  declarative `StageEffect` (`effects/fog.ts`): a transparent PixiJS canvas
+  mounted **inside the scene container** (round-9 fix — pixi v8 never
+  auto-appends; the effect previously rendered to a detached canvas and was
+  invisible), positioned over the letterboxed frame and driven by the app's
+  rAF loop.
 - **Dynamic lighting** (lights, shadows, glow, torches)
 - **Day/night cycle** (time-of-day variation) — backed by the structural day
   system (`day-cycle-spec.md` §3): the in-game period (Morning/Afternoon/Night)
@@ -250,19 +255,27 @@ type A**.
 - **Sprite matte cleanup (removal is never 100%):** the plugin's background
   removal leaves a semi-transparent fringe and dark spill around the
   silhouette ("faint rectangular edges", Perchance round 3). Two measures
-  close the gap: (a) sprite prompts ask for a **solid pure black background**
-  — a strongly-worded, redundant sentence ("entire background one uniform
-  solid pure black (#000000), zero gradient/vignette/shadow/props/rim
-  light") plus a `negativePrompt` (gradient, vignette, floor shadow, …)
-  that is a cache-key component (round-5 forensics: the model delivered
-  dark-grey/white instead of pure black, so the wording was strengthened);
+  close the gap: (a) sprite prompts ask for a **solid pure white background
+  with the character's ground shadow baked into the image** — a strongly-
+  worded, redundant sentence ("entire background one uniform solid pure
+  white (#FFFFFF), zero gradient/vignette/props/rim light; a soft visible
+  ground shadow cast beneath and around the feet") plus a `negativePrompt`
+  (gradient, vignette, props, …) that is a cache-key component. **Round-9
+  grounding contract (owner decision):** the baked shadow survives
+  background removal, so the character reads grounded in the scene no
+  matter where the generator placed the feet — replacing the round-7
+  pure-black background + code-drawn shadow plane (which floated whenever
+  the feet sat above the image base). The code shadow is removed from the
+  stage (round 9);
   (b) every generated portrait passes through a client-side matte cleanup
-  (`scene/sprite-matte.ts`) that trims barely-transparent fringe, removes
-  dark pixels **adjacent to transparency** only (opaque dark clothing is
-  never touched), and drops **detached remnants** below a minimum component
-  size (speckle filter). The sprite material also sets `alphaTest` (residual
-  semi-transparent pixels are discarded, not blended dark against the
-  scene).
+  (`scene/sprite-matte.ts`) that trims barely-transparent fringe and drops
+  **detached remnants** below a minimum component size (speckle filter).
+  The dark-spill pass (removing dark pixels adjacent to transparency) is
+  **disabled by default since round 9** — with the white background + baked
+  shadow, dark pixels touching transparency are legit content (the shadow,
+  dark clothing); the option stays for any future dark-background asset.
+  The sprite material also sets `alphaTest` (residual semi-transparent
+  pixels are discarded, not blended dark against the scene).
 - **Client-side background removal (prod) — replaces the platform's dirty
   removal:** in production, character sprites are generated RAW (no
   `removeBackground`) on the solid-black background and removed in the
@@ -285,7 +298,15 @@ type A**.
   the Perchance iframe; researched: ORT docs confirm the proxy worker works
   without COI, and Perchance ships no restrictive default CSP — the
   `[rpg] bg-removal: proxy worker active` log is verified in the round
-  prompt). **Processed cut-outs are cached**: a `cutouts` Dexie table
+  prompt). **Round-9 ORT fix:** the Vite build sets
+  `build.modulePreload.polyfill = false` — with the polyfill ON, rolldown
+  hoists the Vite modulepreload helper (which touches `document`) into the
+  entry chunk and the lazy transformers chunk imports it; when ORT spawns
+  its proxy worker from the transformers chunk URL, the worker loads
+  `rpg.js` and the polyfill crashes with "document is not defined" → "no
+  available backend found" → permanent platform fallback (round-8 finding;
+  reproduced locally; fixed and verified — `model ready` + `inference
+  done` with no `[wasm]` error). **Processed cut-outs are cached**: a `cutouts` Dexie table
   (schema v2) stores the post-RMBG + post-matte sprite keyed by the raw
   generation key + a pipeline-version constant (`services/cutout-cache.ts`);
   a warm reload skips inference entirely (`[rpg] cutout-cache: hit … (skip
@@ -319,7 +340,11 @@ type A**.
   pixel art) and rendered as a black plane **behind** the sprite in the 3D
   stage (renderOrder 0 vs sprite 1, depthWrite off). Detached removal specks
   are filtered out before dilation so they never become floating blocks.
-  Outline radius is a pipeline parameter (default 5 px).
+  Outline radius is a pipeline parameter (default 5 px). **Round-9 open
+  question:** the dilated silhouette now includes the baked ground shadow —
+  verify in round 9 whether the outline ring around the shadow reads clean
+  (likely acceptable: it sits behind the opaque shadow) or needs the shadow
+  excluded from the outline source.
 - **Round-7 open questions (verify in the round-7 prompt, no code change):**
   (1) **HF reachability** — the ~45 MB model download from huggingface.co
   was never exercised on the platform (the missing wasm broke before it); if

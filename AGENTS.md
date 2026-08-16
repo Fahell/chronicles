@@ -92,7 +92,13 @@ Do all of this **before writing any code**:
   `numThreads=1`; the WASM engine is pinned to the onnxruntime-web CDN via
   `wasmPaths` — `ORT_WASM_PATHS` in `bg-removal.ts` must match the version
   in `pnpm-lock.yaml` when transformers.js is upgraded; processed cut-outs
-  cached in the Dexie `cutouts` table),
+  cached in the Dexie `cutouts` table; **`vite.config.ts` MUST keep
+  `modulePreload: false`** — with the polyfill ON, the transformers chunk
+  imports the entry chunk and the ORT proxy worker dies on the
+  `document`-touching polyfill (round-8 blocker, verified round 9);
+  **sprites generate on pure WHITE with a baked ground shadow** (no
+  code-drawn shadow plane; matte `spillLuma` defaults to 0 so the baked
+  shadow survives)),
   Dexie/IndexedDB, i18next, Biome, Vitest (test
   tiers per `tech-spec.md` §8), E2E via Chrome DevTools MCP + WebMCP
   harness; CI via GitHub Actions once pushed. Exact versions are re-pinned

@@ -49,7 +49,7 @@ wrong in the screenshots are the removal artifacts, addressed in §5.
 | D2 | Async, non-blocking removal | `env.backends.onnx.wasm.proxy = true` (keeps `numThreads = 1`) |
 | D3 | Observable process | Animated loading screen with live stages + discreet corner chip with counter + structured console logs |
 | D4 | Model preload | Unchanged (fire-and-forget at boot, prod only) |
-| D5 | Dark blocks | Stronger "pure black background" sprite prompt (the only lever selected now) |
+| D5 | Dark blocks | White background + baked ground shadow sprite prompt (round-9 contract; supersedes the round-7 pure-black lever) |
 | D6 | Floor "box effect" | No code change; mitigations documented for later |
 | D7 | `[choices]` block | Keep optional; behavioral finding documented |
 | D8 | Plugin removal | Confirm and lock: only RMBG active in prod; plugin removal = fallback + dev mock parity only |
@@ -101,7 +101,8 @@ cutoutKey = rawAssetKey(mode, req) + "|cutout|" + PIPELINE_VERSION
 
 **Pipeline order (prod):**
 
-1. `assets.getOrGenerate(raw)` — unchanged (raw sprite on black background).
+1. `assets.getOrGenerate(raw)` — unchanged (raw sprite on pure **white**
+   background since round 9, with the ground shadow baked into the image).
 2. `cutouts.get(cutoutKey)`:
    - **hit** → skip inference entirely; sprite = stored dataUrl. No model
      touch, no canvas passes (except outline, see below).
@@ -216,20 +217,34 @@ cost, which is the real reload win. Preload remains so re-rolls never wait.
 
 ---
 
-## 7. D5 — Dark blocks: stronger background prompt
+## 7. D5 — Dark blocks: grounding + white-background prompt
 
-**Chosen lever (owner):** improve the *input*. The round-5 raw sprites did not
-deliver the requested solid pure-black background, leaving near-black/dark-grey
-remnants for the remover and matte to trip on. The sprite background sentence
-in `src/scene/manifest/openPlains.ts` (`spriteBackground`) gets strengthened:
+**Chosen lever (owner, round 9 — supersedes the round-7 pure-black lever):**
+improve the *input*. The round-5 raw sprites did not deliver the requested
+solid pure-black background, leaving near-black/dark-grey remnants for the
+remover and matte to trip on — and the round-7 black background + code-drawn
+shadow caused "levitation" whenever the generator placed the feet above the
+image base. The sprite background sentence (`content/sprite.ts`
+`SPRITE_WHITE_GROUNDED_BACKGROUND`) now demands:
 
-- explicit "solid **pure black** background" with redundancy: uniform, one
-  color, **zero gradient, zero vignette, zero floor shadow, zero props**,
-  full-bleed to every edge, no rim light on the background;
-- a sentence stating the entire background region must be a single flat color;
-- optionally a negative prompt (`negativePrompt: "gradient, vignette, floor
-  shadow"`) — note: negative prompt is part of the cache key, so adding it
+- explicit "solid **pure white** background" with redundancy: uniform, one
+  color (#FFFFFF), **zero gradient, zero vignette, zero props, zero rim
+  light**, full-bleed to every edge;
+- a **baked ground shadow**: "a soft, visible ground shadow cast directly
+  beneath and around the feet — a soft dark ellipse under the body or a soft
+  shadow cast to one side — so the character clearly touches the ground".
+  After background removal the shadow survives with the sprite → the
+  character reads grounded wherever the feet land;
+- a negative prompt (`SPRITE_NEGATIVE_PROMPT`: gradient, vignette, props,
+  …) — **"floor shadow" deliberately removed** (the baked shadow is now
+  content); note: negative prompt is part of the cache key, so changing it
   busts sprites too (intended).
+
+**Round-9 consequences:** the code-drawn shadow plane in the 3D stage is
+removed (`render/three-stage.ts`) — grounding comes only from the baked
+shadow; the matte's dark-spill pass is **disabled by default** (`sprite-matte.ts`
+`spillLuma` 0) because dark pixels adjacent to transparency are now content
+(the shadow, dark clothing), not black-background spill.
 
 **Consequence:** the prompt change busts the sprite cache (prompt hash is in
 the raw key) → sprites regenerate on the next round.
@@ -311,9 +326,10 @@ RMBG cut-outs and the invariant stays observable.
    stage logs (§5.3) — the Perchance agent can now see the model working.
 3. **Corner chip** shows during removal with the running counter and hides
    when the queue drains.
-4. **Regenerated sprites** (prompt change bust) arrive on pure-black
-   backgrounds; dark mottling visibly reduced on the two test images and on
-   the platform run.
+4. **Regenerated sprites** (prompt change bust) arrive on pure-white
+   backgrounds with the ground shadow baked in; after removal the shadow
+   survives and the character reads grounded (no code shadow); dark mottling
+   visibly reduced on the two test images and on the platform run.
 5. **Fallback path intact:** forced removal failure → plugin removal, warning
    logged, result used for the session but **not cached**; the next resolve
    re-attempts RMBG (fake-remover integration test asserts the retry).

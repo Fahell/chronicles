@@ -44,6 +44,17 @@ describe("seed content", () => {
     expect(npcById("nope")).toBeUndefined();
   });
 
+  it("archetype and NPC sprite prompts demand the white background + baked shadow (round 9)", () => {
+    for (const a of ARCHETYPES) {
+      expect(a.spritePrompt).toMatch(/pure solid white|#ffffff|#FFFFFF/i);
+      expect(a.spritePrompt).toMatch(/shadow/i);
+    }
+    for (const n of NPC_POOL) {
+      expect(n.spritePrompt).toMatch(/pure solid white|#ffffff|#FFFFFF/i);
+      expect(n.spritePrompt).toMatch(/shadow/i);
+    }
+  });
+
   it("pickNpc is seeded and returns a pool member", () => {
     const rng = () => 0;
     const a = pickNpc(rng);

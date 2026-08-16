@@ -89,13 +89,18 @@ describe("type C manifest (schema v1 extended)", () => {
     expect(parsed.floor?.assetKey).toBe("scenes/open-plains/floor");
   });
 
-  it("sprites demand a solid pure-black background (D5 prompt lever, round 7)", () => {
+  it("sprites demand a pure-white background with a baked ground shadow (round 9)", () => {
+    // Round-9 grounding: the sprite is generated on pure white WITH the
+    // character's ground shadow baked into the image, so after background
+    // removal the shadow survives and the character reads grounded no matter
+    // where the generator placed the feet (replaces the pure-black bg + code
+    // shadow, which floated when the feet sat above the image base).
     const parsed = parseSceneManifest(openPlainsManifest);
     for (const actor of parsed.actors) {
       if (!actor.sprite?.prompt) continue;
-      expect(actor.sprite.prompt).toMatch(/pure solid black|#000000/i);
-      expect(actor.sprite.prompt).toMatch(/zero grey|no grey/i);
-      expect(actor.sprite.negativePrompt).toMatch(/grey background|gray background/i);
+      expect(actor.sprite.prompt).toMatch(/pure solid white|#ffffff|#FFFFFF/i);
+      expect(actor.sprite.prompt).toMatch(/shadow/i);
+      expect(actor.sprite.negativePrompt).not.toMatch(/floor shadow/i);
     }
   });
 });

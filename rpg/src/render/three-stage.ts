@@ -218,9 +218,12 @@ export async function createThreeStage(
           applyOutlineTexture(outline, texturesFor.outline);
         }
 
+        // Ground-contact shadow (round-6 finding: characters float — the
+        // shadow was too small/subtle at 0.42/0.28). Enlarged + darkened; the
+        // sprite scale itself is unchanged (dedicated layout round later).
         const shadow = new THREE.Mesh(
-          new THREE.CircleGeometry(0.42 * actor.scale, 24),
-          new THREE.MeshBasicMaterial({ color: 0x071321, transparent: true, opacity: 0.28 }),
+          new THREE.CircleGeometry(0.52 * actor.scale, 24),
+          new THREE.MeshBasicMaterial({ color: 0x071321, transparent: true, opacity: 0.34 }),
         );
         shadow.rotation.x = -Math.PI / 2;
         shadow.position.set(actor.position.x, 0.03, actor.position.z);

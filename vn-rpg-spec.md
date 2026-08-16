@@ -192,6 +192,23 @@ prevent this (enforced in `scene/layout.ts` defaults + tests):
    backdrop.width/2`, so the backdrop's below-horizon band is fully hidden
    behind the floor at the far corners.
 
+**Round-5 correction (owner):** the dark band the Perchance agent reported at
+"the junction" is **not** the floor↔backdrop junction — it is the backdrop's
+bottom edge, which is not even shown (the floor joins above the backdrop
+base). The real open issue is the **"box effect"**: there is no natural
+visual transition between the floor plane and the backdrop plane. Mitigations
+(documented for later — no code change in round 6):
+
+1. **Better junction fitting** (depth/scale tuning) — works for one scene,
+   not others, because every scene is AI-generated art: scene-specific
+   heuristics do not generalize.
+2. **Effects + assets as camouflage** — fog/haze at the junction plus more
+   scene assets (props, foliage, objects) breaking the hard line. The most
+   promising general mitigation.
+3. **Scene-type restriction** — reserve this presentation for *closed*
+   scenes (interiors), where the backdrop already reads as a wall; open
+   scenes get treatment (2) or a different presentation.
+
 **Expected style:** a "papercraft" look — 2D assets in a 3D world. With the
 right treatment this should look good — likely **better than the heuristic of
 type A**.
@@ -234,7 +251,11 @@ type A**.
   removal leaves a semi-transparent fringe and dark spill around the
   silhouette ("faint rectangular edges", Perchance round 3). Two measures
   close the gap: (a) sprite prompts ask for a **solid pure black background**
-  (easiest case for the removal model; any residual spill is near-black);
+  — a strongly-worded, redundant sentence ("entire background one uniform
+  solid pure black (#000000), zero gradient/vignette/shadow/props/rim
+  light") plus a `negativePrompt` (gradient, vignette, floor shadow, …)
+  that is a cache-key component (round-5 forensics: the model delivered
+  dark-grey/white instead of pure black, so the wording was strengthened);
   (b) every generated portrait passes through a client-side matte cleanup
   (`scene/sprite-matte.ts`) that trims barely-transparent fringe, removes
   dark pixels **adjacent to transparency** only (opaque dark clothing is
@@ -249,12 +270,27 @@ type A**.
   Runtime Web** (WASM; WebGPU where available) — `services/bg-removal.ts`.
   Design: lazy chunk (never in the initial bundle), **preload at boot**
   (prod, fire-and-forget) and a **wait queue** — a sprite generated before
-  the model is ready simply awaits it. `numThreads=1` + `proxy=false` keeps
-  it robust inside the Perchance iframe (no SharedArrayBuffer / workers).
-  If the model fails to load (e.g. its CDN is unreachable on the platform),
-  the pipeline **falls back to the platform's `removeBackground`** (different
-  cache key → fresh generation). Dev keeps the mock cut-outs (no model
-  download).
+  the model is ready simply awaits it. Inference runs **off the main
+  thread**: `env.backends.onnx.wasm.proxy = true` moves the WASM compute to
+  an ORT proxy worker, keeping `numThreads = 1` (no SharedArrayBuffer /
+  cross-origin isolation required — impossible inside the Perchance
+  iframe; round-6 change, researched: ORT docs confirm the proxy worker
+  works without COI, and Perchance ships no restrictive default CSP, so no
+  smoke test was needed — the `[rpg] bg-removal: proxy worker active` log
+  is verified in the round-6 prompt). **Processed cut-outs are cached**: a
+  `cutouts` Dexie table (schema v2) stores the post-RMBG + post-matte sprite
+  keyed by the raw generation key + a pipeline-version constant
+  (`services/cutout-cache.ts`); a warm reload skips inference entirely
+  (`[rpg] cutout-cache: hit … (skip inference)`). If the model fails to
+  load (e.g. its CDN is unreachable on the platform), the pipeline **falls
+  back to the platform's `removeBackground`** — the fallback is used for the
+  session but **never cached** (owner decision): every boot re-attempts
+  RMBG, so a transient failure recovers on its own. Dev keeps the mock
+  cut-outs (no model download). **Observability:** a Preact-signal progress
+  store (`services/progress.ts`) is the single source of truth for an
+  animated boot loading screen (live stages: scene assets → removal →
+  polish → scene), a discreet corner chip ("Removing background 1/2…"),
+  and structured `[rpg]` console logs that the Perchance agent can read.
   ⚠️ **License:** RMBG-1.4 is source-available for **non-commercial** use;
   a commercial game needs a BRIA license or a permissively-licensed
   alternative (e.g. `isnet-general-use` / `modnet` / rembg's distilled

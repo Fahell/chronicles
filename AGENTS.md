@@ -47,6 +47,7 @@ Do all of this **before writing any code**:
 | `day-cycle-spec.md` | Day structure, per-character logs, summarization, end-of-day scoring |
 | `gameplay-spec.md` | Stats/inventory/progression (deferred) |
 | `pending-decisions.md` | Open decisions & their status |
+| `removal-pipeline-spec.md` | Cut-out cache, proxy worker, removal observability, sprite background quality |
 | `tools-report.md` | Adopted/evaluated tools, skills, MCP (installation state) |
 | `research-resolutions.md` | Research findings applied to the specs (versions, formats) |
 
@@ -57,9 +58,11 @@ Do all of this **before writing any code**:
   generation.
 - **Stack:** **APPROVED** (`tech-spec.md` §2): TypeScript (strict), pnpm,
   Vite, Preact + signals, **three.js** (lazy async chunk; type-C scene
-  baseline) + **PixiJS v8** (2D overlay stack), **@huggingface/transformers**
+  baseline)  + **PixiJS v8** (2D overlay stack), **@huggingface/transformers**
   (client-side RMBG-1.4 background removal — lazy chunk, prod sprites only,
-  `vn-rpg-spec.md` §4.1), Dexie/IndexedDB, i18next, Biome, Vitest (test
+  `vn-rpg-spec.md` §4.1; inference in the ORT proxy worker, `proxy=true`,
+  `numThreads=1`; processed cut-outs cached in the Dexie `cutouts` table),
+  Dexie/IndexedDB, i18next, Biome, Vitest (test
   tiers per `tech-spec.md` §8), E2E via Chrome DevTools MCP + WebMCP
   harness; CI via GitHub Actions once pushed. Exact versions are re-pinned
   at setup (`research-resolutions.md` §5.2).

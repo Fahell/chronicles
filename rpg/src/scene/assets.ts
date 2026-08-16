@@ -124,8 +124,11 @@ export async function resolveSceneTextures(
               error,
             );
             // Fallback is never cached (owner decision, removal-pipeline-spec §3).
+            // Still matte-clean the platform cut-out so a fallback boot does
+            // not render mottled sprites (round-6 finding: the fallback path
+            // skipped cleanSpriteMatte entirely → grey fuzz + black fringe).
             const fallback = await generate(true);
-            spriteUrl = fallback.dataUrl;
+            spriteUrl = await cleanSpriteMatte(fallback.dataUrl);
           }
         }
       } else {

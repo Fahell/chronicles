@@ -26,12 +26,22 @@ describe("applyMatteCleanup", () => {
     expect(alphaAt(out, 3)).toBe(255); // opaque → kept
   });
 
-  it("removes dark edge pixels adjacent to transparency (background spill)", () => {
-    // 1×3: transparent | near-black opaque | white opaque.
+  it("removes dark edge pixels adjacent to transparency when spillLuma is enabled", () => {
+    // 1×3: transparent | near-black opaque | white opaque. The black-spill
+    // pass is DISABLED by default since round 9 (white bg + baked shadow) —
+    // this test pins the option for any future dark-background asset.
     const src = buffer([[0, 0, 0, 0, 5, 5, 5, 255, 250, 250, 250, 255]]);
-    const out = applyMatteCleanup(src, 3, 1);
+    const out = applyMatteCleanup(src, 3, 1, { spillLuma: 24 });
     expect(alphaAt(out, 1)).toBe(0); // dark + touches transparency → spill
     expect(alphaAt(out, 2)).toBe(255); // bright → untouched
+  });
+
+  it("keeps dark pixels adjacent to transparency by default (baked ground shadow survives, round 9)", () => {
+    // The baked shadow (Task 3) is dark content touching transparency after
+    // white-background removal — the default cleanup must NOT eat it.
+    const src = buffer([[10, 10, 10, 255, 0, 0, 0, 0]]);
+    const out = applyMatteCleanup(src, 2, 1);
+    expect(alphaAt(out, 0)).toBe(255); // shadow pixel kept
   });
 
   it("keeps dark pixels not touching transparency (black clothing)", () => {
@@ -55,7 +65,7 @@ describe("applyMatteCleanup", () => {
     expect(alphaAt(out, 4)).toBe(255);
   });
 
-  it("does not cascade spill removal into dark clothing bands", () => {
+  it("does not cascade spill removal into dark clothing bands (spillLuma enabled)", () => {
     // 4×3: row 1 is transparent | dark | dark | white, rows 0/2 all white.
     // Only the outermost dark pixel touches transparency; the inner one is
     // not on the border and not adjacent to transparency → must survive.
@@ -76,7 +86,7 @@ describe("applyMatteCleanup", () => {
       ...white,
       ...white,
     ]);
-    const out = applyMatteCleanup(src, 4, 3);
+    const out = applyMatteCleanup(src, 4, 3, { spillLuma: 24 });
     expect(alphaAt(out, 5)).toBe(0); // outer dark band (touches transparency) → spill
     expect(alphaAt(out, 6)).toBe(255); // inner dark band → kept (no cascade)
   });

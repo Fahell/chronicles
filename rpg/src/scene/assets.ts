@@ -1,4 +1,5 @@
 import type { AssetCache } from "../services/generation";
+import { cleanSpriteMatte } from "./sprite-matte";
 import type { SceneManifest } from "./types";
 
 export interface SceneTextures {
@@ -50,7 +51,9 @@ export async function resolveSceneTextures(
   // maps 1:1 — a landscape 768×512 would distort on the 2:3 plane. Sprites
   // are the ONLY assets with removeBackground — the plugin's background
   // removal nulls skies/landscapes to black, which corrupted the backdrop
-  // and floor (Perchance round 3 forensics).
+  // and floor (Perchance round 3 forensics). Removal is not 100% effective,
+  // so each portrait is also passed through the matte cleanup (fringe trim +
+  // edge black-spill) — vn-rpg-spec §4.1.
   const actors: Record<string, string> = {};
   await Promise.all(
     manifest.actors.flatMap((actor) => {
@@ -66,8 +69,8 @@ export async function resolveSceneTextures(
             resolution: "512x768",
             removeBackground: true,
           })
-          .then((result) => {
-            actors[actor.characterId] = result.dataUrl;
+          .then(async (result) => {
+            actors[actor.characterId] = await cleanSpriteMatte(result.dataUrl);
           }),
       ];
     }),

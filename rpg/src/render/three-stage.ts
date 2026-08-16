@@ -102,6 +102,18 @@ export async function createThreeStage(
   const loader = new THREE.TextureLoader();
   const size = { width: 0, height: 0 };
 
+  /**
+   * On-demand rendering (owner: CPU burn in the harness). The scene is static
+   * in this slice — the renderer must NOT re-rasterize every rAF frame.
+   * `dirty` is set by every mutating call (texture applied, actors set,
+   * speaker changed, resize); tick() renders only when something changed and
+   * then clears the flag. Idle scene → ~0% CPU instead of 60fps re-render.
+   */
+  let dirty = true;
+  const markDirty = () => {
+    dirty = true;
+  };
+
   function applyTexture(mesh: Mesh, dataUrl: string) {
     loader.load(dataUrl, (texture) => {
       texture.colorSpace = THREE.SRGBColorSpace;
@@ -109,6 +121,7 @@ export async function createThreeStage(
       texture.minFilter = THREE.LinearMipMapLinearFilter;
       (mesh.material as MeshBasicMaterial).map = texture;
       (mesh.material as MeshBasicMaterial).needsUpdate = true;
+      markDirty();
     });
   }
 
@@ -123,6 +136,7 @@ export async function createThreeStage(
     setTextures(textures: SceneTextures) {
       applyTexture(backdrop, textures.backdrop);
       applyTexture(ground, textures.floor);
+      markDirty();
     },
     setActors(actors: ActorPlacement[], textures?: Record<string, string>) {
       for (const actor of actorMeshes.values()) {
@@ -144,9 +158,18 @@ export async function createThreeStage(
         texture.magFilter = THREE.NearestFilter;
         texture.minFilter = THREE.NearestFilter;
 
+        // alphaTest discards residual semi-transparent fringe (background
+        // removal remnants) instead of blending them dark against the scene;
+        // depthWrite off is the standard billboard setting (no self-occlusion).
         const sprite = new THREE.Mesh(
           new THREE.PlaneGeometry(spriteWidth, spriteHeight),
-          new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide }),
+          new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            side: THREE.DoubleSide,
+            alphaTest: 0.35,
+            depthWrite: false,
+          }),
         );
         sprite.position.set(actor.position.x, actor.position.y, actor.position.z);
 
@@ -167,6 +190,7 @@ export async function createThreeStage(
           applyTexture(sprite, dataUrl);
         }
       }
+      markDirty();
     },
     setActiveSpeaker(characterId: string | null) {
       for (const [id, { sprite }] of actorMeshes) {
@@ -174,6 +198,7 @@ export async function createThreeStage(
         (sprite.material as MeshBasicMaterial).opacity = active ? 1 : 0.55;
         (sprite.material as MeshBasicMaterial).transparent = true;
       }
+      markDirty();
     },
     resize(width: number, height: number) {
       size.width = width;
@@ -185,9 +210,12 @@ export async function createThreeStage(
       // Camera aspect matches the 3:2 frame — never the full viewport.
       camera.aspect = SCENE_FRAME.width / SCENE_FRAME.height;
       camera.updateProjectionMatrix();
+      markDirty();
     },
     tick() {
-      // Actors face the camera (billboard) each frame.
+      if (!dirty) return;
+      dirty = false;
+      // Actors face the camera (billboard).
       for (const { sprite } of actorMeshes.values()) {
         sprite.lookAt(camera.position.x, sprite.position.y, camera.position.z);
       }

@@ -178,6 +178,20 @@ being heuristics**:
 - the fixed camera shows the character at the correct size, and
 - any object asset can be placed at any depth.
 
+**Ground↔backdrop junction (no holes at the upper sides):** in perspective
+the rectangular floor becomes a trapezoid — its far edge is narrower than the
+backdrop, which exposes the backdrop's below-horizon band as holes at the
+upper sides of the screen (Perchance round 3 finding). Two layout invariants
+prevent this (enforced in `scene/layout.ts` defaults + tests):
+
+1. **The floor's far edge reaches the backdrop plane** — `floor.depth +
+   floor.height*scale/2 ≤ backdrop.depth` (the defaults place it ~0.05
+   behind the plane, so the backdrop occludes the overlap and no z-fighting
+   occurs at the seam).
+2. **The far edge spans the backdrop's width** — `floor.width*scale/2 ≥
+   backdrop.width/2`, so the backdrop's below-horizon band is fully hidden
+   behind the floor at the far corners.
+
 **Expected style:** a "papercraft" look — 2D assets in a 3D world. With the
 right treatment this should look good — likely **better than the heuristic of
 type A**.
@@ -216,6 +230,18 @@ type A**.
   "background" and nulls it to black (Perchance round 3 forensics: 76.8%
   pure-black pixels on the backdrop with it on vs 0% without, same
   prompt+seed). Default is `false` for every request.
+- **Sprite matte cleanup (removal is never 100%):** the plugin's background
+  removal leaves a semi-transparent fringe and dark spill around the
+  silhouette ("faint rectangular edges", Perchance round 3). Two measures
+  close the gap: (a) sprite prompts ask for a **solid pure black background**
+  (easiest case for the removal model; any residual spill is near-black);
+  (b) every generated portrait passes through a client-side matte cleanup
+  (`scene/sprite-matte.ts`) that trims barely-transparent fringe and removes
+  dark pixels **adjacent to transparency** only — opaque dark clothing is
+  never touched. The sprite material also sets `alphaTest` (residual
+  semi-transparent pixels are discarded, not blended dark against the
+  scene). A future option is a heavier external remover (e.g. pyodide/
+  python) — deferred.
 - **Dev discipline:** only a few real images are generated per test round —
   just enough to validate the implementation, never throwaway art at scale.
 - **NPC pose sets:** each NPC's sprite set is composed of **poses**, gated by

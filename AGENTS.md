@@ -339,8 +339,14 @@ After any non-trivial change under `rpg/`, run (in `rpg/`):
 - **Regenerate it with `./scripts/ship-perchance.sh [--push]`** (from repo
   root; requires a fresh `pnpm build` inside — the script does it). Run with
   `--push` to publish the branch to origin. Do NOT edit `perchance` by hand.
-- After any change that alters the app bundle or `test-prompt.txt`, re-ship:
-  `./scripts/ship-perchance.sh --push`.
+- **Push happens only at round time (owner direction):** commit on `main` as
+  you go, but push to origin **only when preparing a Perchance test round** —
+  push `main`, then `./scripts/ship-perchance.sh --push`, together. Don't
+  push after every commit; the remote only matters when a new round is
+  being shipped.
+- After any change that alters the app bundle or `test-prompt.txt`, re-ship
+  at the next round: `./scripts/ship-perchance.sh --push` (preceded by the
+  `main` push).
 - `test-prompt.txt` (repo root) is the **handoff prompt** for the Perchance
   agent — one per test round; update it with what to check/report before
   shipping a round.
@@ -349,9 +355,14 @@ After any non-trivial change under `rpg/`, run (in `rpg/`):
 
 The CDP MCP launches a headless Chrome with the project's profile
 (`.agents/chrome-profile`). It spawns **~13 processes / ~1.7 GB RSS**, and the
-**GPU process burns ~12% CPU continuously** (SwiftShader software WebGL in
-headless). Once local browser testing is done, kill it — it is NOT owned by
-any daemon and nothing restarts it automatically:
+**GPU process burns CPU continuously** (SwiftShader software WebGL in
+headless — no real GPU, every frame is rasterized on the CPU).
+
+The app itself renders **on demand** (dirty-flag render loop in
+`three-stage.ts` — the scene is static, so an idle scene costs ~0% CPU);
+whatever CPU remains after boot is Chrome's software rasterization, not the
+app. Even so, once local browser testing is done, kill Chrome — it is NOT
+owned by any daemon and nothing restarts it automatically:
 
 ```bash
 pkill -f "/opt/google/chrome/chrome" 2>/dev/null; sleep 2
@@ -383,6 +394,10 @@ Notes:
   footer used by the dev agent.
 - **Ship artifact:** when the app bundle changes, commit the regenerated
   `rpg/build/` alongside the source (it is the Perchance upload set).
+- **Push discipline:** commit locally as you go; push to `main` **only when
+  preparing a Perchance test round** (right before `ship-perchance.sh
+  --push`). Avoid per-commit pushes — the remote is for rounds, not
+  checkpoints.
 - **CI:** GitHub Actions (`.github/workflows/ci.yml`) runs on push to `main`
   and on PRs: typecheck → Biome → unit+integration → build → e2e build gate →
   upload `rpg/build` artifact. It activates once the repo is pushed.

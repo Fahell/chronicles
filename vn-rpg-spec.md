@@ -269,28 +269,43 @@ type A**.
   browser by **RMBG-1.4 (IS-Net) via @huggingface/transformers + ONNX
   Runtime Web** (WASM; WebGPU where available) — `services/bg-removal.ts`.
   Design: lazy chunk (never in the initial bundle), **preload at boot**
-  (prod, fire-and-forget) and a **wait queue** — a sprite generated before
-  the model is ready simply awaits it. Inference runs **off the main
-  thread**: `env.backends.onnx.wasm.proxy = true` moves the WASM compute to
-  an ORT proxy worker, keeping `numThreads = 1` (no SharedArrayBuffer /
-  cross-origin isolation required — impossible inside the Perchance
-  iframe; round-6 change, researched: ORT docs confirm the proxy worker
-  works without COI, and Perchance ships no restrictive default CSP, so no
-  smoke test was needed — the `[rpg] bg-removal: proxy worker active` log
-  is verified in the round-6 prompt). **Processed cut-outs are cached**: a
-  `cutouts` Dexie table (schema v2) stores the post-RMBG + post-matte sprite
-  keyed by the raw generation key + a pipeline-version constant
-  (`services/cutout-cache.ts`); a warm reload skips inference entirely
-  (`[rpg] cutout-cache: hit … (skip inference)`). If the model fails to
-  load (e.g. its CDN is unreachable on the platform), the pipeline **falls
-  back to the platform's `removeBackground`** — the fallback is used for the
-  session but **never cached** (owner decision): every boot re-attempts
-  RMBG, so a transient failure recovers on its own. Dev keeps the mock
-  cut-outs (no model download). **Observability:** a Preact-signal progress
-  store (`services/progress.ts`) is the single source of truth for an
-  animated boot loading screen (live stages: scene assets → removal →
-  polish → scene), a discreet corner chip ("Removing background 1/2…"),
-  and structured `[rpg]` console logs that the Perchance agent can read.
+  (prod, fire-and-forget, with the rejection caught and logged — no
+  unhandled rejection) and a **wait queue** — a sprite generated before
+  the model is ready simply awaits it. **The WASM engine comes from the
+  jsdelivr CDN** via `env.backends.onnx.wasm.wasmPaths = ORT_WASM_PATHS`
+  (round-7 fix; the exact `onnxruntime-web` version must match
+  pnpm-lock.yaml — bump the constant when transformers.js is upgraded).
+  The Vite-bundled local copy is **excluded from the Perchance ship** — the
+  round-6 root cause was exactly that: the transformers chunk resolved its
+  ORT wasm as a local `assets/` asset that the ship script drops, so
+  client-side removal 404'd and every boot fell back. Inference runs **off
+  the main thread**: `env.backends.onnx.wasm.proxy = true` moves the WASM
+  compute to an ORT proxy worker, keeping `numThreads = 1` (no
+  SharedArrayBuffer / cross-origin isolation required — impossible inside
+  the Perchance iframe; researched: ORT docs confirm the proxy worker works
+  without COI, and Perchance ships no restrictive default CSP — the
+  `[rpg] bg-removal: proxy worker active` log is verified in the round
+  prompt). **Processed cut-outs are cached**: a `cutouts` Dexie table
+  (schema v2) stores the post-RMBG + post-matte sprite keyed by the raw
+  generation key + a pipeline-version constant (`services/cutout-cache.ts`);
+  a warm reload skips inference entirely (`[rpg] cutout-cache: hit … (skip
+  inference)`). If the model fails to load (e.g. its CDN is unreachable on
+  the platform), the pipeline **falls back to the platform's
+  `removeBackground`** — the fallback is used for the session but **never
+  cached** (owner decision): every boot re-attempts RMBG, so a transient
+  failure recovers on its own; the fallback output now also passes through
+  the matte cleanup (round-6 finding: it used to skip `cleanSpriteMatte`
+  entirely and rendered mottled). Dev keeps the mock cut-outs (no model
+  download). **Observability:** a Preact-signal progress store
+  (`services/progress.ts`) is the single source of truth for an animated
+  boot loading screen (live stages: scene assets → **model download**
+  (first visit, with percentage via the transformers.js `progress_callback`)
+  → removal → polish → scene), a discreet corner chip ("Removing background
+  1/2…") mounted at the **top level** (outside the app mount — live during
+  boot removal, ready for future in-game re-rolls), and structured `[rpg]`
+  console logs that the Perchance agent can read. The WebGL renderer keeps
+  `preserveDrawingBuffer = true` so the platform's screenshot/listing reads
+  the canvas without an agent-side preamble patch (round-5/6 finding).
   ⚠️ **License:** RMBG-1.4 is source-available for **non-commercial** use;
   a commercial game needs a BRIA license or a permissively-licensed
   alternative (e.g. `isnet-general-use` / `modnet` / rembg's distilled
@@ -305,6 +320,13 @@ type A**.
   stage (renderOrder 0 vs sprite 1, depthWrite off). Detached removal specks
   are filtered out before dilation so they never become floating blocks.
   Outline radius is a pipeline parameter (default 5 px).
+- **Round-7 open questions (verify in the round-7 prompt, no code change):**
+  (1) **HF reachability** — the ~45 MB model download from huggingface.co
+  was never exercised on the platform (the missing wasm broke before it); if
+  the iframe blocks HF, a model mirror (e.g. Cloudflare R2 / GitHub raw)
+  becomes a follow-up decision; (2) the `ort.webgpu.bundle.min.mjs` 404
+  (referenced by the chunk, only fetched if the WebGPU backend is requested
+  — we use WASM only) — confirm it stays harmless.
 - **Dev discipline:** only a few real images are generated per test round —
   just enough to validate the implementation, never throwaway art at scale.
 - **NPC pose sets:** each NPC's sprite set is composed of **poses**, gated by

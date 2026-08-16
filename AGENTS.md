@@ -61,7 +61,10 @@ Do all of this **before writing any code**:
   baseline)  + **PixiJS v8** (2D overlay stack), **@huggingface/transformers**
   (client-side RMBG-1.4 background removal — lazy chunk, prod sprites only,
   `vn-rpg-spec.md` §4.1; inference in the ORT proxy worker, `proxy=true`,
-  `numThreads=1`; processed cut-outs cached in the Dexie `cutouts` table),
+  `numThreads=1`; the WASM engine is pinned to the onnxruntime-web CDN via
+  `wasmPaths` — `ORT_WASM_PATHS` in `bg-removal.ts` must match the version
+  in `pnpm-lock.yaml` when transformers.js is upgraded; processed cut-outs
+  cached in the Dexie `cutouts` table),
   Dexie/IndexedDB, i18next, Biome, Vitest (test
   tiers per `tech-spec.md` §8), E2E via Chrome DevTools MCP + WebMCP
   harness; CI via GitHub Actions once pushed. Exact versions are re-pinned

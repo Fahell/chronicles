@@ -22,14 +22,18 @@ configs, no CI, no specs, no dev tooling).
   client-side by RMBG-1.4** (@huggingface/transformers + ONNX Runtime Web),
   cleaned, and rendered with a **black outline** plane behind it.
 
-  ⚠️ On first boot the browser downloads the ~45 MB removal model (cached
-  afterwards) — an **animated loading screen** reports the live stages and a
-  corner chip shows removal progress ("Removing background 1/2…"). The
-  inference runs **off the main thread** (ONNX Runtime proxy worker) so the
-  UI stays responsive. A sprite generated before the model is ready waits
-  for it; if the model CDN is unreachable, the app falls back to the
-  platform's `removeBackground` (console warning — the fallback is never
-  cached, so the next boot re-attempts the model).
+  ⚠️ On first boot the browser downloads the ~45 MB removal model from
+  huggingface.co (cached afterwards) — an **animated loading screen** reports
+  the live stages, including a "Downloading AI model…" stage with a
+  percentage, and a corner chip shows removal progress ("Removing background
+  1/2…"). The inference runs **off the main thread** (ONNX Runtime proxy
+  worker) so the UI stays responsive, and the ORT **WASM engine is fetched
+  from the jsdelivr CDN** at runtime (`wasmPaths` — the local
+  `build/assets/*.wasm` is intentionally not uploaded; a 404 for it is NOT
+  expected). A sprite generated before the model is ready waits for it; if
+  the model CDN is unreachable, the app falls back to the platform's
+  `removeBackground` (console warning — the fallback is never cached, so the
+  next boot re-attempts the model).
 
   **Processed cut-outs are cached**: after the first removal each sprite's
   cut-out is stored in IndexedDB (`cutouts` table). Reloads serve them with

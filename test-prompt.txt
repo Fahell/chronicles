@@ -1,5 +1,5 @@
 ================================================================================
-TEST PROMPT — PERCHANCE RUNTIME VALIDATION ROUND 6
+TEST PROMPT — PERCHANCE RUNTIME VALIDATION ROUND 7
 Project: RPG Perchance generator (type-C open scene slice, MVP)
 Date: 2026-08-16
 ================================================================================
@@ -8,8 +8,8 @@ You are the runtime validation agent for this RPG generator. The AI text and
 image plugins only execute inside the Perchance platform, and the generator
 runs in a cross-origin iframe — so you are the only one who can validate the
 real plugin behavior. Local tests + CI are already green; your job is to
-validate what only runs here: the real `generateImage` / `generateText` calls,
-the client-side background-removal model, and the new async/observability
+validate what only runs here: the real `generateImage` / `generateText`
+calls, the client-side background-removal model, and the async/observability
 pipeline.
 
 Before you start, read `src/README.md` for the project context and the
@@ -22,52 +22,69 @@ UPLOAD CHECK (do this first):
   the generator will be stuck on the loading screen with a console error
   like `Failed to fetch dynamically imported module: .../chunks/*.js`.
   If you see that, STOP and report "upload incomplete — chunks/ missing".
+- Note: the transformers chunk references a local wasm asset
+  (`assets/ort-wasm-simd-threaded.asyncify-*.wasm`) that is intentionally
+  NOT uploaded. This is FIXED in round 7: the app now pins ONNX Runtime to
+  the jsdelivr CDN via `wasmPaths`, so the wasm is fetched from
+  `cdn.jsdelivr.net` at runtime. A 404 for that asset is a REGRESSION, not
+  expected behavior.
 
-Changes since round 5 (already in this build — verify them, do not report
+Changes since round 6 (already in this build — verify them, do not report
 them as new issues):
-- RMBG inference now runs OFF the main thread via the ONNX Runtime proxy
-  worker (`proxy=true`, `numThreads=1`). You should see the log
-  `[rpg] bg-removal: proxy worker active (wasm proxy=true, numThreads=1)`.
-  The UI must stay responsive (the loading screen animates) while the model
-  works — the main thread is no longer blocked for minutes.
-- The boot overlay is now an ANIMATED loading screen that reports live
-  stages in the background: "Generating scene assets…", "Removing
-  background…", "Polishing sprites…", etc. A discreet corner chip
-  ("Removing background 1/2…") appears while removal runs.
-- PROCESSED CUT-OUTS ARE CACHED: after the first removal, the cut-out is
-  stored in IndexedDB (`cutouts` table). A reload serves it WITHOUT running
-  inference — you should see `[rpg] cutout-cache: hit <id> (skip
-  inference)` in the console and the reload must be FAST (seconds, not
-  minutes).
-- The plugin-removal FALLBACK (if the model CDN is blocked) is never cached:
-  every reload re-attempts RMBG. If you see the fallback warning
-  `bg-removal: client-side removal failed`, report it, reload, and confirm
-  it is attempted again.
-- The sprite background prompt was strengthened (solid pure black, no
-  gradient/vignette/shadow) + a `negativePrompt`. Because the prompt changed,
-  the sprite cache busted — the sprites REGENERATE this round on their
-  pure-black backgrounds. The old dirty cut-outs must NOT come back.
+- **The missing ORT wasm is fixed**: `bg-removal.ts` sets
+  `env.backends.onnx.wasm.wasmPaths` to the jsdelivr CDN
+  (`ORT_WASM_PATHS`, version pinned to the bundle). The log line now reads
+  `[rpg] bg-removal: proxy worker active (wasm proxy=true, numThreads=1,
+  wasmPaths=CDN)`. Round 6's `no available backend found` + 404 must be
+  GONE — client-side RMBG must actually run for the first time on the
+  platform.
+- **Model download is observable**: the loading screen shows a
+  "Downloading AI model (first visit)…" stage WITH a percentage (fed by the
+  transformers.js progress callback) on the first visit, then "Removing
+  background 1/2…". The preload failure is now caught (a warn log instead of
+  an unhandled rejection).
+- **The removal chip moved to the TOP LEVEL** — it appears during boot
+  removal (not only after the scene mounts).
+- **preserveDrawingBuffer is permanent** — capturing the canvas (e.g. for a
+  screenshot) should work WITHOUT any preambleJs patch.
+- **Ground shadow strengthened** — a larger/darker elliptical shadow under
+  both sprites for ground contact. (Sprite scale is intentionally UNCHANGED
+  this round — it will be tuned in a dedicated layout round.)
+- **The plugin-removal fallback is now matte-cleaned** — if it fires, the
+  output is less mottled than round 6.
+- **Sprite prompts strengthened again** (100% pure black, no grey/off-black)
+  + a longer negativePrompt. Prompt change busts the sprite cache — sprites
+  REGENERATE this round.
+
+CRITICAL ITEMS FOR THIS ROUND:
+1. Does the model (~45 MB) actually DOWNLOAD from huggingface.co inside the
+   iframe? (It never got the chance before — the wasm broke first.) If the
+   download fails or hangs, that is a new blocker to report in detail.
+2. Does the wasm load from jsdelivr (no 404)?
+3. Does a warm reload skip inference (cutout cache hit)?
 
 --------------------------------------------------------------------------------
 1. BOOT & NON-BLOCKING CHECK
 --------------------------------------------------------------------------------
 - Load the generator. It should boot with no console errors.
-- On a FIRST boot in a fresh browser (or after clearing IndexedDB), the scene
-  generation includes the model download (~42 MB) + 2 sprite removals.
-  Confirm:
-  (a) the loading screen ANIMATES smoothly while "Removing background…" is
-      shown (it must NOT freeze — the proxy worker keeps the main thread
-      free);
-  (b) the corner chip "Removing background 1/2…" appears, then 2/2, then
-      disappears;
-  (c) console shows the `[rpg]` progress lines with timings:
-      `[rpg] bg-removal: proxy worker active`,
-      `[rpg] bg-removal: model loading…`,
-      `[rpg] bg-removal: model ready (… ms)`,
-      `[rpg] bg-removal: inference done (… ms)` per sprite,
-      `[rpg] cutout-cache: miss …` on first boot.
-  Report: first-boot time, model load time, per-sprite inference time, and
-  whether the page froze at any point.
+- On a FIRST boot in a fresh browser (or after clearing IndexedDB), confirm:
+  (a) the loading screen shows "Downloading AI model (first visit)…" with a
+      RISING percentage during the model download, then transitions to
+      "Removing background 1/2…" (and 2/2), then "Polishing sprites…";
+  (b) the loading screen ANIMATES smoothly throughout (it must NOT freeze —
+      the proxy worker keeps the main thread free);
+  (c) the corner chip "Removing background 1/2…" appears during boot
+      removal, then disappears;
+  (d) console shows the `[rpg]` lines: `proxy worker active (… wasmPaths=CDN)`,
+      `model downloading (first visit ~45 MB)`, `model loading…`,
+      `model ready (… ms)`, `inference done (… ms)` per sprite,
+      `cutout-cache: miss …` on first boot;
+  (e) Network tab: the wasm is fetched from
+      `cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0-dev.20260416-b7804b056c/dist/`
+      (200, no 404) and the model files from huggingface.co (200).
+Report: first-boot time, model download time (HF), model load time,
+per-sprite inference time, freeze? (yes/no), loading stages seen, and the
+exact wasm/model URLs + status codes.
 
 --------------------------------------------------------------------------------
 2. WARM RELOAD / CUT-OUT CACHE (the big one)
@@ -78,27 +95,30 @@ Reload WITHOUT clearing anything. Expected:
   sprites and NO `model loading…`/`inference done` lines.
 - The scene must look identical to before the reload (same cut-outs, same
   outline).
-Report: reload time vs first-boot time, the cache-hit lines, and whether the
-model was fetched (Network tab — it must NOT re-download ~42 MB).
+- Network tab: the model must NOT re-download (~45 MB) — it comes from the
+  browser cache.
+Report: reload time vs first-boot time, the cache-hit lines, and the model
+fetch behavior.
 
 --------------------------------------------------------------------------------
-3. CLIENT-SIDE BACKGROUND REMOVAL + SPRITE QUALITY
+3. CLIENT-SIDE BACKGROUND REMOVAL + SPRITE QUALITY (first real run!)
 --------------------------------------------------------------------------------
 Expected pipeline for the two character sprites (player, elder):
-- The image plugin generates them RAW on a solid pure black background.
+- The image plugin generates them RAW (removeBackground disabled) on a solid
+  pure black background.
 - RMBG-1.4 runs in the browser (proxy worker) and cuts the background out;
   matte cleanup + black outline follow.
 
 Check and report:
+- **Did client-side removal actually run?** (round 6 never reached it).
+  Confirm `inference done` lines + cut-outs visibly cut.
 - Look closely at both sprites (zoom/sample pixels if you can). The NEW
-  generation must show REDUCED dark mottling/spill vs round 5 (round 5 had
-  dark-grey/white backgrounds because the model ignored the old prompt).
-  Are the edges cleaner now? Any residual dark blocks — and if so, where
-  (feet only, or spread)?
+  generation must show REDUCED dark mottling/spill vs the round-6 fallback
+  cut-outs. Are the edges clean? Any residual dark blocks — where (feet
+  only, or spread)?
 - The black outline: visible, clean, following the silhouette, no detached
   black blocks floating nearby.
-- Timing: model load + per-sprite inference (first boot). Confirm the
-  `[rpg] bg-removal: inference done` timings.
+- Timing: model load + per-sprite inference (first boot).
 
 --------------------------------------------------------------------------------
 4. IMAGE GENERATION (floor, backdrop)
@@ -120,7 +140,7 @@ line? How does it read? (This is a KNOWN item being tracked for a later
 round — do not report it as a regression.)
 
 --------------------------------------------------------------------------------
-6. DIALOGUE FLOW (regression — should still pass from round 5)
+6. DIALOGUE FLOW (regression — should still pass from round 5/6)
 --------------------------------------------------------------------------------
 Click "Talk to the elder".
 - Box opens with speaker "Elder" + thinking indicator while the AI text is
@@ -139,17 +159,33 @@ Click "Talk to the elder".
 If you see the console warning `bg-removal: client-side removal failed —
 falling back to the platform removal`, report it AND reload — the fallback
 must NOT be cached: the next boot must re-attempt the model (you should see
-`model loading…` again). If the fallback never fires (expected — the model
-CDN works), just report "fallback did not fire".
+`model loading…` again). Also note: the fallback output is now matte-cleaned
+(less grey fuzz than round 6). If the fallback never fires (expected — the
+model CDN works), just report "fallback did not fire".
 
 --------------------------------------------------------------------------------
-8. GENERAL OBSERVATIONS
+8. WEBGPU BUNDLE CHECK (new this round — report only)
 --------------------------------------------------------------------------------
-- Any visual glitches, clipping, wrong scaling? Sprites (with outlines) a
-  reasonable size relative to the scene?
+The transformers chunk also references `ort.webgpu.bundle.min.mjs` (relative
+to the chunks folder). The app uses ONLY the WASM backend, so this file
+should never be fetched. Check the Network tab / console:
+- Does `ort.webgpu.bundle.min.mjs` 404?
+- If it 404s, does it produce ANY console error or warning? (It should be
+  inert — confirm.)
+Report: fetched? (yes/no) · 404? (yes/no) · any console noise from it?
+
+--------------------------------------------------------------------------------
+9. VISUAL CHECK — SHADOW + SCENE COMPOSITION
+--------------------------------------------------------------------------------
+- Both sprites should now have a clear elliptical dark shadow under their
+  feet (ground contact). Is it visible? Reasonable size/opacity?
+- Sprites (with outlines) a reasonable size relative to the scene? (Note:
+  scale is intentionally unchanged this round — a dedicated layout round
+  will tune it; just describe what you see.)
 - Letterbox frame working? HUD readable? Dialogue box usable? Loading screen
   and corner chip styles sane?
-- Anything that crashed or froze the generator?
+- Take a screenshot of the scene and include it in your report (the
+  preserveDrawingBuffer fix means the canvas captures natively — no patch).
 
 --------------------------------------------------------------------------------
 REPORT FORMAT
@@ -157,16 +193,19 @@ REPORT FORMAT
 Reply with a structured report:
 
 1. BOOT/NON-BLOCKING: pass / fail + first-boot time + freeze? (yes/no) +
-   loading stages seen + chip behavior
+   loading stages seen (incl. "Downloading AI model…" %?) + chip behavior +
+   wasm URL/status + model URL/status
 2. WARM RELOAD/CACHE: pass / fail + reload time + cache-hit lines + model
    re-download? (yes/no)
-3. SPRITE QUALITY: pass / fail + edge quality vs round 5 + outline + residual
-   dark blocks (where?)
+3. SPRITE QUALITY: pass / fail + DID client-side removal run? (yes/no) +
+   edge quality + outline + residual dark blocks (where?)
 4. IMAGES (floor/backdrop): pass / fail + resolutions + quality
 5. BOX EFFECT: description (report only)
 6. DIALOGUE: pass / fail + pagination + grid + always-escape + keyboard
-7. FALLBACK: fired? (yes/no) + re-attempted on reload? (yes/no)
-8. OBSERVATIONS: anything notable
+7. FALLBACK: fired? (yes/no) + re-attempted on reload? (yes/no) + matte
+   visibly cleaner? (n/a if it never fired)
+8. WEBGPU BUNDLE: fetched? · 404? · console noise? (report only)
+9. VISUAL: shadow visible? + composition notes + screenshot attached
 
 End with a summary line: how many checks passed, and the single most
 important issue to fix (if any). Do NOT modify the code — report only.

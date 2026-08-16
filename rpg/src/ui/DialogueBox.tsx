@@ -6,8 +6,10 @@ import {
   dialogueMachine,
   dialoguePending,
   dialogueVisible,
+  pendingSpeaker,
   selectOption,
 } from "../game/state/dialogue";
+import { t } from "../services/i18n";
 
 export function DialogueBox() {
   const machine = dialogueMachine.value;
@@ -46,11 +48,12 @@ export function DialogueBox() {
   // The current page; fall back to the full text (empty pages edge case).
   const pageText = machine.pages[machine.page] ?? machine.text;
   const multiPage = isSpeaking && machine.pages.length > 1;
+  const thinkingName = pendingSpeaker.value ?? "…";
 
   return (
     <section className="dialogue-box" aria-live="polite">
       {isThinking ? (
-        <p className="dialogue-text thinking">The elder is thinking…</p>
+        <p className="dialogue-text thinking">{t("dialogue.thinking", { name: thinkingName })}</p>
       ) : (
         <>
           {machine.speaker && <p className="speaker">{machine.speaker}</p>}
@@ -65,7 +68,7 @@ export function DialogueBox() {
 
       {isSpeaking && (
         <button type="button" className="advance" onClick={advanceDialogue}>
-          Continue
+          {t("dialogue.continue")}
         </button>
       )}
 
@@ -84,7 +87,7 @@ export function DialogueBox() {
       {/* Always-escape: a fixed affordance that ends the interaction — even
           while the model is thinking. */}
       <button type="button" className="leave" onClick={closeDialogue}>
-        Leave
+        {t("dialogue.leave")}
       </button>
     </section>
   );

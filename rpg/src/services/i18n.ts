@@ -118,6 +118,13 @@ export async function initI18n(options: I18nOptions = {}): Promise<void> {
     fallbackLng: "en",
     supportedLngs: [...SUPPORTED_LANGUAGES, "cimode"],
     nonExplicitSupportedLngs: true,
+    // Persist the manual Settings override in localStorage so the detected
+    // browser language does not override the user's choice on reload.
+    detection: {
+      order: ["localStorage", "navigator"],
+      caches: ["localStorage"],
+      lookupLocalStorage: "chronicles.lang",
+    },
     resources: { en: { translation: en } },
   });
   initialized = true;

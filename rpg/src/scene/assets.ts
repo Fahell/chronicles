@@ -80,8 +80,13 @@ export async function resolveSceneTextures(
   // transient model failure must recover on its own next boot).
   const actors: Record<string, ActorTextures> = {};
   const spriteActors = manifest.actors.filter((a) => a.sprite?.assetKey && a.sprite?.prompt);
-  setBootStage("removal", "Removing background…");
-  setRemovalQueue(0, spriteActors.length);
+  // Removal progress only exists in prod (dev mock has no client removal) —
+  // keep the dev loading screen honest (no fake "Removing background…").
+  const isProd = assets.mode === "prod";
+  if (isProd) {
+    setBootStage("removal", "Removing background…");
+    setRemovalQueue(0, spriteActors.length);
+  }
   let done = 0;
 
   await Promise.all(
@@ -129,9 +134,11 @@ export async function resolveSceneTextures(
       }
       const outline = await buildOutlineDataUrl(spriteUrl);
       actors[actor.characterId] = { sprite: spriteUrl, outline };
-      done += 1;
-      setRemovalQueue(done, spriteActors.length);
-      console.log(`[rpg] bg-removal: ${actor.characterId} ready (${done}/${spriteActors.length})`);
+      if (isProd) {
+        done += 1;
+        setRemovalQueue(done, spriteActors.length);
+        console.log(`[rpg] bg-removal: ${actor.characterId} ready (${done}/${spriteActors.length})`);
+      }
     }),
   );
 

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { resolveSceneTextures } from "../../src/scene/assets";
 import { openPlainsManifest } from "../../src/scene/manifest/openPlains";
+import type { BackgroundRemover } from "../../src/services/bg-removal";
 import { AssetCache } from "../../src/services/generation";
 import type { ImageService } from "../../src/services/perchance-runtime";
 
@@ -96,6 +97,79 @@ describe("resolveSceneTextures (fake-indexeddb)", () => {
     await expect(
       resolveSceneTextures({ ...openPlainsManifest, type: "A" }, assets),
     ).rejects.toThrow(/only type C/);
+    await assets.close();
+  });
+});
+
+describe("resolveSceneTextures — cut-out cache (prod, injected remover)", () => {
+  beforeEach(async () => {
+    await Dexie.delete("rpg_test_cutout_pipe");
+  });
+  afterEach(async () => {
+    await Dexie.delete("rpg_test_cutout_pipe");
+  });
+
+  function prodCache(): {
+    assets: AssetCache;
+    seen: Array<{ removeBackground?: boolean; prompt: string }>;
+  } {
+    const seen: Array<{ removeBackground?: boolean; prompt: string }> = [];
+    const service: ImageService = {
+      async generate(opts) {
+        seen.push({ removeBackground: opts.removeBackground, prompt: opts.prompt });
+        return { dataUrl: `data:image/png;base64,${opts.seed}` };
+      },
+    };
+    return { assets: new AssetCache("prod", service, { dbName: "rpg_test_cutout_pipe" }), seen };
+  }
+
+  it("runs the remover once and serves the cut-out from cache on the next resolve", async () => {
+    const { assets } = prodCache();
+    let removals = 0;
+    const remover: BackgroundRemover = async (dataUrl) => {
+      removals += 1;
+      return dataUrl;
+    };
+
+    const first = await resolveSceneTextures(openPlainsManifest, assets, {
+      removeBackground: remover,
+    });
+    expect(removals).toBe(2); // player + elder
+    expect(first.actors.player?.sprite).toMatch(/^data:image\//);
+
+    const second = await resolveSceneTextures(openPlainsManifest, assets, {
+      removeBackground: remover,
+    });
+    expect(removals).toBe(2); // both served from the cut-out cache — no re-inference
+    expect(second.actors.player?.sprite).toBe(first.actors.player?.sprite);
+
+    await assets.close();
+  });
+
+  it("does NOT cache the plugin-removal fallback — the remover is re-attempted next resolve", async () => {
+    const { assets, seen } = prodCache();
+    let removals = 0;
+    const remover: BackgroundRemover = async () => {
+      removals += 1;
+      throw new Error("model CDN blocked");
+    };
+
+    const first = await resolveSceneTextures(openPlainsManifest, assets, {
+      removeBackground: remover,
+    });
+    // Fallback path: plugin removal (removeBackground: true) per actor.
+    expect(seen.filter((s) => s.removeBackground === true)).toHaveLength(2);
+    expect(first.actors.player?.sprite).toMatch(/^data:image\//);
+
+    await resolveSceneTextures(openPlainsManifest, assets, {
+      removeBackground: remover,
+    });
+    // The RMBG remover is re-attempted — the fallback CUT-OUT is never cached.
+    expect(removals).toBe(4);
+    // The fallback RAW (plugin-removed generation) is a normal assets-table
+    // entry and IS cached — so no new plugin call for it on the second resolve.
+    expect(seen.filter((s) => s.removeBackground === true)).toHaveLength(2);
+
     await assets.close();
   });
 });

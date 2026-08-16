@@ -36,11 +36,39 @@ Do all of this **before writing any code**:
    MCP server, or library for the job is already installed (see "Tools,
    Skills & MCP"), use it. Don't reinvent what the toolchain already has.
 
-**Spec index** (all at the repo root):
+## Gameplay-phase architecture (2026-08)
+
+- **Boot flow:** WebGL2 gate (unsupported → static screen) → boot services →
+  i18n init → screen router. The scene loads **lazily** in `GameScreen`
+  (LoadingScreen while it runs), then the **narrator opening** speaks once,
+  then the HUD + dialogue.
+- **Session:** `rpg/src/game/session.ts` — the loaded save + its picked NPC;
+  `sessionSignal` / `conversationSignal`. The dynamic manifest is built from
+  the base scene (`openPlainsBase`) + the user/NPC actors. The user actor
+  carries the identity `appearanceSeed` explicitly so the wizard-time sprite
+  resolves from cache at scene load.
+- **Payload:** `rpg/src/game/payload/builder.ts` — per-voice instructions
+  (narrator, NPC) with the taxonomy sections (identity/background, user
+  appearance — never the background, scene context, bounded conversation,
+  `Respond in {language}` directive). `PAYLOAD_BUDGET` 24k; conversation is
+  trimmed oldest-first.
+- **Save v1:** Dexie v3 `save` table — 3 manual slots + autosave
+  (`rpg/src/game/save/`). Identity is locked to the save.
+- **i18n:** `rpg/src/services/i18n.ts` — 5 supported languages, English
+  authored now (fallback), browser detection + localStorage override.
+- **Multi-turn dialogue:** App-level orchestration (not a machine rewrite):
+  choosing an option appends `{player: choice}` + the finished turn to the
+  conversation and immediately requests the NPC follow-up, which may carry
+  new choices. Leave always closes.
+- **Re-roll:** `resolveCharacterSprite` with a fresh seed (cache bust) →
+  `stage.updateActor(characterId, textures)`.
+
+## Spec index (all at the repo root)
 
 | Spec | Covers |
 | --- | --- |
 | `tech-spec.md` | Stack, architecture, build/ship pipeline, test tiers, adapter/cache design |
+| `docs/superpowers/plans/*` | Implementation plans per phase (gameplay phase: save, identity, payload, onboarding, i18n, a11y, fog, re-roll) |
 | `vn-rpg-spec.md` | Scenes & visual techniques (type A/B/C), assets, poses |
 | `narrative-spec.md` | Dialogue system, context payload/taxonomy, choices, i18n policy |
 | `relationships-spec.md` | Relationship web + the two systems |
@@ -90,7 +118,7 @@ The local repo root mirrors the Perchance generator root. Content types:
 | --- | --- |
 | `main.pjs` | **Symbolic file.** Its content is copy-pasted into the Perchance *Lists* panel. Holds only plugin imports. |
 | `index.html` | **Symbolic file.** Its content is copy-pasted into the Perchance *HTML* panel. **The current content is example/placeholder only** — do not treat it as the real project; the real shell is written later. |
-| `rpg/` | The actual game app (typed codebase; **stack approved** — see Tech spec §2). Maps to the `src/rpg/` tree on the platform. `rpg/build/` is the committed ship artifact. |
+| `rpg/` | The actual game app (typed codebase; **stack approved** — see Tech spec §2). Maps to the `src/rpg/` tree on the platform. `rpg/build/` is the committed ship artifact. Game-layer modules: `rpg/src/game/` (save slots + store, payload builder, session, narrator, screen router, dialogue state), `rpg/src/content/` (seed content: archetypes, user background templates, NPC pool 3×3), `rpg/src/effects/` (fog + registry), `rpg/src/ui/screens/` (title, wizard, load, settings, credits, help, game). |
 | `README.md` | **Ships to Perchance** (platform-facing orientation doc). See "Ship Policy" below. |
 | `PERCHANCE-GUIDE.md`, `AGENTS.md`, docs | **Local-only** documentation (never uploaded). |
 | `test-prompt.txt` | **Transient handoff artifact** (English, generated on demand): the runtime-test prompt handed to the Perchance AI agent. See "Development Workflow". |
@@ -307,7 +335,10 @@ cache results where sensible.
 - **Only `perchance-runtime.ts` touches `root.*`** — everything else depends
   on the typed `ImageService`/`TextService` interfaces.
 - Effects are **declarative in the scene manifest** and each effect is an
-  isolated, unit-testable module (tech-spec §5.2).
+  isolated, unit-testable module (tech-spec §5.2). The first effect is the
+  **fog overlay** (`rpg/src/effects/fog.ts`, PixiJS) — created by the loader
+  from `manifest.effects` via `rpg/src/effects/index.ts` and ticked every
+  frame through `stage.tick(dt)` (independent of 3D dirtiness).
 - Pure logic (payload builder, choice parser, graph ops, manifest validation)
   lives **outside** stores so it is unit-testable without DOM/Preact
   (tech-spec §7.1).

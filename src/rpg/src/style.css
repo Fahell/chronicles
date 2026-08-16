@@ -80,6 +80,15 @@ body {
 .dialogue-text {
   margin: 0;
   line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.page-indicator {
+  display: block;
+  margin-top: -0.25rem;
+  font-size: 0.75rem;
+  color: #8a8f98;
+  text-align: right;
 }
 
 .dialogue-text.thinking {
@@ -100,11 +109,13 @@ body {
 
 .choices {
   list-style: none;
-  margin: 0;
+  margin: 0.25rem 0 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  /* Horizontal table layout (round-3 finding): options share rows and wrap
+     to a second line when there are many or when they are long. */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.4rem;
 }
 
 .choices button,

@@ -1,3 +1,5 @@
+import { useEffect } from "preact/hooks";
+
 import {
   advanceDialogue,
   closeDialogue,
@@ -10,11 +12,40 @@ import {
 export function DialogueBox() {
   const machine = dialogueMachine.value;
   const pending = dialoguePending.value;
-  if (!dialogueVisible.value || (machine.state === "idle" && !pending)) return null;
 
   const isSpeaking = machine.state === "speaking";
   const isChoosing = machine.state === "choices";
   const isThinking = pending && !isSpeaking && !isChoosing;
+
+  // Keyboard parity (tech-spec a11y baseline): while the box is open, Enter /
+  // Space advance the dialogue and Escape always leaves. Read the signal fresh
+  // inside the handler (no stale closure); focused buttons handle their own
+  // Enter/Space natively.
+  useEffect(() => {
+    if (!dialogueVisible.value) return;
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeDialogue();
+        return;
+      }
+      if ((e.target as HTMLElement).closest("button")) return;
+      if ((e.key === "Enter" || e.key === " ") && dialogueMachine.value.state === "speaking") {
+        e.preventDefault();
+        advanceDialogue();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [dialogueVisible.value]);
+
+  if (!dialogueVisible.value || (machine.state === "idle" && !pending)) return null;
+
+  // The current page; fall back to the full text (empty pages edge case).
+  const pageText = machine.pages[machine.page] ?? machine.text;
+  const multiPage = isSpeaking && machine.pages.length > 1;
 
   return (
     <section className="dialogue-box" aria-live="polite">
@@ -23,7 +54,12 @@ export function DialogueBox() {
       ) : (
         <>
           {machine.speaker && <p className="speaker">{machine.speaker}</p>}
-          <p className="dialogue-text">{machine.text}</p>
+          <p className="dialogue-text">{pageText}</p>
+          {multiPage && (
+            <span className="page-indicator">
+              {machine.page + 1}/{machine.pages.length}
+            </span>
+          )}
         </>
       )}
 

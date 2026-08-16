@@ -1,3 +1,5 @@
+import { paginate } from "./paginate";
+
 export type DialogueState = "idle" | "speaking" | "choices" | "ended";
 
 export interface DialogueTurn {
@@ -9,9 +11,14 @@ export interface DialogueTurn {
 export interface DialogueMachine {
   state: DialogueState;
   speaker: string | null;
+  /** Full turn text (kept for the dev context inspector); UI renders pages. */
   text: string;
   options: string[];
   selected: number | null;
+  /** Text split into bounded pages (round-3 finding: pagination). */
+  pages: string[];
+  /** Current page index (0-based); advances via advanceDialogue. */
+  page: number;
 }
 
 export const initialMachine: DialogueMachine = {
@@ -20,6 +27,8 @@ export const initialMachine: DialogueMachine = {
   text: "",
   options: [],
   selected: null,
+  pages: [],
+  page: 0,
 };
 
 /** Pure reducer: returns a new snapshot, never mutates. */
@@ -30,13 +39,18 @@ export function beginDialogue(
   if (previous.state !== "idle" && previous.state !== "ended") {
     return previous;
   }
+  const pages = paginate(turn.text);
+  // Always start speaking: the player reads the text pages first; options are
+  // offered after the final page (classic VN) via advanceDialogue.
   return {
     ...previous,
-    state: turn.options.length > 0 ? "choices" : "speaking",
+    state: "speaking",
     speaker: turn.speaker,
     text: turn.text,
     options: turn.options,
     selected: null,
+    pages,
+    page: 0,
   };
 }
 
@@ -52,7 +66,18 @@ export function escapeDialogue(machine: DialogueMachine): DialogueMachine {
   return { ...machine, state: "ended", selected: null };
 }
 
+/**
+ * Advances the turn one page at a time (round-3 finding: the box must not
+ * grow with the full AI text). On the last page: offer choices if the turn
+ * has them, otherwise end the turn.
+ */
 export function advanceDialogue(machine: DialogueMachine): DialogueMachine {
   if (machine.state !== "speaking") return machine;
+  if (machine.page < machine.pages.length - 1) {
+    return { ...machine, page: machine.page + 1 };
+  }
+  if (machine.options.length > 0) {
+    return { ...machine, state: "choices" };
+  }
   return { ...machine, state: "ended" };
 }

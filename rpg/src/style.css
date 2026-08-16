@@ -31,17 +31,67 @@ body {
   image-rendering: pixelated;
 }
 
-#boot-loader {
+/* Boot loading screen (removal-pipeline-spec §5.1) */
+.loading-screen {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
   background: #0b1c2e;
-  color: #f3ce76;
-  font-family: Cinzel, Georgia, serif;
-  font-size: 1.25rem;
-  letter-spacing: 0.08em;
-  z-index: 10;
+  color: #e7edf5;
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  z-index: 50;
+}
+.loading-spinner {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 3px solid rgba(231, 237, 245, 0.25);
+  border-top-color: #f3ce76;
+  border-radius: 50%;
+  animation: rpg-spin 0.9s linear infinite;
+}
+.loading-label {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.loading-detail {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+@keyframes rpg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Discreet corner chip (removal-pipeline-spec §5.2) */
+.removal-chip {
+  position: fixed;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(7, 19, 33, 0.85);
+  border: 1px solid rgba(231, 237, 245, 0.2);
+  border-radius: 999px;
+  color: #e7edf5;
+  font-size: 0.8rem;
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  z-index: 40;
+}
+.chip-spinner {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid rgba(231, 237, 245, 0.3);
+  border-top-color: #f3ce76;
+  border-radius: 50%;
+  animation: rpg-spin 0.9s linear infinite;
 }
 
 .hud {

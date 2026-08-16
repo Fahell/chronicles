@@ -1,8 +1,7 @@
 import Dexie from "dexie";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-
-import type { GameSession } from "../../src/game/session";
 import { ensurePortrait, portraitFor, portraitsSignal } from "../../src/game/portraits";
+import type { GameSession } from "../../src/game/session";
 import { resolvePortrait } from "../../src/scene/assets";
 import { AssetCache } from "../../src/services/generation";
 import type { ImageOpts, ImageService } from "../../src/services/perchance-runtime";

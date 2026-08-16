@@ -43,10 +43,7 @@ export const PLAYER_PORTRAIT_KEY = "player";
  * - the user's name → the player portrait (free-form input / player turn);
  * - narrator or any other name → null (no portrait — the frame is hidden).
  */
-export function portraitFor(
-  speaker: string | null,
-  session: GameSession | null,
-): string | null {
+export function portraitFor(speaker: string | null, session: GameSession | null): string | null {
   if (!speaker || !session) return null;
   if (speaker === session.npc.name) return portraitsSignal.value[session.npc.id] ?? null;
   if (speaker === session.save.identity.name) {

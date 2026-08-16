@@ -33,9 +33,15 @@ export function DevInspector() {
   const panel = state.voices[voice];
 
   async function copyPayload() {
-    await navigator.clipboard.writeText(panel.instruction);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    try {
+      await navigator.clipboard.writeText(panel.instruction);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard can reject without a trusted user gesture or permission
+      // (e.g. headless/harness contexts) — never leave an unhandled rejection.
+      console.warn("[rpg] inspector: clipboard write failed");
+    }
   }
 
   return (

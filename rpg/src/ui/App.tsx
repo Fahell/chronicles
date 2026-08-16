@@ -6,6 +6,8 @@ import { buildNpcInstruction } from "../game/payload/builder";
 import { ensurePortrait, portraitsSignal } from "../game/portraits";
 import { conversationSignal, npcPortraitSeed, sessionSignal } from "../game/session";
 import {
+  appendPlayerAction,
+  closePlayerInput,
   dialogueMachine,
   dialoguePending,
   dialogueVisible,
@@ -100,6 +102,28 @@ export function App({ services, stage }: AppProps) {
     });
   }, [services, session]);
 
+  // Free-form player action (round 10, owner decision): submit appends the
+  // typed action + the finished NPC turn to the conversation, shows the
+  // player's turn with their portrait, then asks the NPC follow-up.
+  const submitPlayerAction = useCallback(
+    (text: string) => {
+      if (!session) return;
+      closePlayerInput();
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      const machine = dialogueMachine.value;
+      conversationSignal.value = appendPlayerAction(
+        conversationSignal.value,
+        machine,
+        trimmed,
+        CONVERSATION_CAP,
+      );
+      showTurn(session.save.identity.name, trimmed, []);
+      void talk(conversationSignal.value);
+    },
+    [session, talk],
+  );
+
   // Sprite re-roll (vn-rpg-spec §4.3, owner decision: sprites only): a fresh
   // seed busts the raw cache key → RMBG + matte re-run → the stage swaps the
   // actor's textures. The identity sprite is never re-rolled.
@@ -156,7 +180,7 @@ export function App({ services, stage }: AppProps) {
           {t("hud.reRoll")}
         </button>
       </div>
-      <DialogueBox />
+      <DialogueBox onSubmitAction={submitPlayerAction} />
     </main>
   );
 }

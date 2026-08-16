@@ -29,6 +29,10 @@ const en = {
     leave: "Leave",
     thinking: "{{name}} is thinking…",
     narrator: "Narrator",
+    writeOwnAction: "Write your own action…",
+    actionPlaceholder: "What do you do or say?",
+    send: "Send",
+    cancel: "Cancel",
   },
   title: {
     newGame: "New Game",

@@ -137,7 +137,9 @@ export async function resolveSceneTextures(
       if (isProd) {
         done += 1;
         setRemovalQueue(done, spriteActors.length);
-        console.log(`[rpg] bg-removal: ${actor.characterId} ready (${done}/${spriteActors.length})`);
+        console.log(
+          `[rpg] bg-removal: ${actor.characterId} ready (${done}/${spriteActors.length})`,
+        );
       }
     }),
   );

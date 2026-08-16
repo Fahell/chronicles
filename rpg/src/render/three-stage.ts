@@ -64,7 +64,15 @@ export async function createThreeStage(
   camera.position.set(layout.camera.position.x, layout.camera.position.y, layout.camera.position.z);
   camera.lookAt(layout.camera.lookAt.x, layout.camera.lookAt.y, layout.camera.lookAt.z);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: false });
+  // preserveDrawingBuffer: the platform's screenshot/listing reads the canvas
+  // after present — without it the WebGL buffer is cleared post-frame and the
+  // capture is blank (Perchance round 5/6: the agent had to patch via
+  // preambleJs). Permanent in code so no agent-side patch is needed; the cost
+  // is a small per-frame buffer-retention overhead (owner decision).
+  const renderer = new THREE.WebGLRenderer({
+    antialias: false,
+    preserveDrawingBuffer: true,
+  });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const canvas = renderer.domElement;

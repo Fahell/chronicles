@@ -13,12 +13,16 @@
  *   only) so the UI is never blocked by it.
  * - Wait queue: `remove()` awaits the singleton model promise — a sprite
  *   generated before the model is ready simply waits for availability.
- * - Deterministic threading: `numThreads = 1` + `proxy = false` — no
- *   SharedArrayBuffer / cross-origin isolation and no worker dependency,
- *   which is the robust profile inside the Perchance generator iframe.
+ * - Deterministic threading: `numThreads = 1` + `proxy = true` — inference
+ *   runs in the ORT proxy worker (no SharedArrayBuffer / cross-origin
+ *   isolation needed), so the main thread stays free. The WASM engine comes
+ *   from the jsdelivr CDN via `wasmPaths` (ORT_WASM_PATHS) — the bundled
+ *   local copy is excluded from the Perchance ship (round-6 root cause).
  * - Failure: `remove()` rejects; the caller falls back to the platform's
  *   removeBackground (see scene/assets.ts).
  */
+
+import { setModelDownload } from "./progress";
 
 /** Minimal structural types for the transformers.js call sites (the library
  * types are much wider; these keep the inference glue contained). */
@@ -42,7 +46,7 @@ export type BackgroundRemover = (dataUrl: string) => Promise<string>;
 interface TransformersModule {
   env: {
     backends: {
-      onnx: { wasm?: { numThreads?: number; proxy?: boolean } };
+      onnx: { wasm?: { numThreads?: number; proxy?: boolean; wasmPaths?: string } };
     };
   };
   AutoModel: {
@@ -57,11 +61,30 @@ interface TransformersModule {
   };
 }
 
+/**
+ * Where ORT fetches its WASM engine (removal-pipeline-spec §4.2). The
+ * transformers.js chunk bundles a local copy (a Vite asset), but that copy is
+ * excluded from the Perchance ship — ORT is pinned to the jsdelivr CDN via
+ * `wasmPaths` so the upload stays lean (round-6 root cause: the local
+ * `assets/ort-wasm-simd-threaded.asyncify-*.wasm` 404'd on the platform).
+ *
+ * MUST match the `onnxruntime-web` version in pnpm-lock.yaml — bump this
+ * constant when transformers.js is upgraded (verified 200 for
+ * ort-wasm-simd-threaded.asyncify.{wasm,mjs} on 2026-08-16).
+ */
+export const ORT_WASM_PATHS =
+  "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0-dev.20260416-b7804b056c/dist/";
+
 let removerPromise: Promise<BackgroundRemover> | null = null;
 
 /** Kicks off the model load (fire-and-forget). Called at boot in prod. */
 export function preloadBackgroundRemoval(): void {
-  void getRemover();
+  void getRemover().catch((error) => {
+    console.warn(
+      "[rpg] bg-removal: model preload failed — the platform fallback will handle removal",
+      error,
+    );
+  });
 }
 
 /** Await model availability — the wait queue for in-flight generations. */
@@ -99,20 +122,40 @@ async function createRemover(): Promise<BackgroundRemover> {
   // no SharedArrayBuffer / cross-origin isolation required (numThreads=1),
   // and the heavy inference no longer blocks the UI (removal-pipeline-spec
   // §4 — research: ORT docs confirm the proxy worker works without COI).
+  // The engine itself comes from the jsdelivr CDN (ORT_WASM_PATHS) — the
+  // Vite-bundled copy is excluded from the Perchance ship (round-6 root cause).
   const onnxEnv = mod.env.backends.onnx;
   if (onnxEnv?.wasm) {
     onnxEnv.wasm.numThreads = 1;
     onnxEnv.wasm.proxy = true;
-    console.log("[rpg] bg-removal: proxy worker active (wasm proxy=true, numThreads=1)");
+    onnxEnv.wasm.wasmPaths = ORT_WASM_PATHS;
+    console.log(
+      "[rpg] bg-removal: proxy worker active (wasm proxy=true, numThreads=1, wasmPaths=CDN)",
+    );
   }
+
+  // Model download progress → progress store (removal-pipeline-spec §5.3).
+  // transformers.js fires initiate/download/progress/done; cached loads jump
+  // straight to done/ready. Progress events update the percentage for the
+  // LoadingScreen; the console logs only transitions (progress store).
+  const onModelProgress = (info: { status?: string; file?: string; progress?: number }): void => {
+    if (info.status === "initiate" || info.status === "download") {
+      setModelDownload({ status: "downloading", file: info.file });
+    } else if (info.status === "progress" && typeof info.progress === "number") {
+      setModelDownload({ status: "downloading", pct: Math.round(info.progress), file: info.file });
+    } else if (info.status === "done") {
+      setModelDownload({ status: "ready" });
+    }
+  };
 
   // RMBG-1.4 is a custom IS-Net architecture — the official demo loads it as
   // a raw ONNX graph via `model_type: "custom"` with an explicit processor.
-  console.log("[rpg] bg-removal: model loading… (first visit downloads ~42 MB)");
+  console.log("[rpg] bg-removal: model loading… (first visit downloads ~45 MB)");
   const modelStart = performance.now();
   const model = (await mod.AutoModel.from_pretrained("briaai/RMBG-1.4", {
     config: { model_type: "custom" },
     dtype: "q8", // 8-bit quantized (~45 MB) — the in-browser sweet spot
+    progress_callback: onModelProgress,
   })) as Model;
 
   const processor = (await mod.AutoProcessor.from_pretrained("briaai/RMBG-1.4", {
@@ -128,7 +171,10 @@ async function createRemover(): Promise<BackgroundRemover> {
       rescale_factor: 0.00392156862745098,
       size: { width: 1024, height: 1024 },
     },
+    progress_callback: onModelProgress,
   })) as Processor;
+  // Guarantee the stage clears even if the callback never fired (cached load).
+  setModelDownload({ status: "ready" });
   console.log(`[rpg] bg-removal: model ready (${Math.round(performance.now() - modelStart)} ms)`);
 
   return async (dataUrl: string): Promise<string> => {

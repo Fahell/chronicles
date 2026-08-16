@@ -16,6 +16,9 @@ export const dialogueVisible = signal(false);
 /** True while a text generation is in flight (thinking state). */
 export const dialoguePending = signal(false);
 
+/** Speaker name to show on the thinking line while a generation is in flight. */
+export const pendingSpeaker = signal<string | null>(null);
+
 export function showTurn(speaker: string, text: string, options: string[] = []) {
   dialogueMachine.value = beginDialogue({ speaker, text, options });
   dialogueVisible.value = true;

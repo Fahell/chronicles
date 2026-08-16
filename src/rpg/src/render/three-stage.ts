@@ -1,4 +1,5 @@
 import type { Mesh, MeshBasicMaterial } from "three";
+import type { StageEffect } from "../effects/types";
 import type { ActorTextures, SceneTextures } from "../scene/assets";
 import type { ActorPlacement, SceneLayout } from "../scene/layout";
 import type { Stage } from "./stage";
@@ -64,7 +65,15 @@ export async function createThreeStage(
   camera.position.set(layout.camera.position.x, layout.camera.position.y, layout.camera.position.z);
   camera.lookAt(layout.camera.lookAt.x, layout.camera.lookAt.y, layout.camera.lookAt.z);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: false });
+  // preserveDrawingBuffer: the platform's screenshot/listing reads the canvas
+  // after present — without it the WebGL buffer is cleared post-frame and the
+  // capture is blank (Perchance round 5/6: the agent had to patch via
+  // preambleJs). Permanent in code so no agent-side patch is needed; the cost
+  // is a small per-frame buffer-retention overhead (owner decision).
+  const renderer = new THREE.WebGLRenderer({
+    antialias: false,
+    preserveDrawingBuffer: true,
+  });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const canvas = renderer.domElement;
@@ -98,6 +107,9 @@ export async function createThreeStage(
   scene.add(backdrop);
 
   const actorMeshes = new Map<string, { sprite: Mesh; shadow: Mesh; outline: Mesh | null }>();
+  // Declarative overlay effects (vn-rpg-spec §3.3): created by the loader and
+  // ticked every frame — even when the 3D scene is idle (fog drifts always).
+  const effects: StageEffect[] = [];
 
   const loader = new THREE.TextureLoader();
   const size = { width: 0, height: 0 };
@@ -210,9 +222,12 @@ export async function createThreeStage(
           applyOutlineTexture(outline, texturesFor.outline);
         }
 
+        // Ground-contact shadow (round-6 finding: characters float — the
+        // shadow was too small/subtle at 0.42/0.28). Enlarged + darkened; the
+        // sprite scale itself is unchanged (dedicated layout round later).
         const shadow = new THREE.Mesh(
-          new THREE.CircleGeometry(0.42 * actor.scale, 24),
-          new THREE.MeshBasicMaterial({ color: 0x071321, transparent: true, opacity: 0.28 }),
+          new THREE.CircleGeometry(0.52 * actor.scale, 24),
+          new THREE.MeshBasicMaterial({ color: 0x071321, transparent: true, opacity: 0.34 }),
         );
         shadow.rotation.x = -Math.PI / 2;
         shadow.position.set(actor.position.x, 0.03, actor.position.z);
@@ -240,6 +255,16 @@ export async function createThreeStage(
       }
       markDirty();
     },
+    effects,
+    updateActor(characterId: string, textures: ActorTextures) {
+      const entry = actorMeshes.get(characterId);
+      if (!entry) return;
+      applyTexture(entry.sprite, textures.sprite);
+      if (entry.outline) {
+        applyOutlineTexture(entry.outline, textures.outline);
+      }
+      markDirty();
+    },
     resize(width: number, height: number) {
       size.width = width;
       size.height = height;
@@ -250,9 +275,16 @@ export async function createThreeStage(
       // Camera aspect matches the 3:2 frame — never the full viewport.
       camera.aspect = SCENE_FRAME.width / SCENE_FRAME.height;
       camera.updateProjectionMatrix();
+      for (const effect of effects) {
+        effect.resize?.(width, height);
+      }
       markDirty();
     },
-    tick() {
+    tick(dt: number) {
+      // Effects animate every frame — independent of 3D dirtiness.
+      for (const effect of effects) {
+        effect.update(dt);
+      }
       if (!dirty) return;
       dirty = false;
       // Actors face the camera (billboard) — outline planes track the sprite.
@@ -265,6 +297,10 @@ export async function createThreeStage(
       renderer.render(scene, camera);
     },
     destroy() {
+      for (const effect of effects) {
+        effect.destroy();
+      }
+      effects.length = 0;
       renderer.dispose();
       if (canvas.parentElement === container) {
         container.removeChild(canvas);

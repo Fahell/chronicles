@@ -1,5 +1,7 @@
+import { SaveStore } from "../game/save/store";
 import type { Stage } from "../render/stage";
 import { loadScene as loadSceneImpl } from "../scene/loader";
+import { RpgDatabase } from "./db";
 import { AssetCache } from "./generation";
 import { installMockRoot } from "./mock";
 import {
@@ -14,6 +16,8 @@ export interface BootServices {
   mocked: boolean;
   runtime: PerchanceRuntime;
   assets: AssetCache;
+  /** Save-slot persistence (tech-spec §7.2). */
+  saves: SaveStore;
   /** Loads a scene into the given container (type C slice). */
   loadScene: (
     manifest: unknown,
@@ -51,11 +55,14 @@ export function bootServices(): BootServices {
 
   const runtime = createPlatformRuntime(root, mode);
   const assets = new AssetCache(mode, runtime.image);
+  // Same mode-scoped DB name → shares the underlying IndexedDB with the
+  // asset/cutout tables (Dexie supports multiple connections per DB).
+  const saves = new SaveStore(new RpgDatabase(mode));
   const loadScene = (
     manifest: unknown,
     container: HTMLElement,
     viewport: { width: number; height: number },
   ) => loadSceneImpl(manifest, { assets, container, viewport });
 
-  return { mode, mocked, runtime, assets, loadScene };
+  return { mode, mocked, runtime, assets, saves, loadScene };
 }

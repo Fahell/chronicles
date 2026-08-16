@@ -23,6 +23,7 @@ const en = {
   hud: {
     talkTo: "Talk to {{name}}",
     reRoll: "Re-roll sprite",
+    devInspector: "Dev",
   },
   dialogue: {
     continue: "Continue",
@@ -84,6 +85,21 @@ const en = {
     yes: "Yes",
     no: "No",
     cancel: "Cancel",
+  },
+  inspector: {
+    title: "Dev Inspector",
+    voice: "Voice",
+    imagePrompt: "Image prompt (not in payload)",
+    visualDescription: "Visual description",
+    backgroundPayload: "Background (payload version)",
+    summarizable: "summarizable",
+    neverSummarized: "never summarized",
+    budget: "Context budget",
+    windowTrigger: "window-summary trigger",
+    underBudget: "under budget",
+    refresh: "Refresh",
+    copyPayload: "Copy payload",
+    copied: "Copied!",
   },
   credits: {
     title: "Credits",

@@ -1,4 +1,5 @@
 import { render } from "preact";
+import { enableInspectorFromUrl } from "./game/state/inspector";
 import { navigate, screenSignal } from "./game/state/screens";
 import { preloadBackgroundRemoval } from "./services/bg-removal";
 import { bootServices } from "./services/boot";
@@ -38,6 +39,11 @@ async function main() {
   const services = bootServices();
   installProgressLogger();
   await initI18n({ detection: true });
+
+  // Dev context inspector gating (tech-spec §6.4): enabled by `?inspector=1`
+  // in dev AND prod builds (so the Perchance agent can turn it on during
+  // runtime tests on the deployed build). Off by default.
+  enableInspectorFromUrl();
 
   // Start the RMBG-1.4 model download at boot (prod only) so sprite removal
   // never blocks the UI; remove() awaits it if a sprite is generated first

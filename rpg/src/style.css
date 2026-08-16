@@ -325,6 +325,188 @@ body {
   color: #9fd3c4;
 }
 
+/* ── Dev context inspector (round 10, tech-spec §6.4) ──────────────────── */
+
+.dev-inspector-toggle {
+  margin-left: auto;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e8e8e8;
+}
+
+.dev-inspector {
+  position: fixed;
+  top: 3.2rem;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  width: min(420px, 92vw);
+  z-index: 30;
+  background: rgba(10, 14, 22, 0.95);
+  color: #e8e8e8;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 0.75rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+}
+
+.inspector-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.inspector-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #f3ce76;
+}
+
+.inspector-scene {
+  color: #8a8f98;
+  font-size: 0.75rem;
+}
+
+.inspector-voice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inspector-voice select {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8e8e8;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 0.25rem 0.4rem;
+}
+
+.inspector-desc {
+  margin: 0;
+  color: #aeb6c4;
+}
+
+.inspector-prompt summary {
+  cursor: pointer;
+  color: #9fd3c4;
+}
+
+.inspector-prompt pre {
+  margin: 0.4rem 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #aeb6c4;
+  font-size: 0.75rem;
+}
+
+.inspector-sections {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inspector-sections li {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.inspector-sections li.is-summarizable {
+  border-color: #f3ce76;
+  background: rgba(243, 206, 118, 0.08);
+}
+
+.inspector-section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.inspector-section-name {
+  font-weight: 700;
+}
+
+.inspector-section-policy {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8a8f98;
+}
+
+.is-summarizable .inspector-section-policy {
+  color: #f3ce76;
+}
+
+.inspector-section-chars {
+  margin-left: auto;
+  color: #8a8f98;
+  font-size: 0.72rem;
+}
+
+.inspector-section-body {
+  margin: 0;
+  padding: 0.4rem 0.5rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #c8cdd6;
+  font-size: 0.74rem;
+  max-height: 9rem;
+  overflow-y: auto;
+}
+
+.inspector-budget {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.74rem;
+  color: #8a8f98;
+}
+
+.inspector-budget-bar {
+  height: 0.5rem;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.inspector-budget-fill {
+  height: 100%;
+  background: #53a89a;
+}
+
+.inspector-budget-fill.is-trigger {
+  background: #f3ce76;
+}
+
+.inspector-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.inspector-actions button {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e8e8e8;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
 .muted {
   color: #8a8f98;
 }

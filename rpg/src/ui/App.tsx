@@ -14,6 +14,7 @@ import {
   pendingSpeaker,
   showTurn,
 } from "../game/state/dialogue";
+import { inspectorEnabled, inspectorOpen, toggleInspector } from "../game/state/inspector";
 import { pauseOpen, togglePause } from "../game/state/pause";
 import type { Stage } from "../render/stage";
 import { resolveCharacterSprite, resolvePortrait, type SpriteRequest } from "../scene/assets";
@@ -21,6 +22,7 @@ import type { BootServices } from "../services/boot";
 import { currentLanguage, englishName, t } from "../services/i18n";
 import { setRemovalQueue } from "../services/progress";
 import { DialogueBox } from "./DialogueBox";
+import { DevInspector } from "./screens/DevInspector";
 import { PauseMenu } from "./screens/PauseMenu";
 
 interface AppProps {
@@ -194,8 +196,19 @@ export function App({ services, stage }: AppProps) {
         >
           {t("hud.reRoll")}
         </button>
+        {inspectorEnabled.value && (
+          <button
+            type="button"
+            className="dev-inspector-toggle"
+            onClick={toggleInspector}
+            aria-pressed={inspectorOpen.value}
+          >
+            {t("hud.devInspector")}
+          </button>
+        )}
       </div>
       <DialogueBox onSubmitAction={submitPlayerAction} />
+      {inspectorEnabled.value && inspectorOpen.value && <DevInspector />}
       {pauseOpen.value && <PauseMenu services={services} />}
     </main>
   );

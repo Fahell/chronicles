@@ -6,6 +6,7 @@ import { bootServices } from "./services/boot";
 import { installProgressLogger } from "./services/progress";
 import { App } from "./ui/App";
 import { LoadingScreen } from "./ui/LoadingScreen";
+import { RemovalChip } from "./ui/RemovalChip";
 import "./style.css";
 
 // Accept both the canonical `#app` and the older `[data-rpg-app]` marker so
@@ -37,6 +38,15 @@ mount.parentElement?.insertBefore(stageContainer, mount);
 // Animated boot loading screen — live stage updates come from the progress
 // store (the main thread is free because inference runs in the proxy worker).
 render(<LoadingScreen />, mount);
+
+// The removal chip lives OUTSIDE the App mount (owner decision, round 6): App
+// mounts only after the scene loads, but removal runs DURING boot — the chip
+// must be live while the loading screen is up (and stays ready for future
+// in-game re-rolls). Its CSS is position:fixed, so the wrapper stays invisible.
+const chipMount = document.createElement("div");
+chipMount.id = "removal-chip-root";
+document.body.appendChild(chipMount);
+render(<RemovalChip />, chipMount);
 
 const stage = await services.loadScene(openPlainsManifest, stageContainer, {
   width: window.innerWidth,

@@ -381,7 +381,12 @@ owner during development and the Perchance agent during runtime tests.
 
 - Exists in **both dev and prod builds**, but is **off by default**. Enabled
   via a build flag / URL param / settings switch — so the Perchance agent can
-  turn it on during runtime tests on the deployed build.
+  turn it on during runtime tests on the deployed build. **Shipped (round 10, v1):**
+  enabled by the **`?inspector=1` URL param**; discreet **Dev** HUD button;
+  voice selector (NPC / narrator / user); payload sections with the
+  summarizable marker; counts + budget bar vs the 24k window with the 22k
+  trigger; Copy payload + Refresh. v1 state section = current scene only
+  (day-cycle periods, relationship edges and poses land with those features).
 - **Toggle:** a discreet **HUD button** (no keyboard shortcut). The button is
   rendered only when the feature is enabled.
 - **Voice selector:** **one voice at a time** — dropdown listing the NPCs

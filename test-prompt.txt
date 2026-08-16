@@ -1,161 +1,174 @@
-# Round 9 — Runtime validation prompt (fixes round)
+# Round 10 — Runtime validation prompt (fixes + new feats)
 
 You are validating the latest build of **Chronicles** (a visual-novel RPG built
-on this Perchance generator). This round verifies the **three fixes** from the
-round-8 findings, plus a quick regression sweep of the round-8 flows.
+on this Perchance generator). This round ships the **round-9 fixes** together
+with **three new features** — one combined round, one report.
 
-**Changes since round 8:**
-1. **ORT proxy worker fixed.** The client-side RMBG-1.4 removal should now run
-   for real on the platform (rounds 7–8: it never ran — the worker crashed at
-   load with `no available backend found. ERR: [wasm] [object Event]`, so every
-   sprite fell back to the platform's dirty removal). The Vite build now
-   disables the modulepreload polyfill (`modulePreload: false`), which was
-   killing the worker. Expect `model ready` + `inference done` on the platform.
-2. **Fog canvas fixed.** The fog was rendering to a detached canvas (invisible).
-   The PixiJS canvas is now appended inside the scene container — expect a
-   transparent drifting haze over the scene frame.
-3. **Sprite grounding changed (owner decision).** Sprites now generate on a
-   **pure white background with the ground shadow baked into the image**, and
-   the code-drawn shadow plane was removed from the stage. After removal the
-   baked shadow stays with the sprite, so characters should read grounded
-   wherever the generator placed their feet. The matte's dark-spill pass is off
-   so the baked shadow survives. Prompt change busts the sprite cache —
-   **sprites regenerate on this round** (intended; expect a slower first boot).
+**Changes since round 9:**
+1. **ORT proxy worker fixed** (round-9 fix, shipped now): client-side RMBG-1.4
+   runs for real — expect `model ready` + `inference done` on the platform, no
+   `[wasm] [object Event]`.
+2. **Fog fixed** (round-9): the PixiJS canvas is now inside the scene
+   container — expect a drifting haze over the frame.
+3. **Sprite grounding fixed** (round-9): sprites generate on pure white with
+   the ground shadow baked in; the code shadow plane was removed.
+4. **NEW — Pause menu v1** (vn-rpg-spec §8.2): Esc opens a pause overlay with
+   **Save / Settings / Quit to title**. Esc is dual: with a dialogue open, Esc
+   closes the dialogue first (as before); with no dialogue open, Esc toggles
+   the pause. **Save** writes to the AUTOSAVE slot directly (no picker).
+   **Quit** asks "Save before quitting?" (Yes/No/Cancel).
+5. **NEW — Speaker portraits in the dialogue box** (vn-rpg-spec §3.7): the box
+   shows a **bust portrait** of whoever is speaking — NPC **and** user — in a
+   frame. Portraits are generated on a **pure white background and are NOT
+   background-removed** (the white is the frame backing). The portrait loads
+   **async** (generated together with the sprite, never blocking it). A sprite
+   **re-roll regenerates the portrait together** with the sprite.
+6. **NEW — Free-form player action** (round-10 owner decision): when an NPC
+   turn offers choices, a fixed **"Write your own action…"** option is always
+   present. Selecting it opens an input box (player portrait + text field, max
+   300 chars) where the player types their own action; submitting shows the
+   player's turn with their portrait and the NPC follows up. If a turn has no
+   choices, the flow is unchanged (Continue → turn ends, Leave closes).
+7. **NEW — Dev context inspector v1** (tech-spec §6.4): a debug panel showing
+   per-voice payload sections (NPC / narrator / user), the image prompt, visual
+   description, background payload version, counts and a budget bar vs the
+   ~24k window. **Off by default** — enabled by opening the generator with
+   `?inspector=1` in the URL. A discreet **Dev** button appears in the HUD.
 
-Do the checks **in order**, driving the actual UI (click, type, observe the DOM
-and the console). The AI plugins are real here, so generations take time — the
-loading indicators are part of what we validate. Report everything with
-**console lines verbatim** (keep the `[rpg]` logs).
-
-Before you start, read `src/README.md` for the project context and the
+Do the checks **in order**, driving the actual UI. The AI plugins are real
+here — generations take time; the loading indicators are part of what we
+validate. Report everything with **console lines verbatim** (keep the `[rpg]`
+logs). Before you start, read `src/README.md` for project context and the
 platform↔code mapping.
 
 ## 0. Upload check (do this FIRST)
 
-- Confirm the workspace contains `src/rpg/build/chunks/` with the three.js,
-  transformers.js and pixi chunks. If a chunk is missing, the generator is
-  stuck with `Failed to fetch dynamically imported module: .../chunks/*.js` —
-  STOP and report "upload incomplete — chunks/ missing".
-- The local wasm asset (`assets/ort-wasm-simd-threaded.asyncify-*.wasm`) is
-  intentionally NOT uploaded — the app pins ONNX Runtime to the jsdelivr CDN
-  via `wasmPaths`. A 404 for that asset is a REGRESSION, not expected.
+- Confirm `src/rpg/build/chunks/` contains the three.js, transformers.js and
+  pixi chunks. Missing chunk → `Failed to fetch dynamically imported module`
+  — STOP and report "upload incomplete".
+- The local wasm asset is intentionally NOT uploaded (ONNX Runtime is pinned
+  to the jsdelivr CDN via `wasmPaths`). A 404 for it is a REGRESSION.
 
 ## 1. Boot & title (quick)
 
 - Reload. Title renders (light paper look, "CHRONICLES", NEW GAME / LOAD GAME /
-  SETTINGS / CREDITS / HELP). LOAD GAME disabled when no save exists
-  (`aria-disabled`, click inert). Keyboard: arrows move the hand pointer,
-  Enter/Space activate, Esc inert on the title.
-- **Console at boot:** the `[rpg]` removal lines must appear —
-  `proxy worker active (… wasmPaths=CDN)`, `model downloading (first visit
-  ~45 MB)` → `model download complete` → **`model ready (… ms)`**.
-  **There must be NO `no available backend found` / `[wasm] [object Event]` /
-  `client-side removal failed` warnings.** This is the round-9 blocker gate.
+  SETTINGS / CREDITS / HELP). LOAD GAME disabled without saves.
+- Console at boot: `proxy worker active (… wasmPaths=CDN)` → `model ready (… ms)`.
+  **NO `no available backend found` / `[wasm] [object Event]`** — the
+  round-9 blocker gate.
 
-## 2. Wizard → first real client-side removal (the big one)
+## 2. Wizard → sprite + portrait
 
-- **NEW GAME** → name (e.g. "Arin") → **Next** → click an archetype. This
-  triggers the **first real RMBG-1.4 removal on the platform**:
-  - Loading UI: "Downloading AI model (first visit)…" with a RISING
-    percentage (first visit), then "Removing background 1/1…", then the sprite
-    preview. The UI must NOT freeze during download/inference (proxy worker).
-  - Console: `model ready (… ms)` then **`inference done (… ms)`** and
-    `cutout-cache: miss <id> → removing`. No fallback warning.
-  - Network: wasm from
-    `cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0-dev.20260416-b7804b056c/dist/`
-    (200, no 404); model files from huggingface.co (200).
-- **Sprite quality (was never validated — RMBG never ran before):** the raw
-  sprite is on a **pure white background** with a baked ground shadow; RMBG
-  removes the white and keeps the character + shadow. Look closely at the
-  wizard preview: clean cut-out (no mottle, no dark halo, no furry edges)? The
-  **baked shadow visible under the character** (soft ellipse / one-direction
-  shadow)? Black outline following the silhouette (no detached black blocks)?
-  **Report-only:** does the outline ring wrap the baked shadow in an ugly way?
-- **Next** → background (template or custom) → **Next** → review → **Create**.
-  Expect the save to be created and the **game scene loads**.
+- **NEW GAME** → name → **Next** → click an archetype. Sprite + RMBG run
+  (`model ready`, `inference done`, `cutout-cache: miss <id> → removing`).
+  - The **bust portrait** also resolves **async** — it must NOT add wait time
+    to the sprite (it fires in parallel). Console may show a second
+    `generateImage` call for the portrait (pose `portrait`, no removal).
+  - Sprite quality: clean cut-out, no mottle/dark halo, baked shadow under the
+    character, black outline clean.
+- Background → review → **Create**. Save created; the game scene loads.
 
-## 3. Scene — fog + grounding (the other two fixes)
+## 3. Scene — fog + grounding (round-9 fixes regression)
 
-- After the scene loads, verify:
-  - **Fog (was invisible — now mounted):** a transparent haze drifts over the
-    scene frame. Take TWO screenshots a few seconds apart — the haze must
-    differ slightly (it moves). The fog must NOT block clicks (pointer-events
-    none) and must not affect HUD readability. Console must show no fog-related
-    errors.
-  - **Grounding (was floating):** both characters stand ON the ground with
-    their **baked shadow** under them (part of the sprite image, not a code
-    ellipse). NO separate dark ellipse drawn by the code (it was removed).
-    Check near the feet: does the character touch the ground even if their
-    feet are not at the bottom of the image?
-- The narrator opening should play as before (2–3 sentences, Leave closes).
+- Fog drifts over the frame (two screenshots a few seconds apart — haze must
+  differ). Fog must NOT block clicks and must not hurt HUD readability.
+- Both characters stand grounded with the baked shadow under them; NO separate
+  code-drawn shadow ellipse.
+- Narrator opening plays (2-3 sentences, Leave closes).
 
-## 4. Dialogue quick regression (round-8 flows — spot-check only)
+## 4. Dialogue + speaker portraits (the big new one)
 
 - **Talk to <NPC>**: thinking line → in-character reply → choices as buttons.
-  Loop 2+ turns (choice → reply → new choices). **Always-escape**: Leave while
-  thinking closes the box. Pagination (1/2, Continue) + Esc/Enter/Space.
-  If anything regressed, report it in detail; otherwise one line: "regression
-  check passed".
+- **Portrait check:** during the NPC's turn, a **bust portrait in a frame**
+  appears for the NPC. When the player submits their own action (below), the
+  **player's portrait** appears instead. Only the current speaker's portrait
+  shows. The narrator has NO portrait (frame hidden).
+- **Free-form action:** when choices are shown, a **"Write your own action…"**
+  option is always present. Select it → an input box opens with the player's
+  portrait + text field. Type an action (e.g. "I draw my sword and step
+  closer.") and Send → the player's turn appears with their portrait → the NPC
+  replies (thinking → reply). Loop 2+ turns.
+  - Edge checks: empty input does nothing (no turn submitted); Cancel closes
+    the input back to the choices; Leave still always closes the dialogue;
+    the 300-char cap is enforced.
+  - If a turn has NO choices, the "Write your own action…" option is absent —
+    flow unchanged (Continue ends the turn, Leave closes).
+- **Pause menu:** while NOT in dialogue, press **Esc** → the pause overlay
+  opens with Save / Settings / Quit. Press Esc again → closes. **Save** →
+  "Saved." appears; the autosave slot is written (verify via Load later).
+  **Settings** → the Settings screen opens from the pause; its back button
+  returns to the pause menu (not the title). **Quit** → "Save before
+  quitting?" with Yes/No/Cancel — Yes saves then returns to title; No returns
+  to title without saving; Cancel stays.
+  - Esc dual behavior: WITH a dialogue open, Esc closes the dialogue — it must
+    NOT open the pause at the same time.
 
-## 5. Warm reload / cut-out cache (round 7 deliverable, now real)
+## 5. Re-roll regenerates sprite + portrait together
 
-Reload WITHOUT clearing anything. Expected:
-- FAST reload (seconds, not minutes) with NO inference: console shows
-  `cutout-cache: hit <id> (skip inference)` for the sprites; NO
-  `model loading…` / `inference done` lines; model NOT re-downloaded
-  (browser cache). The scene looks identical (same cut-outs, same outline,
-  same baked shadows).
-- Then **LOAD GAME** → the same scene with the same identity/NPC loads fast
-  (cache hits).
+- Click **Re-roll sprite**: new seed → new sprite generation (`cutout-cache:
+  miss …`, `inference done`) **and** a new portrait with the same seed.
+  Console shows both generations. The sprite AND the portrait visibly change.
 
-## 6. Re-roll sprite (quick)
+## 6. Warm reload / cache (regression)
 
-Click **Re-roll sprite**: new seed → new generation → new cutout
-(`cutout-cache: miss … → removing`, `inference done`); the sprite visibly
-changes; button not sticky. (Re-roll was already validated round 8 — one clean
-run is enough here.)
+- Reload WITHOUT clearing: fast, `cutout-cache: hit <id> (skip inference)`,
+  no model re-download, no `inference done`. Portraits serve from the asset
+  cache (no new portrait generation). Scene identical.
+- Then **LOAD GAME** → same scene loads fast.
 
-## 7. WebGPU probe (report-only, owner)
+## 7. Dev context inspector (?inspector=1)
 
-Evaluate `typeof navigator.gpu !== "undefined"` inside the generator iframe
-(via the page context). Report: yes/no. No action either way — this informs a
-future backend decision. Also note whether `ort.webgpu.bundle.min.mjs` is ever
-fetched (it should NOT be — the app uses the WASM backend only).
+- Reload the generator with **`?inspector=1`** in the URL (keep the same page
+  parameters Perchance needs). A discreet **Dev** button appears in the HUD.
+- Click **Dev** → the inspector panel opens:
+  - **Voice selector** (dropdown): NPC (the current NPC's name), Narrator,
+    and the user's name. Switching voices swaps the sections.
+  - **Sections**: named payload sections exactly as built (System, WHO YOU
+    ARE, WHERE YOU ARE, CONVERSATION SO FAR for the NPC; SCENE / PRESENT for
+    the narrator; NAME / APPEARANCE / BACKGROUND for the user). The
+    **CONVERSATION SO FAR** section is highlighted as **summarizable**; all
+    others are marked **never summarized**.
+  - **Counts + budget bar**: per-section char counts and a bar vs 24,000 chars
+    with the window-summary trigger marker.
+  - **Copy payload** copies the selected voice's full instruction.
+  - **Refresh** re-reads the payload.
+- Report what each voice shows and whether the button/panel render correctly
+  with `?inspector=1` (and confirm the button is ABSENT without the param).
 
 ## 8. Stability & console
 
-- Collect the **full console** after the whole run. Acceptable: favicon 404,
-  transformers model-class warnings, WebGL/GPU driver warnings. Flag anything
-  else (unhandled rejections, `Failed to fetch`, `[wasm]` errors, wizard
-  errors).
-- Letterbox frame working? HUD readable? Sprites a reasonable size in the
-  scene (scale intentionally unchanged — describe only)? **Screenshot the
-  scene** and include it (preserveDrawingBuffer is permanent — the canvas
-  captures natively).
+- Collect the full console. Acceptable: favicon 404, transformers
+  model-class warnings, WebGL/GPU driver warnings. Flag anything else
+  (unhandled rejections, `Failed to fetch`, `[wasm]` errors, wizard errors).
+- Letterbox frame, HUD readability, sprites a reasonable size. **Screenshot**
+  the scene with a dialogue open (portrait visible) and include it.
 
 ## Report
 
 Structured, per check: **PASS / PARTIAL / FAIL / BLOCKED** + evidence
 (console lines, what you clicked, what happened). Include:
 1. Upload check + wasm/model URLs & status codes
-2. **RMBG end-to-end on the platform**: model download/load times, per-sprite
-   inference times, loading stages incl. the "Downloading AI model…"
-   percentage, freeze? (yes/no), `model ready`/`inference done` lines,
-   **no fallback warning** (the round-9 blocker gate)
-3. **Sprite quality**: white-bg raw → clean cut-out; no mottle/dark halo;
-   black outline clean; baked shadow visible (report-only: outline around the
-   shadow)
-4. **Fog**: canvas present over the frame, drifting (two screenshots), no
-   click blocking
-5. **Grounding**: baked shadow under both characters, no code shadow ellipse,
-   feet read grounded
-6. Warm reload / cut-out cache: reload time, `cutout-cache: hit` lines, model
-   re-download? (no)
-7. Dialogue quick regression (multi-turn, always-escape, pagination, keyboard)
-8. Re-roll (one clean run)
-9. WebGPU probe: `navigator.gpu` present? · webgpu bundle fetched? (report only)
-10. Visual: composition, letterbox, HUD, screenshot attached
-11. Full-console anomalies
+2. RMBG end-to-end: model times, per-sprite inference, loading stages, no
+   fallback warning (round-9 gate)
+3. Sprite quality + baked shadow
+4. Fog (two screenshots) + grounding (no code shadow)
+5. **Portraits**: NPC portrait in frame on NPC turns; player portrait in the
+   free-form input + player turn; narrator has none; async (no wait added);
+   white background preserved (no removal on portraits)
+6. **Free-form action**: option present with choices, absent without; input
+   box with portrait; submit → player turn → NPC reply; empty input ignored;
+   Cancel; 300 cap; multi-turn loop works
+7. **Pause menu**: Esc dual behavior (dialogue vs no dialogue), Save →
+   autosave ("Saved." + slot written), Settings from pause (back → pause),
+   Quit prompt (Yes/No/Cancel behaviors)
+8. Re-roll: sprite + portrait both regenerate and both change
+9. Warm reload + cut-out cache hits + portrait cache hits
+10. **Inspector (?inspector=1)**: Dev button present with param / absent
+    without; voice selector; sections + summarizable marker; budget bar;
+    Copy payload; Refresh; no console errors
+11. Visual: composition, letterbox, HUD, screenshots attached (scene +
+    dialogue with portrait)
+12. Full-console anomalies
 
 End with a summary line: how many checks passed, and the single most
 important issue to fix (if any). Do NOT modify the code — report only.

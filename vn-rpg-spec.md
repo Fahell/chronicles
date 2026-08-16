@@ -159,6 +159,12 @@ All characters — NPCs **and the user's avatar** — are placed **in the scene*
 - **Portrait assets:** every speaker needs a **portrait** — a new asset type
   in the pipeline (§4). v1: **one neutral portrait per character**; pose-linked
   portraits may come later (ties to the pose sets, `narrative-spec.md` §6).
+  **Shipped (round 10):** bust crop (head + shoulders), generated on a **pure
+  white background and NEVER background-removed** (the white is the frame
+  backing — portraits skip the RMBG pipeline entirely), pose `portrait` in the
+  assets cache, resolved **async** alongside the sprite (never blocks it), and
+  re-rolled **together with** the sprite (same seed). Only the current
+  speaker's portrait shows; the narrator has none.
 - Scene types B/C remain to be verified; this presence model is the baseline. (Update: **type C is now approved** — see §3.8 status.)
 
 ### 3.8 Scene type C — hybrid idea (three.js + images)
@@ -484,7 +490,12 @@ Title
 ### 8.2 In-game (pause) menu
 
 - **Basic pause menu (v1):** **Save / Settings / Quit-to-title**. Opened with
-  **Esc** (keyboard parity, `tech-spec.md` §5.5).
+  **Esc** (keyboard parity, `tech-spec.md` §5.5). **Shipped (round 10):** Esc
+  is dual — with a dialogue open Esc closes the dialogue first (existing),
+  with no dialogue open Esc toggles the pause overlay. **Save** writes to the
+  **AUTOSAVE slot directly** (round-10 owner decision — no slot picker;
+  manual slots stay wizard-only). **Quit** asks "Save before quitting?"
+  (Yes/No/Cancel) then returns to the title (session + dialogue state reset).
 - In-game **Load and Sleep are deferred** from the pause menu. **Sleep**
   (day-end trigger, `day-cycle-spec.md` §3) is a **scene-level action
   candidate** (open detail — placement TBD).

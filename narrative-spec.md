@@ -140,6 +140,14 @@ are **never summarized** context.
 - **Lore filtering.** The *offered* option texts are **not lore** — they must
   not be included in anyone's lore/context. The *selected* option **is lore**:
   it counts as if the player themselves wrote the action they take.
+- **Free-form player action (shipped round 10):** whenever an NPC turn offers
+  choices, a **fixed "Write your own action…" option is always present** (in
+  addition to the AI options). Selecting it opens an **input box** (player
+  portrait + text field, **capped at 300 chars**) where the player types their
+  own action. Submitting appends it to the conversation as the player's own
+  action (**is lore**), shows the player's turn with their portrait, and the
+  NPC follows up. If a turn has no choices, the flow is unchanged. The typed
+  action obeys the same lore rule as a selected option.
 - General rule: **filter what enters the LLM context** — never put non-lore or
   pre-defined information into the window (§5.3).
 

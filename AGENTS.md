@@ -410,41 +410,39 @@ the host's `--screen-info={3840x2160}` and the GPU process pinned at **~94%
 CPU even on `about:blank`**; the same Chrome at `--window-size=1280,800` idles
 at **~0.5%**. The `.agents/mcp.json` now pins the window size — keep it.
 
-**Residual ~48% is the MCP itself**, not the app: measured on `about:blank`
-under the MCP (vs 0.5% on a clean Chrome at the same size). It's the CDP
-snapshot/polling overhead (DevTools pipe + WebMCP). The app adds only ~12%
-on top when the scene is live (fog rasterize throttled, three.js on-demand).
-Don't chase this further on the app side — treat ~50% GPU CPU as the harness
-floor and kill Chrome + the MCP when browser testing is done.
-
 The app itself renders **on demand** (dirty-flag render loop in
 `three-stage.ts` — the scene is static, so an idle scene costs ~0% CPU).
 PixiJS overlay effects animate every frame but rasterize on a **render
 throttle** (`fog.ts`: positions every frame, `app.render()` every 3rd — on
 SwiftShader each WebGL frame is expensive). Whatever CPU remains after boot
-is Chrome's software rasterization, not the app. Even so, once local browser
-testing is done, kill Chrome — but note the CDP MCP **auto-restarts it**
-within seconds (same profile dir); to actually stop the burn, also exit the
-MCP session (or kill the `chrome-devtools-mcp` process):
+is Chrome's software rasterization, not the app.
+
+**Shutdown: kill Chrome ONLY — never the MCP.** The `chrome-devtools-mcp`
+is a separate Node process (distinct from the Chrome processes when active)
+and does **not** burn CPU on its own — the burn is the Chrome `gpu-process`
+(SwiftShader software rasterization). Killing the MCP is unnecessary, severs
+the CDP connection for the session, and forces the user to restart the
+Freebuff session for nothing. To stop the CPU burn, match the **Chrome binary
+path only**:
 
 ```bash
-pkill -f "chrome-devtools-mcp" 2>/dev/null; pkill -f "/opt/google/chrome/chrome" 2>/dev/null; sleep 2
+pkill -f "/opt/google/chrome/chrome" 2>/dev/null; sleep 2
 ps -eo pid,%cpu,rss,args | grep -E "/opt/google/chrome/chrome" | grep -v grep  # expect: none
 ```
 
 Notes:
-- **The MCP relaunches Chrome on EVERY tool call** (`list_pages`, navigate,
-  click, screenshot, …) — killing Chrome once is not enough; it comes back
-  the next time the browser is touched. Therefore run the `pkill` **every
-  time you finish using the CDP MCP**, not just at session end: the last
-  browser-related action of any task must be the shutdown below.
+- The MCP relaunches Chrome on its next tool call (`list_pages`, navigate,
+  click, screenshot, …) — that is fine and expected; the MCP stays alive and
+  serves the session. Run the `pkill` above **every time you finish using the
+  CDP MCP** so the GPU process doesn't keep burning between calls: the last
+  browser-related action of any task must be the shutdown.
 - **CRITICAL: never match on `user-data-dir` or the string `chrome-profile`**
   in the `pkill` pattern — the `chrome-devtools-mcp` process itself passes
   `--user-data-dir=…/chrome-profile` in its own args (see `.agents/mcp.json`),
   so such a pattern kills the MCP server too, severing the CDP connection
   for the session. Match the **Chrome binary path only** (`/opt/google/chrome/
-  chrome`) as above — the MCP process (`npx … chrome-devtools-mcp`) never
-  contains that string, so it survives.
+  chrome`) — the MCP process (`npx … chrome-devtools-mcp`) never contains
+  that string, so it survives.
 - Before finishing any session that used browser validation, run the `pkill`
   and confirm zero matching processes remain.
 

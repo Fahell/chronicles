@@ -17,9 +17,7 @@ export interface Identity {
   archetypeId: string;
   /** Cache-key component for the user sprite; re-rolls of the identity change it. */
   appearanceSeed: string;
-  background:
-    | { kind: "template"; templateId: string }
-    | { kind: "custom"; text: string };
+  background: { kind: "template"; templateId: string } | { kind: "custom"; text: string };
   backgroundPayload: string;
   backgroundUi: string;
   /** Final processed cut-out (RMBG + matte) data URL, generated at identity time. */

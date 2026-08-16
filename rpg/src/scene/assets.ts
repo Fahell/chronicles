@@ -11,6 +11,18 @@ export interface ActorTextures {
   outline: string;
 }
 
+/** What identifies one character-sprite generation (cache key components). */
+export interface SpriteRequest {
+  /** Character id — cache-key component; must match the actor's characterId. */
+  entity: string;
+  pose: string;
+  /** Explicit cache seed — use the identity appearanceSeed for the user
+   *  sprite so the wizard-time generation is a cache hit at scene load. */
+  seed: string;
+  prompt: string;
+  negativePrompt?: string;
+}
+
 export interface SceneTextures {
   backdrop: string;
   floor: string;
@@ -93,50 +105,18 @@ export async function resolveSceneTextures(
     spriteActors.map(async (actor) => {
       const prompt = actor.sprite?.prompt;
       if (!actor.sprite?.assetKey || !prompt) return;
-      const negativePrompt = actor.sprite?.negativePrompt;
-      const generate = (removeBackground: boolean) =>
-        assets.getOrGenerate({
+      const textures = await resolveCharacterSprite(
+        assets,
+        {
           entity: actor.characterId,
           pose: actor.pose,
           prompt,
-          seed: `${manifest.id}:${actor.characterId}:${actor.pose}:v1`,
-          resolution: "512x768",
-          removeBackground,
-          negativePrompt,
-        });
-
-      let spriteUrl: string;
-      if (assets.mode === "prod") {
-        const raw = await generate(false);
-        const cached = await assets.cutouts.get(raw.key);
-        if (cached) {
-          console.log(`[rpg] cutout-cache: hit ${actor.characterId} (skip inference)`);
-          spriteUrl = cached;
-        } else {
-          console.log(`[rpg] cutout-cache: miss ${actor.characterId} → removing`);
-          try {
-            const removed = await remover(raw.dataUrl);
-            spriteUrl = await cleanSpriteMatte(removed);
-            await assets.cutouts.put(raw.key, spriteUrl);
-          } catch (error) {
-            console.warn(
-              "bg-removal: client-side removal failed — falling back to the platform removal",
-              error,
-            );
-            // Fallback is never cached (owner decision, removal-pipeline-spec §3).
-            // Still matte-clean the platform cut-out so a fallback boot does
-            // not render mottled sprites (round-6 finding: the fallback path
-            // skipped cleanSpriteMatte entirely → grey fuzz + black fringe).
-            const fallback = await generate(true);
-            spriteUrl = await cleanSpriteMatte(fallback.dataUrl);
-          }
-        }
-      } else {
-        const mock = await generate(true);
-        spriteUrl = mock.dataUrl;
-      }
-      const outline = await buildOutlineDataUrl(spriteUrl);
-      actors[actor.characterId] = { sprite: spriteUrl, outline };
+          seed: actor.sprite?.seed ?? `${manifest.id}:${actor.characterId}:${actor.pose}:v1`,
+          negativePrompt: actor.sprite?.negativePrompt,
+        },
+        remover,
+      );
+      actors[actor.characterId] = textures;
       if (isProd) {
         done += 1;
         setRemovalQueue(done, spriteActors.length);
@@ -149,4 +129,61 @@ export async function resolveSceneTextures(
 
   setBootStage("polish", "Polishing sprites…");
   return { backdrop: backdrop.dataUrl, floor: floor.dataUrl, actors };
+}
+
+/**
+ * Resolves ONE character sprite end-to-end (raw → cut-out → outline):
+ * - prod: raw generation (no plugin removal — the platform's is dirty, round
+ *   3) on the solid-black prompt background; client-side RMBG-1.4 via the
+ *   wait-queue remover; matte-clean; cut-out cached by raw key. RMBG failure
+ *   → plugin-removal fallback (never cached, still matte-cleaned — round 6).
+ * - dev: the mock's placeholder is already a cut-out.
+ * Both modes then build the black outline texture (sprite-outline.ts).
+ * Used by scene actors, the identity wizard sprite, and re-rolls (a fresh
+ * seed busts the raw key → the full pipeline re-runs, vn-rpg-spec §4.3).
+ */
+export async function resolveCharacterSprite(
+  assets: AssetCache,
+  req: SpriteRequest,
+  remover: BackgroundRemover = removeBackgroundClient,
+): Promise<ActorTextures> {
+  const generate = (removeBackground: boolean) =>
+    assets.getOrGenerate({
+      entity: req.entity,
+      pose: req.pose,
+      prompt: req.prompt,
+      seed: req.seed,
+      resolution: "512x768",
+      removeBackground,
+      negativePrompt: req.negativePrompt,
+    });
+
+  let spriteUrl: string;
+  if (assets.mode === "prod") {
+    const raw = await generate(false);
+    const cached = await assets.cutouts.get(raw.key);
+    if (cached) {
+      console.log(`[rpg] cutout-cache: hit ${req.entity} (skip inference)`);
+      spriteUrl = cached;
+    } else {
+      console.log(`[rpg] cutout-cache: miss ${req.entity} → removing`);
+      try {
+        const removed = await remover(raw.dataUrl);
+        spriteUrl = await cleanSpriteMatte(removed);
+        await assets.cutouts.put(raw.key, spriteUrl);
+      } catch (error) {
+        console.warn(
+          "bg-removal: client-side removal failed — falling back to the platform removal",
+          error,
+        );
+        const fallback = await generate(true);
+        spriteUrl = await cleanSpriteMatte(fallback.dataUrl);
+      }
+    }
+  } else {
+    const mock = await generate(true);
+    spriteUrl = mock.dataUrl;
+  }
+  const outline = await buildOutlineDataUrl(spriteUrl);
+  return { sprite: spriteUrl, outline };
 }

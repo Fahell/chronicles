@@ -1,4 +1,5 @@
 import type { Mesh, MeshBasicMaterial } from "three";
+import type { StageEffect } from "../effects/types";
 import type { ActorTextures, SceneTextures } from "../scene/assets";
 import type { ActorPlacement, SceneLayout } from "../scene/layout";
 import type { Stage } from "./stage";
@@ -106,6 +107,9 @@ export async function createThreeStage(
   scene.add(backdrop);
 
   const actorMeshes = new Map<string, { sprite: Mesh; shadow: Mesh; outline: Mesh | null }>();
+  // Declarative overlay effects (vn-rpg-spec §3.3): created by the loader and
+  // ticked every frame — even when the 3D scene is idle (fog drifts always).
+  const effects: StageEffect[] = [];
 
   const loader = new THREE.TextureLoader();
   const size = { width: 0, height: 0 };
@@ -251,6 +255,16 @@ export async function createThreeStage(
       }
       markDirty();
     },
+    effects,
+    updateActor(characterId: string, textures: ActorTextures) {
+      const entry = actorMeshes.get(characterId);
+      if (!entry) return;
+      applyTexture(entry.sprite, textures.sprite);
+      if (entry.outline) {
+        applyOutlineTexture(entry.outline, textures.outline);
+      }
+      markDirty();
+    },
     resize(width: number, height: number) {
       size.width = width;
       size.height = height;
@@ -261,9 +275,16 @@ export async function createThreeStage(
       // Camera aspect matches the 3:2 frame — never the full viewport.
       camera.aspect = SCENE_FRAME.width / SCENE_FRAME.height;
       camera.updateProjectionMatrix();
+      for (const effect of effects) {
+        effect.resize?.(width, height);
+      }
       markDirty();
     },
-    tick() {
+    tick(dt: number) {
+      // Effects animate every frame — independent of 3D dirtiness.
+      for (const effect of effects) {
+        effect.update(dt);
+      }
       if (!dirty) return;
       dirty = false;
       // Actors face the camera (billboard) — outline planes track the sprite.
@@ -276,6 +297,10 @@ export async function createThreeStage(
       renderer.render(scene, camera);
     },
     destroy() {
+      for (const effect of effects) {
+        effect.destroy();
+      }
+      effects.length = 0;
       renderer.dispose();
       if (canvas.parentElement === container) {
         container.removeChild(canvas);

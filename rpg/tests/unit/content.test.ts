@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ARCHETYPES, archetypeById } from "../../src/content/archetypes";
 import { backgroundTemplateById, USER_BACKGROUND_TEMPLATES } from "../../src/content/backgrounds";
-import { npcById, NPC_POOL, pickNpc } from "../../src/content/npcPool";
+import { NPC_POOL, npcById, pickNpc } from "../../src/content/npcPool";
 import { PAYLOAD_BACKGROUND_LIMIT } from "../../src/game/identity";
 
 describe("seed content", () => {

@@ -1,4 +1,6 @@
 import { safeParse } from "valibot";
+
+import { createEffects } from "../effects";
 import type { Stage } from "../render/stage";
 import { createThreeStage } from "../render/three-stage";
 import type { AssetCache } from "../services/generation";
@@ -41,5 +43,9 @@ export async function loadScene(manifestInput: unknown, deps: SceneLoadDeps): Pr
   stage.resize(deps.viewport.width, deps.viewport.height);
   stage.setTextures(textures);
   stage.setActors(layout.actors, textures.actors);
+  // Declarative overlay effects (tech-spec §5.2): created from the manifest
+  // and pushed into the stage — the app's rAF loop ticks them via stage.tick.
+  const effects = await createEffects(manifest.effects, deps.container, deps.viewport);
+  stage.effects.push(...effects);
   return stage;
 }

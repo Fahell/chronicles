@@ -1,3 +1,4 @@
+import type { StageEffect } from "../effects/types";
 import type { ActorTextures, SceneTextures } from "../scene/assets";
 import type { ActorPlacement } from "../scene/layout";
 
@@ -19,6 +20,16 @@ export interface Stage {
    */
   setActors(actors: ActorPlacement[], textures?: Record<string, ActorTextures>): void;
   setActiveSpeaker(characterId: string | null): void;
+
+  /**
+   * Declarative overlay effects (PixiJS stack, vn-rpg-spec §3.3). The loader
+   * pushes effect instances here; the app's rAF loop drives them through
+   * tick(dt) — effects keep updating even when the 3D scene is idle.
+   */
+  readonly effects: StageEffect[];
+
+  /** Swap one actor's generated textures (sprite re-roll) — placement unchanged. */
+  updateActor(characterId: string, textures: ActorTextures): void;
 
   /** Resize the stage surface (contain/letterbox handled by the viewport). */
   resize(width: number, height: number): void;

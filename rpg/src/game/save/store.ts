@@ -1,14 +1,8 @@
 import type { RpgDatabase } from "../../services/db";
-import {
-  AUTOSAVE_SLOT,
-  type SaveGame,
-  type SaveRow,
-  type SlotId,
-  MANUAL_SLOTS,
-} from "./types";
+import { AUTOSAVE_SLOT, MANUAL_SLOTS, type SaveGame, type SaveRow, type SlotId } from "./types";
 
-export { AUTOSAVE_SLOT, MANUAL_SLOTS };
 export type { SaveGame, SaveRow, SlotId } from "./types";
+export { AUTOSAVE_SLOT, MANUAL_SLOTS };
 
 function toSave(row: SaveRow): SaveGame {
   const { createdAt: _createdAt, ...save } = row;

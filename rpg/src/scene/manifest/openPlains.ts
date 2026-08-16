@@ -22,7 +22,13 @@ const elderPrompt = `Pixel-art character sprite of an elderly village elder, ful
 
 const playerPrompt = `Pixel-art character sprite of a young traveler, full body, standing pose, facing forward, designed as a 2D papercraft character placed in a 3D visual-novel scene. Simple adventurer tunic in warm ochre, hooded cloak, small satchel, sturdy boots. Hand-painted 16-bit/32-bit pixel art, consistent pixel scale, clean readable silhouette, soft cool blue-green shadows with warm pale-gold rim highlights matching a twilight open-plains landscape. Centered, full figure visible from head to feet, calm neutral standing pose. ${spriteBackground}`;
 
-export const openPlainsManifest = {
+/**
+ * The open-plains scene WITHOUT actors — actors are supplied per session by
+ * buildOpenPlainsManifest (the user from their save identity + the picked
+ * NPC from the seed pool). The fog effect is declared here (vn-rpg-spec
+ * §3.3; owner decision this phase: fog first).
+ */
+export const openPlainsBase = {
   schemaVersion: 1,
   id: "scene.open.plains",
   type: "C",
@@ -43,6 +49,22 @@ export const openPlainsManifest = {
     depth: -2.35,
     scale: 0.7,
   },
+  effects: [{ kind: "fog", params: { color: 0x9fb4c8, opacity: 0.4, layers: 3, speed: 0.5 } }],
+  camera: { mode: "fixed", fov: 52, height: 2, pitch: 2 },
+} as const satisfies Omit<SceneManifest, "actors">;
+
+/** Builds the open-plains manifest with session actors (user + picked NPC). */
+export function buildOpenPlainsManifest(
+  userActor: SceneManifest["actors"][number],
+  npcActor: SceneManifest["actors"][number],
+): SceneManifest {
+  return { ...openPlainsBase, actors: [userActor, npcActor] };
+}
+
+// Default actors kept for backward compatibility (scene-c tests, POC, and
+// the harness before the session flow lands): the classic player + elder.
+export const openPlainsManifest = {
+  ...openPlainsBase,
   effects: [],
   actors: [
     {
@@ -68,5 +90,4 @@ export const openPlainsManifest = {
       },
     },
   ],
-  camera: { mode: "fixed", fov: 52, height: 2, pitch: 2 },
 } satisfies SceneManifest;

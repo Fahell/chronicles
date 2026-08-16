@@ -25,6 +25,10 @@ const actorSchemaV1 = object({
       prompt: optional(string()),
       /** Negative prompt — also a cache-key component (busts on change). */
       negativePrompt: optional(string()),
+      /** Explicit cache seed — overrides the derived `scene:character:pose:v1`
+       *  seed. Used so the user sprite generated at identity time resolves
+       *  from cache at scene load (same entity+seed → cache hit). */
+      seed: optional(string()),
     }),
   ),
 });

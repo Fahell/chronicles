@@ -404,6 +404,13 @@ the host's `--screen-info={3840x2160}` and the GPU process pinned at **~94%
 CPU even on `about:blank`**; the same Chrome at `--window-size=1280,800` idles
 at **~0.5%**. The `.agents/mcp.json` now pins the window size — keep it.
 
+**Residual ~48% is the MCP itself**, not the app: measured on `about:blank`
+under the MCP (vs 0.5% on a clean Chrome at the same size). It's the CDP
+snapshot/polling overhead (DevTools pipe + WebMCP). The app adds only ~12%
+on top when the scene is live (fog rasterize throttled, three.js on-demand).
+Don't chase this further on the app side — treat ~50% GPU CPU as the harness
+floor and kill Chrome + the MCP when browser testing is done.
+
 The app itself renders **on demand** (dirty-flag render loop in
 `three-stage.ts` — the scene is static, so an idle scene costs ~0% CPU).
 PixiJS overlay effects animate every frame but rasterize on a **render

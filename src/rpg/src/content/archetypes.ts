@@ -1,4 +1,4 @@
-import { characterSpritePrompt } from "./sprite";
+import { characterPortraitPrompt, characterSpritePrompt } from "./sprite";
 
 /**
  * Visual archetypes for the player identity (narrative-spec §9: the user
@@ -10,6 +10,8 @@ export interface Archetype {
   /** One-line look summary shared with NPCs (never the background). */
   appearanceSummary: string;
   spritePrompt: string;
+  /** Bust portrait prompt (dialogue box frame, round 10). */
+  portraitPrompt: string;
 }
 
 export const ARCHETYPES: Archetype[] = [
@@ -21,6 +23,9 @@ export const ARCHETYPES: Archetype[] = [
     spritePrompt: characterSpritePrompt(
       "a young wandering knight in weathered silver plate armor with a faded cloth tabard, a dented helmet tucked under one arm, a longsword at the hip, short practical hair",
     ),
+    portraitPrompt: characterPortraitPrompt(
+      "a young wandering knight in weathered silver plate armor with a faded cloth tabard and a longsword at the hip",
+    ),
   },
   {
     id: "mage",
@@ -29,6 +34,9 @@ export const ARCHETYPES: Archetype[] = [
       "a mage in a deep indigo robe with silver embroidery and a wooden staff crowned with a faintly glowing crystal",
     spritePrompt: characterSpritePrompt(
       "a young forest mage in a deep indigo robe with silver embroidery, a wooden staff crowned with a faintly glowing crystal, wisps of hair escaping a loose hood",
+    ),
+    portraitPrompt: characterPortraitPrompt(
+      "a young forest mage in a deep indigo robe with silver embroidery and a faintly glowing crystal",
     ),
   },
   {
@@ -39,6 +47,9 @@ export const ARCHETYPES: Archetype[] = [
     spritePrompt: characterSpritePrompt(
       "a young street rogue in dark fitted leathers with a low hood, a satchel of tools across the chest, a short blade sheathed at the back, sharp quick posture",
     ),
+    portraitPrompt: characterPortraitPrompt(
+      "a young street rogue in dark fitted leathers with a low hood and a short blade sheathed at the back",
+    ),
   },
   {
     id: "traveler",
@@ -47,6 +58,9 @@ export const ARCHETYPES: Archetype[] = [
       "a traveler in a simple ochre tunic, a hooded cloak, a small satchel and sturdy boots",
     spritePrompt: characterSpritePrompt(
       "a young traveler in a simple warm-ochre tunic, a hooded cloak, a small satchel and sturdy boots, calm open expression",
+    ),
+    portraitPrompt: characterPortraitPrompt(
+      "a young traveler in a simple warm-ochre tunic with a hooded cloak and sturdy boots",
     ),
   },
 ];

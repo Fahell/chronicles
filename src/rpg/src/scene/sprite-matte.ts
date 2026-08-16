@@ -7,10 +7,11 @@
  * before the texture reaches the renderer:
  *
  * 1. fringe trim  — barely-transparent pixels become fully transparent;
- * 2. edge spill   — dark pixels adjacent to transparency are background
- *                   remnants (the generated sprite is asked for a solid
- *                   pure-black background), removed without touching opaque
- *                   dark clothing (which is not adjacent to transparency).
+ * 2. edge spill   — (DISABLED by default since round 9) dark pixels adjacent
+ *                   to transparency used to be black-background remnants;
+ *                   sprites now generate on WHITE with a baked ground shadow,
+ *                   so dark pixels touching transparency are legit content
+ *                   (the shadow, dark clothing) and must survive.
  *
  * `applyMatteCleanup` is a pure pixel function (testable in node); the thin
  * canvas wrapper `cleanSpriteMatte` converts a dataUrl in the browser.
@@ -28,7 +29,11 @@ export interface MatteOptions {
   fringeAlpha?: number;
   /**
    * Brightness (0..255, max of r/g/b) at or under which an edge-adjacent
-   * pixel is treated as black-background spill. Default 24 (near-black).
+   * pixel is treated as black-background spill. Default 0 (disabled) since
+   * round 9: sprites generate on WHITE with a baked ground shadow, so dark
+   * pixels adjacent to transparency are legit content (shadow, dark
+   * clothing) — the pass would eat them. Kept as an option for any future
+   * dark-background asset.
    */
   spillLuma?: number;
   /**
@@ -46,7 +51,7 @@ export function applyMatteCleanup(
   height: number,
   options: MatteOptions = {},
 ): Uint8ClampedArray {
-  const { fringeAlpha = 0.35, spillLuma = 24, minComponentRatio = 0.001 } = options;
+  const { fringeAlpha = 0.35, spillLuma = 0, minComponentRatio = 0.001 } = options;
   const fringe = Math.round(fringeAlpha * 255);
   const out = new Uint8ClampedArray(data);
 
@@ -58,33 +63,41 @@ export function applyMatteCleanup(
     if (a > 0 && a < fringe) out[i + 3] = 0;
   }
 
-  // Pass 2 — edge black-spill. Decisions are made against a snapshot of the
-  // pass-1 result (never against pixels removed earlier in this pass), so a
-  // dark pixel is removed only when it touches the ORIGINAL transparency —
-  // the removal cannot cascade inward and eat dark clothing band by band.
-  const base = out.slice();
+  // Pass 3's min-area threshold (declared here — shared with the pass-2
+  // block below, which is gated off by default since round 9).
   const minArea = Math.max(1, Math.round(width * height * minComponentRatio));
-  const transparentAt = (x: number, y: number) => {
-    if (x < 0 || y < 0 || x >= width || y >= height) return true;
-    return base[(y * width + x) * 4 + 3] === 0;
-  };
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const i = (y * width + x) * 4;
-      if (out[i + 3] === 0) continue;
-      const luma = Math.max(out[i] ?? 0, out[i + 1] ?? 0, out[i + 2] ?? 0);
-      if (luma > spillLuma) continue;
-      if (
-        transparentAt(x - 1, y) ||
-        transparentAt(x + 1, y) ||
-        transparentAt(x, y - 1) ||
-        transparentAt(x, y + 1)
-      ) {
-        out[i + 3] = 0;
+  // Pass 2 — edge black-spill. DISABLED by default since round 9 (spillLuma
+  // 0): the white background + baked ground shadow means dark pixels
+  // adjacent to transparency are content, not spill. When enabled, decisions
+  // are made against a snapshot of the pass-1 result (never against pixels
+  // removed earlier in this pass), so a dark pixel is removed only when it
+  // touches the ORIGINAL transparency — the removal cannot cascade inward
+  // and eat dark clothing band by band.
+  if (spillLuma > 0) {
+    const base = out.slice();
+    const transparentAt = (x: number, y: number) => {
+      if (x < 0 || y < 0 || x >= width || y >= height) return true;
+      return base[(y * width + x) * 4 + 3] === 0;
+    };
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        if (out[i + 3] === 0) continue;
+        const luma = Math.max(out[i] ?? 0, out[i + 1] ?? 0, out[i + 2] ?? 0);
+        if (luma > spillLuma) continue;
+        if (
+          transparentAt(x - 1, y) ||
+          transparentAt(x + 1, y) ||
+          transparentAt(x, y - 1) ||
+          transparentAt(x, y + 1)
+        ) {
+          out[i + 3] = 0;
+        }
       }
     }
-  }
+  } // /spillLuma > 0
 
   // Pass 3 — drop detached remnants (removal speckles) that pass 1/2 leave
   // behind: they are bright (not spill) and above the fringe alpha, so they

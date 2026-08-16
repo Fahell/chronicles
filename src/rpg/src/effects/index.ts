@@ -10,14 +10,16 @@ export type { EffectSpec, StageEffect } from "./types";
  */
 export async function createEffects(
   specs: EffectSpec[],
-  _container: HTMLElement,
-  _viewport: { width: number; height: number },
+  container: HTMLElement,
+  viewport: { width: number; height: number },
 ): Promise<StageEffect[]> {
   const effects: StageEffect[] = [];
   for (const spec of specs) {
     if (spec.kind === "fog") {
       const { createFogEffect } = await import("./fog");
-      effects.push(await createFogEffect(_viewport, spec.params));
+      // The container is where the effect mounts its canvas (round-9 fix:
+      // fog rendered to a detached canvas — pixi v8 never auto-appends).
+      effects.push(await createFogEffect(viewport, spec.params, container));
     }
     // unknown kinds: skipped
   }

@@ -1,4 +1,4 @@
-import { characterSpritePrompt } from "./sprite";
+import { characterPortraitPrompt, characterSpritePrompt } from "./sprite";
 
 /**
  * Seed NPC pool (narrative-spec §9): 3 example types × 3 example context
@@ -15,6 +15,8 @@ export interface NpcDefinition {
   backgroundPayload: string;
   backgroundUi: string;
   spritePrompt: string;
+  /** Bust portrait prompt (dialogue box frame, round 10). */
+  portraitPrompt: string;
 }
 
 const KNIGHT = "wandering knight";
@@ -33,6 +35,9 @@ export const NPC_POOL: NpcDefinition[] = [
     spritePrompt: characterSpritePrompt(
       "a wandering knight in battered half-plate with a faded banner-wrapped arm, a heavy greatsword across the back, short greying hair, a quiet haunted bearing",
     ),
+    portraitPrompt: characterPortraitPrompt(
+      "a wandering knight in battered half-plate with a faded banner-wrapped arm and a quiet haunted bearing",
+    ),
   },
   {
     id: "npc/knight-missing-sibling",
@@ -44,6 +49,9 @@ export const NPC_POOL: NpcDefinition[] = [
       "Eldrin's younger brother vanished three winters ago while riding escort on the eastern road. The wagon train made it through; the brother did not. Eldrin left his post and has traced rumors ever since — a flash of a familiar shield here, a half-remembered voice there — each lead a dead end that he refuses to let finish the story.",
     spritePrompt: characterSpritePrompt(
       "a knight in clean silver plate with a family-crest shield strapped to the back, short dark hair, earnest worried eyes, a coil of rope and a rolled map at the belt",
+    ),
+    portraitPrompt: characterPortraitPrompt(
+      "a knight in clean silver plate with a family-crest shield and earnest worried eyes",
     ),
   },
   {
@@ -57,6 +65,9 @@ export const NPC_POOL: NpcDefinition[] = [
     spritePrompt: characterSpritePrompt(
       "a knight in grey-green armor with a snow-cloak and a round shield painted with an unreadable mountain sigil, pale eyes, watchful calm posture",
     ),
+    portraitPrompt: characterPortraitPrompt(
+      "a knight in grey-green armor with a snow-cloak and pale watchful eyes",
+    ),
   },
   {
     id: "npc/mage-lost-battle",
@@ -68,6 +79,9 @@ export const NPC_POOL: NpcDefinition[] = [
       "Veska was never meant to be at the Grey Ford. A wrong turn on a quiet errand put her in the path of the slaughter, and she survived by accident while hundreds did not. The battlefield still whispers to her in her craft — fragments of the dead, unfinished sentences. She listens, trying to learn what truly happened there, and whether her wrong turn was really an accident.",
     spritePrompt: characterSpritePrompt(
       "a forest mage in moss-green robes with ivy-wrapped staff and a small glowing lantern at the belt, deep green eyes, thoughtful guarded expression",
+    ),
+    portraitPrompt: characterPortraitPrompt(
+      "a forest mage in moss-green robes with an ivy-wrapped staff and deep green eyes",
     ),
   },
   {
@@ -81,6 +95,9 @@ export const NPC_POOL: NpcDefinition[] = [
     spritePrompt: characterSpritePrompt(
       "a hedge mage in patched brown robes with a staff wrapped in copper wire, a familiar small fox perched on the shoulder, sharp searching eyes",
     ),
+    portraitPrompt: characterPortraitPrompt(
+      "a hedge mage in patched brown robes with a small fox perched on the shoulder and sharp searching eyes",
+    ),
   },
   {
     id: "npc/mage-hidden-village",
@@ -92,6 +109,9 @@ export const NPC_POOL: NpcDefinition[] = [
       "Ilya grew up in a hidden village protected by old wards she was meant to inherit. To learn the deeper magic they needed, she left to study abroad — promising to return with the knowledge. Years later, the knowledge is almost complete and the promise is heavy. Every season she tells herself this is the last one abroad; every season she finds a reason to delay the return that will bind her forever.",
     spritePrompt: characterSpritePrompt(
       "a village ward-mage in a deep blue robe embroidered with protective sigils, a book-staff, soft serious face, ink-stained fingers",
+    ),
+    portraitPrompt: characterPortraitPrompt(
+      "a village ward-mage in a deep blue robe embroidered with protective sigils and a soft serious face",
     ),
   },
   {
@@ -105,6 +125,9 @@ export const NPC_POOL: NpcDefinition[] = [
     spritePrompt: characterSpritePrompt(
       "a street rogue in dark fitted leathers with a worn satchel, a hood half-up, a lockpick kit at the belt, clever watchful eyes, one hand always near the satchel",
     ),
+    portraitPrompt: characterPortraitPrompt(
+      "a street rogue in dark fitted leathers with a hood half-up and clever watchful eyes",
+    ),
   },
   {
     id: "npc/rogue-missing-sibling",
@@ -117,6 +140,9 @@ export const NPC_POOL: NpcDefinition[] = [
     spritePrompt: characterSpritePrompt(
       "a street rogue in a dark grey hooded cloak over simple clothes, a guild-marked coin on a cord at the neck, tired sharp eyes, agile stance",
     ),
+    portraitPrompt: characterPortraitPrompt(
+      "a street rogue in a dark grey hooded cloak with a guild-marked coin at the neck and tired sharp eyes",
+    ),
   },
   {
     id: "npc/rogue-hidden-village",
@@ -128,6 +154,9 @@ export const NPC_POOL: NpcDefinition[] = [
       "The hidden village needs things no valley can grow and no map can show: salt, iron, news. Dario is the smuggler who runs those routes, a villager by birth who left so the village could keep its secret. He buys secrets the way other men buy wine — collecting rumors of anyone hunting the hidden valleys, so he is always one step ahead of the people who would sell his home for gold.",
     spritePrompt: characterSpritePrompt(
       "a smuggler-rogue in a patched oilskin coat with a deep hood, rope and pouches at the belt, a knowing easy smile, weather-worn hands",
+    ),
+    portraitPrompt: characterPortraitPrompt(
+      "a smuggler-rogue in a patched oilskin coat with a deep hood and a knowing easy smile",
     ),
   },
 ];

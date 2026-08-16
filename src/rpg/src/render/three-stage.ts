@@ -106,7 +106,9 @@ export async function createThreeStage(
   );
   scene.add(backdrop);
 
-  const actorMeshes = new Map<string, { sprite: Mesh; shadow: Mesh; outline: Mesh | null }>();
+  // Round-9 grounding: no code-drawn shadow — grounding comes from the baked
+  // shadow in the generated sprite (see content/sprite.ts).
+  const actorMeshes = new Map<string, { sprite: Mesh; outline: Mesh | null }>();
   // Declarative overlay effects (vn-rpg-spec §3.3): created by the loader and
   // ticked every frame — even when the 3D scene is idle (fog drifts always).
   const effects: StageEffect[] = [];
@@ -166,7 +168,7 @@ export async function createThreeStage(
     },
     setActors(actors: ActorPlacement[], textures?: Record<string, ActorTextures>) {
       for (const actor of actorMeshes.values()) {
-        scene.remove(actor.sprite, actor.shadow);
+        scene.remove(actor.sprite);
         if (actor.outline) scene.remove(actor.outline);
       }
       actorMeshes.clear();
@@ -222,18 +224,12 @@ export async function createThreeStage(
           applyOutlineTexture(outline, texturesFor.outline);
         }
 
-        // Ground-contact shadow (round-6 finding: characters float — the
-        // shadow was too small/subtle at 0.42/0.28). Enlarged + darkened; the
-        // sprite scale itself is unchanged (dedicated layout round later).
-        const shadow = new THREE.Mesh(
-          new THREE.CircleGeometry(0.52 * actor.scale, 24),
-          new THREE.MeshBasicMaterial({ color: 0x071321, transparent: true, opacity: 0.34 }),
-        );
-        shadow.rotation.x = -Math.PI / 2;
-        shadow.position.set(actor.position.x, 0.03, actor.position.z);
-
-        scene.add(sprite, shadow);
-        actorMeshes.set(actor.characterId, { sprite, shadow, outline });
+        // No code-drawn shadow plane (round-9 grounding): the generated
+        // sprite carries its own baked ground shadow (white-bg contract in
+        // content/sprite.ts), so a code ellipse below the image would float
+        // whenever the feet sit above the image base.
+        scene.add(sprite);
+        actorMeshes.set(actor.characterId, { sprite, outline });
 
         // Real generated portrait (512×768) replaces the placeholder when it
         // arrives — async, so the scene mounts instantly and swaps in.

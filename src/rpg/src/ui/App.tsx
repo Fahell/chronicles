@@ -3,20 +3,27 @@ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { SPRITE_NEGATIVE_PROMPT } from "../content/sprite";
 import { parseChoices } from "../game/dialogue/parse-choices";
 import { buildNpcInstruction } from "../game/payload/builder";
-import { conversationSignal, sessionSignal } from "../game/session";
+import { ensurePortrait, portraitsSignal } from "../game/portraits";
+import { conversationSignal, npcPortraitSeed, sessionSignal } from "../game/session";
 import {
+  appendPlayerAction,
+  closePlayerInput,
   dialogueMachine,
   dialoguePending,
   dialogueVisible,
   pendingSpeaker,
   showTurn,
 } from "../game/state/dialogue";
+import { inspectorEnabled, inspectorOpen, toggleInspector } from "../game/state/inspector";
+import { pauseOpen, togglePause } from "../game/state/pause";
 import type { Stage } from "../render/stage";
-import { resolveCharacterSprite, type SpriteRequest } from "../scene/assets";
+import { resolveCharacterSprite, resolvePortrait, type SpriteRequest } from "../scene/assets";
 import type { BootServices } from "../services/boot";
 import { currentLanguage, englishName, t } from "../services/i18n";
 import { setRemovalQueue } from "../services/progress";
 import { DialogueBox } from "./DialogueBox";
+import { DevInspector } from "./screens/DevInspector";
+import { PauseMenu } from "./screens/PauseMenu";
 
 interface AppProps {
   services: BootServices;
@@ -88,6 +95,52 @@ export function App({ services, stage }: AppProps) {
     void talk(conversationSignal.value);
   }, [dialogueMachine.value, session, talk]);
 
+  // NPC bust portrait (round 10): fire-and-forget at scene boot so the
+  // dialogue box has it by the first turn (async — adds zero wait time).
+  useEffect(() => {
+    if (!session) return;
+    void ensurePortrait(services.assets, {
+      entity: session.npc.id,
+      seed: npcPortraitSeed(session.npc.id, session.save.scene.sceneId),
+      prompt: session.npc.portraitPrompt,
+    });
+  }, [services, session]);
+
+  // Esc dual behavior (vn-rpg-spec §8.2, round-10 decision): with a dialogue
+  // open, Esc closes it (the DialogueBox handler runs first and calls
+  // preventDefault — the pause handler must not fire then); with no dialogue
+  // open, Esc toggles the pause menu.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      togglePause();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Free-form player action (round 10, owner decision): submit appends the
+  // typed action + the finished NPC turn to the conversation, shows the
+  // player's turn with their portrait, then asks the NPC follow-up.
+  const submitPlayerAction = useCallback(
+    (text: string) => {
+      if (!session) return;
+      closePlayerInput();
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      const machine = dialogueMachine.value;
+      conversationSignal.value = appendPlayerAction(
+        conversationSignal.value,
+        machine,
+        trimmed,
+        CONVERSATION_CAP,
+      );
+      showTurn(session.save.identity.name, trimmed, []);
+      void talk(conversationSignal.value);
+    },
+    [session, talk],
+  );
+
   // Sprite re-roll (vn-rpg-spec §4.3, owner decision: sprites only): a fresh
   // seed busts the raw cache key → RMBG + matte re-run → the stage swaps the
   // actor's textures. The identity sprite is never re-rolled.
@@ -107,6 +160,14 @@ export function App({ services, stage }: AppProps) {
       const textures = await resolveCharacterSprite(services.assets, req);
       if (isProd) setRemovalQueue(1, 1);
       stage.updateActor(session.npc.id, textures);
+      // The portrait re-rolls together with the sprite (same seed → same
+      // cache key family; round-10 owner decision).
+      const portrait = await resolvePortrait(services.assets, {
+        entity: session.npc.id,
+        seed: req.seed,
+        prompt: session.npc.portraitPrompt,
+      });
+      portraitsSignal.value = { ...portraitsSignal.value, [session.npc.id]: portrait };
     } finally {
       setRerolling(false);
     }
@@ -135,8 +196,20 @@ export function App({ services, stage }: AppProps) {
         >
           {t("hud.reRoll")}
         </button>
+        {inspectorEnabled.value && (
+          <button
+            type="button"
+            className="dev-inspector-toggle"
+            onClick={toggleInspector}
+            aria-pressed={inspectorOpen.value}
+          >
+            {t("hud.devInspector")}
+          </button>
+        )}
       </div>
-      <DialogueBox />
+      <DialogueBox onSubmitAction={submitPlayerAction} />
+      {inspectorEnabled.value && inspectorOpen.value && <DevInspector />}
+      {pauseOpen.value && <PauseMenu services={services} />}
     </main>
   );
 }

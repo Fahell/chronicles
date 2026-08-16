@@ -5,6 +5,7 @@ import { backgroundTemplateById, USER_BACKGROUND_TEMPLATES } from "../../content
 import { pickNpc } from "../../content/npcPool";
 import { SPRITE_NEGATIVE_PROMPT } from "../../content/sprite";
 import { buildIdentity, type Identity } from "../../game/identity";
+import { ensurePortrait, PLAYER_PORTRAIT_KEY } from "../../game/portraits";
 import type { SaveGame } from "../../game/save/types";
 import { startSession } from "../../game/session";
 import { navigate } from "../../game/state/screens";
@@ -47,6 +48,13 @@ export function NewGameWizard({ services, onBack }: NewGameWizardProps) {
         negativePrompt: SPRITE_NEGATIVE_PROMPT,
       });
       setSpriteCutout(sprite);
+      // Bust portrait (round 10): async fire-and-forget — never blocks the
+      // sprite wait; resolves into the portraits signal when ready.
+      void ensurePortrait(services.assets, {
+        entity: PLAYER_PORTRAIT_KEY,
+        seed: `identity:${appearanceSeed}`,
+        prompt: next.portraitPrompt,
+      });
     } catch (error) {
       console.warn("[rpg] identity sprite generation failed", error);
       setSpriteCutout(null);

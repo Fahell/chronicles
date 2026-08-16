@@ -1,3 +1,4 @@
+import { SPRITE_NEGATIVE_PROMPT, SPRITE_WHITE_GROUNDED_BACKGROUND } from "../../content/sprite";
 import type { SceneManifest } from "../types";
 
 const groundPrompt =
@@ -6,21 +7,15 @@ const groundPrompt =
 const backdropPrompt =
   "Wide frontal background plate for an open fantasy visual-novel scene rendered with pixel art. A vast open valley beneath a dramatic twilight sky, designed to be placed behind a separate 3D meadow floor in a Three.js scene. Fixed-camera composition, straight frontal view, no fisheye distortion and not an equirectangular panorama. The upper half is dominated by a deep blue and muted teal sky with layered luminous clouds and a few subtle stars. The distant horizon contains a misty valley and atmospheric mountains. On the right side, place a majestic distant medieval fantasy castle integrated into the mountainside; on the far left, place a few distinctive dark rocky spires. Keep the central valley and the central horizon visually open and uncluttered so the foreground characters remain readable.\n\nThe lower edge must contain only distant atmospheric terrain and soft haze, with no detailed foreground grass, no close rocks and no objects that would conflict with a separate floor texture. Establish clear depth through atmospheric perspective: distant elements are smaller, softer and less contrasted than the sky. Use the same hand-painted 16-bit/32-bit pixel-art style, consistent pixel scale, cool blue-green shadows and warm pale-gold highlights as the matching ground texture. Cinematic, coherent, painterly pixel art, suitable as a fixed background plane.\n\nDo not include characters, creatures, vehicles, user interface, text, borders or frames. Do not place any object in the immediate foreground. Do not generate a visible floor texture extending toward the viewer. The image must read as a distant landscape backdrop that can meet a separate horizontal ground plane at the horizon.";
 
-// Sprites are generated on a SOLID PURE BLACK background. Round-5/6 forensics
-// showed the model still delivered dark-grey/white — the wording below is the
-// D5 lever pushed further (removal-pipeline-spec §7; round-7 owner direction:
-// prompt-first). The matching negativePrompt is a cache-key component (busts
-// sprites — intended). RMBG-1.4 segments any background, so this only matters
-// for the platform-fallback path.
-const spriteBackground =
-  "The ENTIRE background behind the figure must be 100% pure solid black — every single pixel exactly #000000 — flat and uniform across every corner and every edge, with zero gradient, zero vignette, zero grey, zero dark-grey, zero off-black, zero shadow, zero floor line, zero props, zero rim light and zero texture variation anywhere in the background. The figure must be fully contained inside the frame, standing centered, full body visible from head to feet, crisp clean silhouette edge. No text, no UI, no watermark, no noise.";
+// Round-9 grounding contract (shared with the identity archetypes — see
+// content/sprite.ts): sprites generate on pure white WITH the ground shadow
+// baked into the image, so after background removal the shadow survives and
+// the character reads grounded wherever the feet land. The matching
+// negativePrompt is a cache-key component (busts sprites — intended).
 
-const spriteNegativePrompt =
-  "gradient, vignette, floor shadow, background props, rim light, background texture, noise, text, watermark, grey background, gray background, dark grey, off-black, white background, mottled background, dirty background, midtones in background";
+const elderPrompt = `Pixel-art character sprite of an elderly village elder, full body, standing pose, facing forward, designed as a 2D papercraft character placed in a 3D visual-novel scene. Weathered hooded robe in muted teal and grey, long white beard, wooden staff, kind but tired eyes. Hand-painted 16-bit/32-bit pixel art, consistent pixel scale, clean readable silhouette, soft cool blue-green shadows with warm pale-gold rim highlights matching a twilight open-plains landscape. Centered, full figure visible from head to feet, calm neutral standing pose. ${SPRITE_WHITE_GROUNDED_BACKGROUND}`;
 
-const elderPrompt = `Pixel-art character sprite of an elderly village elder, full body, standing pose, facing forward, designed as a 2D papercraft character placed in a 3D visual-novel scene. Weathered hooded robe in muted teal and grey, long white beard, wooden staff, kind but tired eyes. Hand-painted 16-bit/32-bit pixel art, consistent pixel scale, clean readable silhouette, soft cool blue-green shadows with warm pale-gold rim highlights matching a twilight open-plains landscape. Centered, full figure visible from head to feet, calm neutral standing pose. ${spriteBackground}`;
-
-const playerPrompt = `Pixel-art character sprite of a young traveler, full body, standing pose, facing forward, designed as a 2D papercraft character placed in a 3D visual-novel scene. Simple adventurer tunic in warm ochre, hooded cloak, small satchel, sturdy boots. Hand-painted 16-bit/32-bit pixel art, consistent pixel scale, clean readable silhouette, soft cool blue-green shadows with warm pale-gold rim highlights matching a twilight open-plains landscape. Centered, full figure visible from head to feet, calm neutral standing pose. ${spriteBackground}`;
+const playerPrompt = `Pixel-art character sprite of a young traveler, full body, standing pose, facing forward, designed as a 2D papercraft character placed in a 3D visual-novel scene. Simple adventurer tunic in warm ochre, hooded cloak, small satchel, sturdy boots. Hand-painted 16-bit/32-bit pixel art, consistent pixel scale, clean readable silhouette, soft cool blue-green shadows with warm pale-gold rim highlights matching a twilight open-plains landscape. Centered, full figure visible from head to feet, calm neutral standing pose. ${SPRITE_WHITE_GROUNDED_BACKGROUND}`;
 
 /**
  * The open-plains scene WITHOUT actors — actors are supplied per session by
@@ -75,7 +70,7 @@ export const openPlainsManifest = {
       sprite: {
         assetKey: "characters/player/idle",
         prompt: playerPrompt,
-        negativePrompt: spriteNegativePrompt,
+        negativePrompt: SPRITE_NEGATIVE_PROMPT,
       },
     },
     {
@@ -86,7 +81,7 @@ export const openPlainsManifest = {
       sprite: {
         assetKey: "characters/elder/idle",
         prompt: elderPrompt,
-        negativePrompt: spriteNegativePrompt,
+        negativePrompt: SPRITE_NEGATIVE_PROMPT,
       },
     },
   ],

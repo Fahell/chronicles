@@ -14,6 +14,11 @@ import { type Identity, summarizeAppearance } from "../identity";
  *
  * The whole instruction is budget-guarded (PAYLOAD_BUDGET): the conversation
  * is trimmed oldest-first; if still over, the tail is hard-truncated.
+ *
+ * Each builder exposes BOTH a structured section list (for the dev context
+ * inspector, tech-spec §6.4 — named sections with the summarizable policy of
+ * narrative-spec §5.3) and the composed instruction string. The instruction
+ * is ALWAYS composed from the sections, so the two can never drift.
  */
 
 export const PAYLOAD_BUDGET = 24_000;
@@ -37,6 +42,18 @@ export interface NpcContext {
   user: Identity;
   conversation: ConversationTurn[];
   language: string;
+}
+
+/**
+ * One named payload section (narrative-spec §5.3 taxonomy). `summarizable`
+ * is the policy column: only the lore sections (conversation so far / rolling
+ * summaries) undergo daily + window summarization (day-cycle-spec §6);
+ * everything else is never summarized.
+ */
+export interface PayloadSection {
+  name: string;
+  content: string;
+  summarizable: boolean;
 }
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -100,40 +117,65 @@ function userSummary(user: Identity): string {
   return `${user.name} — ${summarizeAppearance(user)}`;
 }
 
+/** Composes the sections into the single instruction string (byte-identical). */
+function compose(sections: PayloadSection[], language: string): string {
+  const body = sections
+    .map((s) => (s.name === "System" ? s.content : `${s.name}\n${s.content}`))
+    .join("\n\n");
+  return `${languageDirective(language)}${body}`;
+}
+
+/** The narrator's named sections (world voice — none are summarizable). */
+export function buildNarratorSections(ctx: NarratorContext): PayloadSection[] {
+  return [
+    {
+      name: "System",
+      content:
+        "You are the world narrator of a visual-novel RPG. Describe the scene in 2-3 sentences of vivid, grounded prose: where the player is, the atmosphere, and the person present. Do not role-play as any character and do not repeat the player's name more than once.",
+      summarizable: false,
+    },
+    { name: "SCENE", content: sceneContext(ctx.scene), summarizable: false },
+    {
+      name: "PRESENT",
+      content: `The player: ${userSummary(ctx.user)}\nAlso present: ${ctx.npc.name}, a ${ctx.npc.type}.`,
+      summarizable: false,
+    },
+  ];
+}
+
+/** The NPC's named sections — only CONVERSATION SO FAR is summarizable lore. */
+export function buildNpcSections(ctx: NpcContext): PayloadSection[] {
+  return [
+    {
+      name: "System",
+      content: `You are ${ctx.npc.name}, a ${ctx.npc.type} in the world of the game. Stay in character, keep replies brief and grounded (1-3 short paragraphs max), and react naturally to what is said.`,
+      summarizable: false,
+    },
+    {
+      name: "WHO YOU ARE",
+      content: `Name: ${ctx.npc.name} (${ctx.npc.type})\nYour story: ${ctx.npc.backgroundPayload}`,
+      summarizable: false,
+    },
+    {
+      name: "WHO YOU ARE TALKING TO",
+      content: `A stranger: ${userSummary(ctx.user)}. They are a stranger to you — do not assume shared history or knowledge of their past.`,
+      summarizable: false,
+    },
+    { name: "WHERE YOU ARE", content: sceneContext(ctx.scene), summarizable: false },
+    {
+      name: "CONVERSATION SO FAR",
+      content: renderConversation(trimConversation(ctx.conversation)),
+      summarizable: true,
+    },
+  ];
+}
+
 /** World-narrator opening for the scene (narrative-spec §9). */
 export function buildNarratorInstruction(ctx: NarratorContext): string {
-  const body = [
-    "You are the world narrator of a visual-novel RPG. Describe the scene in 2-3 sentences of vivid, grounded prose: where the player is, the atmosphere, and the person present. Do not role-play as any character and do not repeat the player's name more than once.",
-    "",
-    "SCENE",
-    sceneContext(ctx.scene),
-    "",
-    "PRESENT",
-    `The player: ${userSummary(ctx.user)}`,
-    `Also present: ${ctx.npc.name}, a ${ctx.npc.type}.`,
-  ].join("\n");
-
-  return `${languageDirective(ctx.language)}${body}`;
+  return compose(buildNarratorSections(ctx), ctx.language);
 }
 
 /** NPC dialogue generation — identity + background + user + scene + conversation. */
 export function buildNpcInstruction(ctx: NpcContext): string {
-  const base = [
-    `You are ${ctx.npc.name}, a ${ctx.npc.type} in the world of the game. Stay in character, keep replies brief and grounded (1-3 short paragraphs max), and react naturally to what is said.`,
-    "",
-    "WHO YOU ARE",
-    `Name: ${ctx.npc.name} (${ctx.npc.type})`,
-    `Your story: ${ctx.npc.backgroundPayload}`,
-    "",
-    "WHO YOU ARE TALKING TO",
-    `A stranger: ${userSummary(ctx.user)}. They are a stranger to you — do not assume shared history or knowledge of their past.`,
-    "",
-    "WHERE YOU ARE",
-    sceneContext(ctx.scene),
-    "",
-    "CONVERSATION SO FAR",
-    renderConversation(trimConversation(ctx.conversation)),
-  ].join("\n");
-
-  return dialogueInstruction(`${languageDirective(ctx.language)}${base}`);
+  return dialogueInstruction(compose(buildNpcSections(ctx), ctx.language));
 }

@@ -181,6 +181,332 @@ body {
   margin-top: 0.25rem;
 }
 
+/* ── Dialogue portrait frame (round 10) ────────────────────────────────── */
+
+.portrait-frame {
+  flex-shrink: 0;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 6px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: #ffffff;
+  overflow: hidden;
+  align-self: flex-start;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* The portrait sits above the box text (classic VN) when present. */
+.dialogue-box > .portrait-frame {
+  position: absolute;
+  top: -4.5rem;
+  left: 1rem;
+  z-index: 3;
+}
+
+/* The player-action input carries its own inline portrait. */
+.portrait-frame-input {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+/* ── Free-form player action input (round 10) ──────────────────────────── */
+
+.player-action {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-top: 0.25rem;
+}
+
+.player-action-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.player-action-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8e8e8;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  resize: none;
+}
+
+.player-action-input::placeholder {
+  color: #8a8f98;
+}
+
+.player-action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.player-action-buttons .leave {
+  margin-top: 0;
+}
+
+.choice-custom {
+  color: #f3ce76;
+  font-style: italic;
+}
+
+/* ── Pause menu (round 10, vn-rpg-spec §8.2) ───────────────────────────── */
+
+.pause-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  background: rgba(8, 10, 16, 0.78);
+  backdrop-filter: blur(3px);
+  color: #e8e8e8;
+}
+
+.pause-menu h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+  color: #f3ce76;
+}
+
+.pause-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 14rem;
+}
+
+.pause-actions button {
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e8e8e8;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font: inherit;
+  text-align: center;
+}
+
+.pause-actions button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.pause-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+  text-align: center;
+}
+
+.pause-confirm p {
+  margin: 0;
+  max-width: 20rem;
+}
+
+.pause-saved {
+  margin: 0;
+  color: #9fd3c4;
+}
+
+/* ── Dev context inspector (round 10, tech-spec §6.4) ──────────────────── */
+
+.dev-inspector-toggle {
+  margin-left: auto;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e8e8e8;
+}
+
+.dev-inspector {
+  position: fixed;
+  top: 3.2rem;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  width: min(420px, 92vw);
+  z-index: 30;
+  background: rgba(10, 14, 22, 0.95);
+  color: #e8e8e8;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 0.75rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+}
+
+.inspector-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.inspector-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #f3ce76;
+}
+
+.inspector-scene {
+  color: #8a8f98;
+  font-size: 0.75rem;
+}
+
+.inspector-voice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inspector-voice select {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8e8e8;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 0.25rem 0.4rem;
+}
+
+.inspector-desc {
+  margin: 0;
+  color: #aeb6c4;
+}
+
+.inspector-prompt summary {
+  cursor: pointer;
+  color: #9fd3c4;
+}
+
+.inspector-prompt pre {
+  margin: 0.4rem 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #aeb6c4;
+  font-size: 0.75rem;
+}
+
+.inspector-sections {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inspector-sections li {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.inspector-sections li.is-summarizable {
+  border-color: #f3ce76;
+  background: rgba(243, 206, 118, 0.08);
+}
+
+.inspector-section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.inspector-section-name {
+  font-weight: 700;
+}
+
+.inspector-section-policy {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8a8f98;
+}
+
+.is-summarizable .inspector-section-policy {
+  color: #f3ce76;
+}
+
+.inspector-section-chars {
+  margin-left: auto;
+  color: #8a8f98;
+  font-size: 0.72rem;
+}
+
+.inspector-section-body {
+  margin: 0;
+  padding: 0.4rem 0.5rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #c8cdd6;
+  font-size: 0.74rem;
+  max-height: 9rem;
+  overflow-y: auto;
+}
+
+.inspector-budget {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.74rem;
+  color: #8a8f98;
+}
+
+.inspector-budget-bar {
+  height: 0.5rem;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.inspector-budget-fill {
+  height: 100%;
+  background: #53a89a;
+}
+
+.inspector-budget-fill.is-trigger {
+  background: #f3ce76;
+}
+
+.inspector-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.inspector-actions button {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e8e8e8;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
 .muted {
   color: #8a8f98;
 }

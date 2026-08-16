@@ -29,3 +29,14 @@ export function openPlainsSpritePrefix(subject: string): string {
 export function characterSpritePrompt(subject: string): string {
   return `${openPlainsSpritePrefix(subject)}${SPRITE_WHITE_GROUNDED_BACKGROUND}`;
 }
+
+/**
+ * Bust portrait prompt (round-10 owner decision): head + shoulders, neutral
+ * expression, pure white background, SAME pixel-art style as the sprite.
+ * Portraits are NOT background-removed — the white stays and the portrait
+ * sits in a frame inside the dialogue box (vn-rpg-spec §3.7). No baked
+ * ground shadow (not grounded in a scene; the white is the frame backing).
+ */
+export function characterPortraitPrompt(subject: string): string {
+  return `Pixel-art bust portrait of ${subject}, head and shoulders only, facing forward, calm neutral expression, framed like a classic visual-novel character portrait. Hand-painted 16-bit/32-bit pixel art, consistent pixel scale, clean readable silhouette, soft cool blue-green shadows with warm pale-gold rim highlights matching a twilight open-plains landscape. The ENTIRE background behind the figure must be 100% pure solid white — every single pixel exactly #FFFFFF — flat and uniform across every corner and every edge, with zero gradient, zero vignette, zero grey, zero off-white, zero rim light, zero props and zero texture variation anywhere in the background. The figure's head and shoulders must be fully contained inside the frame, centered, crisp clean silhouette edge. No text, no UI, no watermark, no noise.`;
+}

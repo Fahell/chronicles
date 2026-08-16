@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ARCHETYPES, archetypeById } from "../../src/content/archetypes";
 import { backgroundTemplateById, USER_BACKGROUND_TEMPLATES } from "../../src/content/backgrounds";
 import { NPC_POOL, npcById, pickNpc } from "../../src/content/npcPool";
+import { characterPortraitPrompt } from "../../src/content/sprite";
 import { PAYLOAD_BACKGROUND_LIMIT } from "../../src/game/identity";
 
 describe("seed content", () => {
@@ -52,6 +53,30 @@ describe("seed content", () => {
     for (const n of NPC_POOL) {
       expect(n.spritePrompt).toMatch(/pure solid white|#ffffff|#FFFFFF/i);
       expect(n.spritePrompt).toMatch(/shadow/i);
+    }
+  });
+
+  it("portrait prompts request a white background and bust framing (round 10)", () => {
+    const p = characterPortraitPrompt("a test subject");
+    expect(p).toMatch(/head and shoulders|bust/i);
+    expect(p).toMatch(/pure solid white|#ffffff|#FFFFFF/i);
+    expect(p).not.toMatch(/full body|standing pose|ground shadow/i);
+  });
+
+  it("every archetype has a portrait prompt matching its look (round 10)", () => {
+    for (const a of ARCHETYPES) {
+      expect(a.portraitPrompt).toBeTruthy();
+      expect(a.portraitPrompt).toMatch(/head and shoulders|bust/i);
+      expect(a.portraitPrompt).toMatch(/pure solid white|#ffffff|#FFFFFF/i);
+      expect(a.portraitPrompt).toContain(a.id);
+    }
+  });
+
+  it("every NPC has a portrait prompt (round 10)", () => {
+    for (const n of NPC_POOL) {
+      expect(n.portraitPrompt).toBeTruthy();
+      expect(n.portraitPrompt).toMatch(/head and shoulders|bust/i);
+      expect(n.portraitPrompt).toMatch(/pure solid white|#ffffff|#FFFFFF/i);
     }
   });
 

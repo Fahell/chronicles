@@ -14,11 +14,18 @@ describe("resolveSceneTextures (fake-indexeddb)", () => {
     await Dexie.delete("rpg_test_scene");
   });
 
-  function cache(): { assets: AssetCache; seen: Array<{ prompt: string; resolution?: string }> } {
-    const seen: Array<{ prompt: string; resolution?: string }> = [];
+  function cache(): {
+    assets: AssetCache;
+    seen: Array<{ prompt: string; resolution?: string; removeBackground?: boolean }>;
+  } {
+    const seen: Array<{ prompt: string; resolution?: string; removeBackground?: boolean }> = [];
     const service: ImageService = {
       async generate(opts) {
-        seen.push({ prompt: opts.prompt, resolution: opts.resolution });
+        seen.push({
+          prompt: opts.prompt,
+          resolution: opts.resolution,
+          removeBackground: opts.removeBackground,
+        });
         return { dataUrl: `data:image/png;base64,${opts.prompt.length}:${opts.seed}` };
       },
     };
@@ -38,12 +45,15 @@ describe("resolveSceneTextures (fake-indexeddb)", () => {
     expect(textures.actors.player).toMatch(/^data:image\//);
     expect(textures.actors["npc/elder"]).not.toBe(textures.actors.player);
 
-    // Planes request landscape 768×512 (1:1 with the 3:2 frame); characters
-    // request portrait 512×768.
+    // Planes request landscape 768×512 (1:1 with the 3:2 frame) and NO
+    // background removal; characters request portrait 512×768 WITH it.
     const planeCalls = seen.filter((s) => s.resolution === "768x512");
     const actorCalls = seen.filter((s) => s.resolution === "512x768");
     expect(planeCalls).toHaveLength(2);
+    // Planes never carry background removal (runtime normalizes undefined→false).
+    expect(planeCalls.every((s) => !s.removeBackground)).toBe(true);
     expect(actorCalls).toHaveLength(2);
+    expect(actorCalls.every((s) => s.removeBackground === true)).toBe(true);
 
     // Second call hits the cache (same seeds).
     const again = await resolveSceneTextures(openPlainsManifest, assets);

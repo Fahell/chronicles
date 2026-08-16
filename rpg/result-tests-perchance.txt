@@ -1,54 +1,62 @@
-First, a clean boot to observe console errors and load behavior.
+RUNTIME VALIDATION — ROUND 3
+1. BOOT: PASS
+Page loads cleanly; zero console errors/warnings across four clean loads (verified with an error-capturing preamble: no window.onerror, no unhandled rejections, no perchanceErrors, no syntaxErrors).
+Scene renders: grass floor plane, twilight backdrop, both sprites, HUD.
+Letterbox/contain correct: canvas is exactly 1.5 aspect (663×442 = 768:512), centered. At this viewport (697×442, nearly 3:2 itself) the bars are left/right (pillarbox, 17px); contain() math puts bars top/bottom on wider viewports. No stretching.
+"Generating scene…" overlay shows on an uncached boot and disappears when ready; cache-served boots never show it.
+2. IMAGES: PASS (with content notes)
+Actual resolutions, read from the cached images in IndexedDB (prod DB, 8 rows):
 
-The scene never boots. Let me confirm the plugins themselves loaded (the only other boot-relevant piece) before writing the report.
+asset	key suffix	actual	round-2 fix?
+floor	|768x512|	768×512 ✓	yes — old 512×512 row orphaned
+backdrop	|768x512|	768×512 ✓	yes — old 512×512 row orphaned
+player	|512x768|	512×768 ✓	n/a
+elder	|512x768|	512×768 ✓	n/a
+The cache-key-includes-resolution fix is verified effective. Generation timing: assets were built in a prior run of this round (timestamps 00:11:13 → 00:12:23 UTC, planes first then sprites, batch ≈70s); this session was 100% cache-served, so I can't give a fresh live per-asset time. All four applied correctly to their meshes (confirmed in rendered captures). Quality:
 
-Interesting — textures resolve before the three.js import. Let me check whether the image plugin actually ran and cached the 4 assets despite the boot failure.
-
-All 4 assets were generated and cached before the boot failed. Let me inspect their sizes and check if they're usable images.
-
-Both character sprites were generated fresh on this boot; backdrop+floor served from cache. Let me verify the cached assets decode to the right resolutions (portrait sprites vs landscape textures).
-
-Asset resolution check: sprites are correct 512×768 portraits; but backdrop/floor are 512×512 (square) — not the 768×512 the scene frame expects. Now let me verify cache behavior across a reload (section 4).
-
-Validation complete. Here is the structured report.
-
-RUNTIME VALIDATION REPORT — Round 2
-1. BOOT: FAIL
-The page loads and the plugin imports succeed (root.generateImage / root.generateText are both present), but the app never boots past the scene stage and is permanently stuck on the "Generating scene…" overlay.
-
-Console errors (verbatim):
-
-uncaught: Uncaught TypeError: Failed to fetch dynamically imported module:
-  https://perchance.org/src/rpg/build/chunks/three.module-C5rh5wLt.js  (ay5ujnpy9h#edit:0)
-perchanceErrors: TypeError: Failed to fetch dynamically imported module: https://perchance.org/src/rpg/build/chunks/three.module-C5rh5wLt.js
-
-Root cause: rpg.js code-splits three.js into ./chunks/three.module-C5rh5wLt.js (lazy-imported in three-stage.ts), but the src/rpg/build/chunks/ directory is entirely missing from the shipped workspace — only rpg.js and rpg.css exist. Direct fetch of the chunk URL returns HTTP 404. createThreeStage rejects → loadScene rejects → bootOverlay.remove() and the App render never run. Verified live: #boot-loader still visible ("Generating scene…"), #app has 0 children, no canvas, no HUD.
-
-Letterbox frame: cannot be validated — the three.js canvas is never created.
-
-2. IMAGES: PARTIAL — generation pipeline passes, display unverifiable
-Generation does run (textures resolve before the three.js import) and all four assets generated without plugin errors. All are cached in IndexedDB rpg/assets (key prefix prod|).
-
-Asset	Resolution	Size	When generated
-floor	512×512	795 KB	cache-served (previous session, ~41 min before this test)
-backdrop	512×512	709 KB	cache-served (previous session, ~41 min before)
-player sprite	512×768 ✓	647 KB	fresh, during this test's first boot
-elder sprite	512×768 ✓	502 KB	fresh, ~20s after player finished
-Both sprites are correct portrait 2:3 (512×768) — matches the 2:3 sprite plane, no sprite distortion expected.
-Issue: floor and backdrop came out square 512×512, not the 768×512 the code comments say is needed for 1:1 mapping (viewport.ts claims "native landscape resolution"). assets.ts:36 only passes resolution: "512x768" for actors; floor/backdrop default to the plugin's 512×512, so both textures get stretched ~1.5× horizontally onto their 3:2 planes. Round-1's letterbox fix removed the screen-level stretch, but the per-texture stretch remains.
-Generation time (this boot): both sprites were generated within the ~2-minute first boot, completing ~20 s apart (plugin appears to serialize them). Backdrop/floor came from cache instantly.
-"Floor under characters / backdrop behind / sensible scale": unverifiable — scene never renders.
-3. DIALOGUE: BLOCKED (untestable)
-The App never mounts, so the "Talk to the elder" button, dialogue box, thinking indicator, options, and Leave button do not exist on the page. No code path exists to exercise them. Error/retry handling also unverifiable. (The [choices] prompt fix and always-escape logic are in the shipped source but cannot be validated at runtime.)
-
-4. RELOAD / CACHE: PASS (mechanism) — visual comparison blocked
-After a hard reload, createdAt timestamps for player/elder are unchanged → they were served from IndexedDB, not regenerated. No new plugin generations were triggered.
-Backdrop/floor likewise survived across a ~41-minute gap from the previous session with no regeneration.
-So the IndexedDB cache works exactly as designed. However, "loads noticeably faster / no visual change" cannot be observed because every load still dies on the missing three.js chunk.
+Elder — clean, usable.
+Player — usable; slightly low in frame, legs a bit compressed, background removal partial (mottled edge).
+Floor — usable but flawed: strong edge/corner vignette (reads as dark banding on the plane) + a dark patch in the top-right quadrant; not tileable (irrelevant for a single plane).
+Backdrop — most notable issue: very dark twilight; objective pixel stats show the top-right quadrant is ~80% near-black, so the requested castle (right) is lost in darkness and barely castle-like; left spires faint. (Not washed-out — a vision misread; it is genuinely dark, which matches the intended mood, but too dark on the right.)
+3. DIALOGUE: PASS
+Box opens with speaker "Elder"; thinking indicator visible during generation (a few seconds) before text lands.
+Text renders; options parse: first turn produced 4 numbered choices from a [choices] block (a second generation produced its own set).
+Clicking an option ends the turn (choices removed, only Leave remains, box open) ✓. Leave is always present and always closes — verified it works while thinking: the box closes and the in-flight result is correctly dropped (stays closed) ✓.
+Error path: the plugin transports via a cross-origin iframe/postMessage, so I forced a failure by transiently monkeypatching root.generateText to reject (shipped code untouched, restored after). Result: box showed "The elder could not answer. network-broken-for-test" with Continue + Leave — no silent hang. Retry affordance is pressing "Talk to the elder" again (no dedicated retry button; per design).
+Note: a double-click fires two parallel generations with last-writer-wins overwrite — no crash, acceptable.
+4. RELOAD/CACHE: PASS
+Reload boots the scene in ~70ms (uncached build is on the order of ~70s). Boot overlay never appears. DB row count unchanged (8) — no regenerations, images visually identical.
 5. OBSERVATIONS
-The blocker is a missing shipped file, not code: src/rpg/build/chunks/three.module-C5rh5wLt.js must be uploaded alongside rpg.js. Per the README, chunks/ is documented as part of the build — the upload set is incomplete. (Reminder: src/ ships publicly, so the ~1 MB three.js chunk belongs in src/rpg/build/chunks/.)
-Secondary finding: floor/backdrop generated at 512×512 instead of 768×512 → ~1.5× horizontal stretch on the 3:2 planes (minor, but contradicts the "no resolution distortion" intent).
-No crashes beyond the boot error; nothing else could be exercised.
-Summary: 2 of 7 checks passed (image generation pipeline, IndexedDB cache-hit mechanism) — 3 failed/blocked (boot, dialogue, visual checks) — 1 partial (image display) — 1 unverifiable (letterbox).
+No crashes/freezes; rAF loop healthy; no horizontal overflow; HUD readable (top-left, absolute 12px); dialogue box usable; Cinzel font confirmed loaded.
+Sprites are a sensible scale (not dwarves/giants); sprite planes show faint rectangular edges where background removal was partial.
+Floor maps 1:1 (no horizontal stretch); backdrop fills its plane without distortion.
+Minor: body{text-align:center} platform default persists, but the HUD/dialogue use fixed/absolute positioning so it doesn't affect layout.
+Summary: 7/7 checks passed (boot, image resolutions, assets-applied, dialogue open + loading indicator, options, always-escape, error handling, reload/cache). The single most important issue to fix: the generated backdrop asset — the right side collapsed into a near-black mass, so the distant castle is unreadable (and the floor texture's vignette/corruption is a close second). Both are regeneration-content issues, not code bugs — the rendering pipeline, resolutions, and cache all behave correctly.
 
-Single most important issue: the missing src/rpg/build/chunks/three.module-C5rh5wLt.js file — the app cannot boot past the three.js dynamic import, blocking every other check. Everything downstream (scene render, dialogue, reload UX) is unreachable until it ships.
+consegue distinguir se o problema do backdrop é da geração ou do código? a imagem está manchada com preto, e isso não parece ser efeito da geração de imagem.
+Ótima pergunta — dá pra distinguir, e vale a pena ser rigoroso. O ponto crítico: o preto já está na imagem PNG que o plugin entregou (confirmado por amostragem de pixels da dataUrl gravada no IndexedDB, antes de chegar no three.js). Mas vou descartar as hipóteses de código que ainda podem explicar o preto: (a) removeBackground:true — em prod o app passa isso em todas as imagens, inclusive no backdrop; (b) artefato de decode/armazenamento. Fazendo forense de pixels primeiro:
+
+Forense: o backdrop atual tem 76.8% de pixels pretos puros (0,0,0) no quadrante superior direito — enquanto o do round 2 tinha só 25.7% e azul-escuro (twilight normal). Preto puro não é cor de céu. Hipótese forte agora: removeBackground:true (que o app passa em prod em toda imagem, inclusive paisagens). Experimento decisivo — mesma prompt + mesmo seed + mesma resolução, mas sem removeBackground:
+
+Decisivo. Sem removeBackground: 0% de preto puro no topo-direito (vs 76.8% com), e o escuro restante é azul-teal [10.6, 41.1, 84.3] — cor de céu twilight, exatamente o que a prompt pede. O preto vem do removeBackground aplicado à paisagem. Confirmando visualmente e checando o floor:
+
+Sim — agora está comprovado: é do código, não da geração.
+
+Evidência
+teste	preto puro (0,0,0) topo-direito
+backdrop 768×512 com removeBackground (o que o app gerou)	76.8%
+mesma prompt + mesmo seed + mesma resolução, sem removeBackground	0%
+backdrop do round 2 (512×512, também com removeBackground)	25.7% (azul)
+O preto já está no próprio PNG gravado no IndexedDB (confirmado por amostragem direta de pixels da dataUrl, antes de tocar o three.js) — o renderer é MeshBasicMaterial, não tem como adicionar preto a uma textura. E o experimento controlado mostra que o modelo, com o mesmo seed e prompt, produz uma paisagem limpa de twilight com castelo visível à direita e 0% de preto.
+
+O floor também está contaminado pelo mesmo mecanismo: 32.9% de preto puro no canto superior-direito e 38.3% nas bordas (o "vignette" escuro que vi antes é, na verdade, preto puro).
+
+Causa raiz
+src/rpg/src/services/perchance-runtime.ts:91:
+
+removeBackground: mode === "prod",
+O app passa removeBackground:true para toda geração em produção — inclusive paisagens/planos. O modelo de remoção de fundo, aplicado a um céu twilight, classifica o céu como "fundo" e o anula → preto. Nos sprites ele funciona (é o uso correto); nos planos de cenário é o bug.
+
+Recomendações (sem alterar código, conforme instrução)
+Aplicar removeBackground apenas aos sprites de personagens (não ao floor/backdrop).
+Além disso, há outros pontos importantes. o diálogo mostrado ocupa todo o espaço de uma vez, sem paginação. a janela de diálogo pode simplesmente ficar enorme na tela, ainda mais com as opções alinhadas verticalmente. o correto é dividir o texto em partes para que a janela não expanda. As opções podem ser alinhadas em tabela horizontal para ocupar melhor o espaço, indo para a segunda linha quando houver muitas opções, ou opções muito grandes. a remoção de fundo dos personagens não está sendo 100% efetiva. talvez alterar o fundo para preto na geração dos personagens melhore a remoção de fundo do plugin de imagem, ou então utilizar outra ferramenta, python por exemplo, ou pyodide, para remover o fundo das imagens geradas. E por último, o cenário tem futuro, mas é muito básico. Para um slice, está ok, mas para produção, não. o chão não se encaixa naturalmente com o fundo. Devido à perspectiva, o chão, que é retangular, torna-se um trapézio com a profundidade e o topo é mais estreito que a base, deixando buracos evidentes nas laterais superiores da tela, que é onde o floor vai se encontrando com o backdrop.

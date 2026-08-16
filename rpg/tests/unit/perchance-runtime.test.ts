@@ -63,22 +63,24 @@ describe("createPlatformRuntime", () => {
     await expect(runtime.text.generate({ instruction: "instr" })).rejects.toThrow(/no text/);
   });
 
-  it("passes removeBackground=false in dev mode", async () => {
+  it("passes removeBackground=false by default (scene planes)", async () => {
     const generateImage = vi.fn(async () => ({ dataUrl: "data:image/png;base64,abc" }));
-    const runtime = createPlatformRuntime(rootWith({ generateImage }), "dev");
+    const runtime = createPlatformRuntime(rootWith({ generateImage }), "prod");
 
     await runtime.image.generate({ prompt: "p", seed: "s" });
 
+    // Mode must NOT imply background removal — prod planes (backdrop/floor)
+    // stay untouched (Perchance round 3 root cause).
     expect(generateImage).toHaveBeenCalledWith(
       expect.objectContaining({ removeBackground: false }),
     );
   });
 
-  it("passes removeBackground=true in prod mode", async () => {
+  it("passes removeBackground=true only when the request asks for it", async () => {
     const generateImage = vi.fn(async () => ({ dataUrl: "data:image/png;base64,abc" }));
     const runtime = createPlatformRuntime(rootWith({ generateImage }), "prod");
 
-    await runtime.image.generate({ prompt: "p", seed: "s" });
+    await runtime.image.generate({ prompt: "p", seed: "s", removeBackground: true });
 
     expect(generateImage).toHaveBeenCalledWith(expect.objectContaining({ removeBackground: true }));
   });

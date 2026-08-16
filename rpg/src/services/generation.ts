@@ -12,6 +12,8 @@ export interface AssetRequest {
   seed: string;
   resolution?: string;
   negativePrompt?: string;
+  /** Per-asset background removal — ONLY character sprites set this to true. */
+  removeBackground?: boolean;
 }
 
 export interface CachedAsset {
@@ -24,12 +26,13 @@ export type GenerationLogEntry =
   | { kind: "regenerate"; key: string; chars: number; at: number };
 
 /**
- * Cache key: mode | entity | pose | seed | prompt-hash | resolution | negativePrompt.
+ * Cache key: mode | entity | pose | seed | prompt-hash | resolution | negativePrompt | removeBackground.
  * Changing any component (including the prompt) busts the key
  * (tech-spec §6.1: "changing a prompt busts the cache by key change").
- * resolution/negativePrompt are generation-affecting params, so they must
- * bust the key too — otherwise a stale generation (e.g. 512×512 default
- * vs. the 768×512 landscape fix) would keep being served from cache.
+ * resolution/negativePrompt/removeBackground are generation-affecting
+ * params, so they must bust the key too — otherwise a stale generation
+ * (e.g. a blackened backdrop from mode-derived removeBackground) would
+ * keep being served from cache.
  */
 export function assetCacheKey(mode: RuntimeMode, req: AssetRequest): string {
   return [
@@ -40,6 +43,7 @@ export function assetCacheKey(mode: RuntimeMode, req: AssetRequest): string {
     fnv1a(req.prompt),
     req.resolution ?? "",
     req.negativePrompt ?? "",
+    req.removeBackground ? "rb" : "",
   ].join("|");
 }
 
@@ -114,6 +118,7 @@ export class AssetCache {
       seed: req.seed,
       resolution: req.resolution,
       negativePrompt: req.negativePrompt,
+      removeBackground: req.removeBackground,
     };
     const { dataUrl } = await this.image.generate(opts);
     await this.db.assets.put({

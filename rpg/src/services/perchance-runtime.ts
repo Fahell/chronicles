@@ -21,6 +21,14 @@ export interface ImageOpts {
   seed: string;
   resolution?: string;
   negativePrompt?: string;
+  /**
+   * Per-asset background removal. ONLY character sprites should set this —
+   * applying it to scene planes (backdrop/floor) makes the model classify the
+   * sky/landscape as "background" and null it out to black (Perchance round 3
+   * forensics: 76.8% pure-black pixels on the backdrop with it on, 0% without).
+   * Defaults to false; never derived from the mode.
+   */
+  removeBackground?: boolean;
 }
 
 export interface ImageResult {
@@ -83,8 +91,9 @@ function toText(result: { generatedText?: string; text?: string } | string): str
 
 /**
  * Wraps the platform root in the typed service interfaces.
- * `removeBackground` is derived from the mode (dev=false, prod=true) — the
- * mode is the single source of truth; callers never pass it.
+ * `removeBackground` is explicit per request (default false) — only character
+ * sprites enable it. The mode never implies it: scene planes (backdrop/floor)
+ * must NOT have background removal (Perchance round 3 root cause).
  */
 export function createPlatformRuntime(root: PerchanceRoot, mode: RuntimeMode): PerchanceRuntime {
   return {
@@ -98,7 +107,7 @@ export function createPlatformRuntime(root: PerchanceRoot, mode: RuntimeMode): P
           prompt: opts.prompt,
           resolution: opts.resolution,
           negativePrompt: opts.negativePrompt,
-          removeBackground: mode === "prod",
+          removeBackground: opts.removeBackground ?? false,
         });
         return { dataUrl: toDataUrl(result) };
       },

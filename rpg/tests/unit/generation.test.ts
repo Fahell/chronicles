@@ -49,4 +49,10 @@ describe("assetCacheKey", () => {
       assetCacheKey("dev", { ...base, negativePrompt: "blurry, low quality" }),
     );
   });
+
+  it("busts on removeBackground change", () => {
+    expect(assetCacheKey("dev", base)).not.toBe(
+      assetCacheKey("dev", { ...base, removeBackground: true }),
+    );
+  });
 });

@@ -47,7 +47,10 @@ export async function resolveSceneTextures(
   ]);
 
   // Character portraits: portrait 512×768 (guide §7) so the sprite plane
-  // maps 1:1 — a landscape 768×512 would distort on the 2:3 plane.
+  // maps 1:1 — a landscape 768×512 would distort on the 2:3 plane. Sprites
+  // are the ONLY assets with removeBackground — the plugin's background
+  // removal nulls skies/landscapes to black, which corrupted the backdrop
+  // and floor (Perchance round 3 forensics).
   const actors: Record<string, string> = {};
   await Promise.all(
     manifest.actors.flatMap((actor) => {
@@ -61,6 +64,7 @@ export async function resolveSceneTextures(
             prompt,
             seed: `${manifest.id}:${actor.characterId}:${actor.pose}:v1`,
             resolution: "512x768",
+            removeBackground: true,
           })
           .then((result) => {
             actors[actor.characterId] = result.dataUrl;

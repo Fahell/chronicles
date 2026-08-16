@@ -330,10 +330,10 @@ Resolves `pending-decisions.md` §6 (owner interview).
   - `interface TextService { generate(opts: TextOpts): Promise<TextResult> }`
 - Production impl wraps `root.*` (normalizing `result.dataUrl || result` and
   `generatedText | text | string`). Dev impl is the mock harness.
-- **Modes:** dev (`removeBackground: false`) vs prod (`removeBackground: true`),
-  with **separate caches per mode** (separate Dexie databases, e.g. `rpg_dev`
-  and `rpg`) so development generations never pollute production (vn-rpg-spec
-  §4.2).
+- **`removeBackground` is per-asset** (default `false`), never mode-derived:
+  only character sprites pass it (vn-rpg-spec §4.1). Separate caches per mode
+  (separate Dexie databases, e.g. `rpg_dev` and `rpg`) so development
+  generations never pollute production (vn-rpg-spec §4.2).
 - **Character consistency:** fixed prompt template + fixed seed per character
   (vn-rpg-spec §4.4); the cache key includes mode + entity + prompt + seed, so
   changing a prompt busts the cache by key change.

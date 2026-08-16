@@ -1,4 +1,4 @@
-import type { SceneTextures } from "../scene/assets";
+import type { ActorTextures, SceneTextures } from "../scene/assets";
 import type { ActorPlacement } from "../scene/layout";
 
 /**
@@ -13,8 +13,11 @@ export interface Stage {
 
   mount(container: HTMLElement): void;
   setTextures(textures: SceneTextures): void;
-  /** Place actors; optional generated portraits keyed by characterId. */
-  setActors(actors: ActorPlacement[], textures?: Record<string, string>): void;
+  /**
+   * Place actors; optional generated textures keyed by characterId — the
+   * cut-out sprite plus its black outline plane (vn-rpg-spec §4.1).
+   */
+  setActors(actors: ActorPlacement[], textures?: Record<string, ActorTextures>): void;
   setActiveSpeaker(characterId: string | null): void;
 
   /** Resize the stage surface (contain/letterbox handled by the viewport). */

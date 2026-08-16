@@ -25,6 +25,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "@pixi/particle-emitter": "5.0.10",
     "@preact/signals": "2.11.0",
     "dexie": "4.4.4",

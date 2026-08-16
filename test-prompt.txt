@@ -1,5 +1,5 @@
 ================================================================================
-TEST PROMPT — PERCHANCE RUNTIME VALIDATION ROUND 4
+TEST PROMPT — PERCHANCE RUNTIME VALIDATION ROUND 5
 Project: RPG Perchance generator (type-C open scene slice, MVP)
 Date: 2026-08-16
 ================================================================================
@@ -8,151 +8,114 @@ You are the runtime validation agent for this RPG generator. The AI text and
 image plugins only execute inside the Perchance platform, and the generator
 runs in a cross-origin iframe — so you are the only one who can validate the
 real plugin behavior. Local tests + CI are already green; your job is to
-validate what only runs here: the real `generateImage` / `generateText` calls.
+validate what only runs here: the real `generateImage` / `generateText` calls
+and the client-side background-removal model.
 
 Before you start, read `src/README.md` for the project context and the
 platform↔code mapping.
 
 UPLOAD CHECK (do this first):
-- Confirm the workspace contains `src/rpg/build/chunks/` with at least one
-  `.js` file inside. The app lazy-loads three.js from that folder; if it is
-  missing, the generator will be stuck on the "Generating scene…" overlay with
-  a console error like:
-  `TypeError: Failed to fetch dynamically imported module: .../chunks/three.module-*.js`
-  If you see that error, STOP and report "upload incomplete — chunks/ missing"
-  instead of testing further.
+- Confirm the workspace contains `src/rpg/build/chunks/` with the three.js
+  AND the transformers.js chunks (at least two .js files: `three.module-*`
+  and `transformers.web-*`). The app lazy-loads both; if a chunk is missing,
+  the generator will be stuck on the loading overlay with a console error
+  like `Failed to fetch dynamically imported module: .../chunks/*.js`.
+  If you see that, STOP and report "upload incomplete — chunks/ missing".
 
-Changes since round 3 (already fixed in this build — verify them, do not
+Changes since round 4 (already fixed in this build — verify them, do not
 report them as new issues):
-- Background removal is now PER-ASSET: only character sprites get it. The
-  floor and backdrop are generated WITHOUT removeBackground, so the black
-  sky/corrupted-backdrop issue is gone (round 3 forensics: 76.8% pure-black
-  pixels with it on vs 0% without). NOTE: the old black floor/backdrop may be
-  cached — if the floor/backdrop still look blackened, clear the IndexedDB
-  cache and reload before judging.
-- Character sprite prompts now ask for a SOLID PURE BLACK background (the
-  easiest case for the plugin's background removal), and every portrait is
-  post-processed by a client-side matte cleanup that trims semi-transparent
-  fringe and near-black spill around the silhouette. Residual pixels are also
-  discarded by the renderer (alphaTest), so sprites should no longer show
-  faint rectangular edges or a mottled rim.
-- Floor/backdrop are requested at landscape 768x512 and map 1:1 onto the 3:2
-  frame (no stretch).
-- Dialogue text is now PAGINATED (long replies split into pages with a "1/2"
-  page indicator — the box never grows huge), and options are laid out in a
-  horizontal grid that wraps instead of a vertical list. Enter/Space advance
-  a page; Escape always exits the dialogue.
-- The floor plane was widened and extended so its far edge reaches the
-  backdrop plane: the perspective seam is gone — no more holes at the upper
-  sides where the floor meets the backdrop.
+- Character sprites are now removed in the BROWSER by RMBG-1.4 (IS-Net) via
+  @huggingface/transformers + ONNX Runtime Web — NOT by the platform's
+  removeBackground (which left dirty edges). The image plugin now generates
+  sprites RAW (no background removal) on the solid-black background the
+  prompts request; the client removes it.
+- The removal model (~45 MB, quantized q8) downloads once at boot and is
+  cached by the browser. A sprite generated before the model is ready simply
+  waits for it. If the model CDN is unreachable, the app falls back to the
+  platform's removeBackground (a warning appears in the console).
+- Every sprite now has a BLACK OUTLINE (dilated silhouette plane behind the
+  character) so it stands out against the scene.
+- Detached removal specks are filtered out (sprite + outline) so the cut-outs
+  are clean.
 
 --------------------------------------------------------------------------------
 1. BOOT CHECK
 --------------------------------------------------------------------------------
 - Load the generator. It should boot with no console errors.
-- There may be a brief loading overlay on first boot while the scene textures
-  are generated — it should disappear once the scene is ready.
-- The scene is a 3D open landscape (three.js): a floor plane and a landscape
-  backdrop, plus two character sprites standing on the floor — all inside the
-  centered 3:2 letterbox frame, NOT stretched edge-to-edge.
-- Report: does the page load? Is the letterbox frame correct (bars above and
-  below, scene centered)? Any console errors (paste them verbatim)?
+- On the FIRST boot in a fresh browser, the scene generation now includes the
+  model download (~45 MB) — the loading overlay may take longer than before.
+  Subsequent loads are fast (model cached). Report what you observe.
+- The scene is a 3D open landscape (three.js): floor plane, landscape
+  backdrop, and two character sprites (player + elder) with BLACK OUTLINES —
+  all inside the centered 3:2 letterbox frame, NOT stretched edge-to-edge.
+- Report: does the page load? Is the letterbox frame correct? Any console
+  errors (paste verbatim)? How long did the first boot take?
 
 --------------------------------------------------------------------------------
-2. IMAGE GENERATION (floor, backdrop AND character sprites)
+2. CLIENT-SIDE BACKGROUND REMOVAL (the big one)
 --------------------------------------------------------------------------------
-Expected generations (all via the image plugin, cached after first run):
-- Floor: grassy meadow texture (pixel-art style), landscape 768x512.
-- Backdrop: twilight landscape with a distant castle on the right and rocky
-  spires on the left, landscape 768x512. It must NOT be blackened/corrupted.
-- Player sprite: a protagonist character, portrait 2:3 (512x768), pixel-art
-  style.
-- Elder sprite: an elder character, portrait 2:3, pixel-art style.
+Expected pipeline for the two character sprites (player, elder):
+- The image plugin generates them RAW (on a solid black background).
+- RMBG-1.4 runs in the browser and cuts the background out.
+- The result: clean transparent cut-outs with NO black box, NO dirty mottled
+  edges, NO white/grey speckles floating around the figure.
 
-- IMPORTANT — sprite matte: inspect the character sprites closely (zoom /
-  sample pixels if you can). Expected: clean cutout silhouettes with NO faint
-  rectangular box, NO mottled/dark rim around the figure. The background
-  should be fully transparent (or, if the plugin left a black background, the
-  client cleanup should have removed it). Report what you actually see.
-- Confirm all four assets generate and appear (floor under the characters,
-  backdrop behind them, sprites standing on the floor at a sensible scale).
-- Note: generation may take a while — do NOT treat a slow generation as a
-  failure. Wait for it.
-- If an asset looks wrong (artifacts, wrong content, unusable), report it —
-  the asset can be regenerated by the player later (regeneration UX is a
-  future milestone; do not look for it yet).
-- Report: how long did each generation take (approx.)? Did all assets apply
-  correctly? Actual resolutions observed? Sprite edge quality (clean vs.
-  fringe/box)? Any errors during generation?
+Check and report:
+- Look closely at both sprites (zoom/sample pixels if you can). Are the
+  edges clean? Any residual background remnants (black spill, bright
+  speckles, semi-transparent fringe)?
+- Timing: how long did the model take to load (first boot)? How long per
+  sprite (inference)? Use the Network tab to confirm the ~45 MB model
+  download (huggingface.co) and whether it was served from cache on reload.
+- The black outline: is the border visible, clean, and following the
+  silhouette? Are there any detached black blocks floating near the sprites?
+- If the fallback fired (console warning "bg-removal: client-side removal
+  failed"), report it — the model CDN may be blocked on the platform.
 
 --------------------------------------------------------------------------------
-3. GROUND ↔ BACKDROP SEAM
+3. IMAGE GENERATION (floor, backdrop)
 --------------------------------------------------------------------------------
-Look closely at where the floor meets the backdrop, especially the upper-left
-and upper-right corners at the far edge of the floor.
-
-Expected: a clean, continuous junction — the floor's far edge reaches the
-backdrop with NO dark holes/gaps at the upper sides (round 3 finding). The
-floor should visually continue to the horizon without the backdrop's dark
-band peeking through at the far corners.
-
-Report: is the junction clean? Any holes, gaps, or seams at the sides? Does
-the backdrop's bottom band show through anywhere?
+- Floor: grassy meadow texture, landscape 768x512. Backdrop: twilight
+  landscape with a distant castle on the right and rocky spires on the left,
+  landscape 768x512. Both generated WITHOUT background removal — they must
+  NOT be blackened/corrupted. (If an old black floor/backdrop is cached,
+  clear the IndexedDB cache and reload before judging.)
+- Report: actual resolutions, quality, any errors.
 
 --------------------------------------------------------------------------------
-4. DIALOGUE FLOW (pagination + grid + choices + always-escape)
+4. GROUND ↔ BACKDROP SEAM
 --------------------------------------------------------------------------------
-Click the "Talk to the elder" button (top-left HUD).
-
-Expected:
-- The dialogue box appears at the bottom with speaker "Elder". While the AI
-  text is being generated, a "thinking" indicator should be visible in the
-  box.
-- The AI text renders when ready. Because the prompt now asks for it, the
-  response should usually include a `[choices]` block, which the app parses
-  into option buttons.
-- PAGINATION: if the reply is long, it should be split into pages with a page
-  indicator (e.g. "1/2") and a Continue button — the box must NOT grow to fit
-  the whole text at once. Continue (or Enter/Space) advances to the next page;
-  options appear after the last page.
-- OPTION LAYOUT: options should be arranged in a horizontal grid that wraps
-  to a second line when there are many/long options — NOT a tall vertical
-  list.
-- Clicking an option ends the turn. If no options were offered, "Continue"
-  advances and the box stays open until "Leave".
-- The "Leave" button is ALWAYS present and ALWAYS ends the interaction
-  (always-escape — the player can never get stuck in a dialogue).
-- Keyboard: Escape closes the dialogue at any point; Enter/Space advance a
-  page when one is shown.
-- If you can force a text-generation failure (e.g., break the network), an
-  error message with retry should appear instead of a silent hang.
-
-Report: does the dialogue open? Is the loading indicator visible? Does
-pagination work (page indicator, Continue)? Are options in a horizontal grid
-that wraps? Do options work when present? Does "Leave" always close the box?
-Do Escape/Enter behave as expected? Any error handling observed?
+Look at where the floor meets the backdrop, especially the upper-left and
+upper-right corners. Expected: a clean, continuous junction with NO dark
+holes/gaps at the upper sides.
 
 --------------------------------------------------------------------------------
-5. RELOAD / CACHE BEHAVIOR
+5. DIALOGUE FLOW
 --------------------------------------------------------------------------------
-Reload the generator. Expected: floor, backdrop and both sprites are served
-from the local cache (IndexedDB) — they should NOT be regenerated, and the
-page should load noticeably faster than the first time.
+Click "Talk to the elder".
+- Box opens with speaker "Elder" + thinking indicator while the AI text is
+  generated.
+- Long replies are PAGINATED (page indicator like "1/2", Continue advances);
+  options from a `[choices]` block appear in a horizontal grid that wraps.
+- Leave is ALWAYS present and ALWAYS exits (even while thinking).
+- Escape closes; Enter/Space advance a page.
+- If you can force a text-generation failure, an error message with retry
+  should appear instead of a silent hang.
 
-Report: after reload, do the same assets appear (no visual change)? How long
-did the second load take vs. the first? Were any images regenerated (check
-timing and/or the plugin console activity)?
+--------------------------------------------------------------------------------
+6. RELOAD / CACHE BEHAVIOR
+--------------------------------------------------------------------------------
+Reload. Expected: floor/backdrop/sprites served from IndexedDB (no
+regeneration), the removal model served from the browser cache (no ~45 MB
+download), and the page loads faster than the first time. Confirm the same
+assets appear with no visual change.
 
 --------------------------------------------------------------------------------
-6. GENERAL OBSERVATIONS
+7. GENERAL OBSERVATIONS
 --------------------------------------------------------------------------------
-- Any visual glitches, clipping, wrong scaling, or layout problems? Are the
-  character sprites a reasonable size relative to the scene (not dwarves, not
-  giants)?
-- Does the floor texture look correctly proportioned (no horizontal stretch)?
-  Does the backdrop fill its plane without distortion?
-- Is the letterbox frame working on your viewport? Any empty space issues?
-- Is the HUD readable and the dialogue box usable?
+- Any visual glitches, clipping, wrong scaling? Are the sprites (with their
+  outlines) a reasonable size relative to the scene?
+- Is the letterbox frame working? HUD readable? Dialogue box usable?
 - Anything that crashed or froze the generator?
 
 --------------------------------------------------------------------------------
@@ -160,14 +123,15 @@ REPORT FORMAT
 --------------------------------------------------------------------------------
 Reply with a structured report:
 
-1. BOOT: pass / fail + details + console errors (verbatim)
-2. IMAGES: pass / fail + generation times + asset quality notes (all 4 assets)
-   + sprite edge quality (clean cutout vs. fringe/box)
-3. SEAM: pass / fail + junction description (any holes at the upper sides?)
-4. DIALOGUE: pass / fail + pagination + option grid + loading indicator +
-   always-escape + keyboard
-5. RELOAD/CACHE: pass / fail + timing comparison
-6. OBSERVATIONS: anything notable
+1. BOOT: pass / fail + details + console errors (verbatim) + first-boot time
+2. CLIENT REMOVAL: pass / fail + edge quality (clean vs. remnants) + model
+   load time + per-sprite inference time + fallback fired? (yes/no)
+3. OUTLINE: pass / fail + border quality + detached blocks? (yes/no)
+4. IMAGES (floor/backdrop): pass / fail + resolutions + quality
+5. SEAM: pass / fail + junction description
+6. DIALOGUE: pass / fail + pagination + grid + always-escape + keyboard
+7. RELOAD/CACHE: pass / fail + timing comparison
+8. OBSERVATIONS: anything notable
 
 End with a summary line: how many checks passed, and the single most
 important issue to fix (if any). Do NOT modify the code — report only.

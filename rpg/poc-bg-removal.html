@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BG-removal POC — RMBG-1.4 + outline</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 1rem 2rem 3rem;
+        background: #14161a;
+        color: #e8e8e8;
+      }
+      h1 {
+        font-size: 1.1rem;
+      }
+      #status {
+        font-family: monospace;
+        white-space: pre-wrap;
+        background: #0d1117;
+        border: 1px solid #2a2f3a;
+        border-radius: 6px;
+        padding: 0.6rem 0.8rem;
+        min-height: 3rem;
+        margin: 0.75rem 0;
+      }
+      #status.loading {
+        color: #f3ce76;
+      }
+      #status.error {
+        color: #ff7b72;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .card {
+        border: 1px solid #2a2f3a;
+        border-radius: 8px;
+        padding: 0.75rem;
+        background: #1b1f27;
+      }
+      .card h3 {
+        margin: 0 0 0.5rem;
+        font-size: 0.85rem;
+        color: #aeb6c4;
+        font-weight: 600;
+      }
+      .card img {
+        display: block;
+        width: 100%;
+        image-rendering: pixelated;
+        border-radius: 4px;
+        background: repeating-conic-gradient(#22262e 0% 25%, #1b1f27 0% 50%) 0 0 / 24px 24px;
+      }
+      .card .meta {
+        font-family: monospace;
+        font-size: 0.72rem;
+        color: #8a8f98;
+        margin-top: 0.4rem;
+      }
+      button {
+        margin-top: 0.5rem;
+        padding: 0.4rem 1rem;
+        border-radius: 6px;
+        border: 1px solid #3a4150;
+        background: #22262e;
+        color: #e8e8e8;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .note {
+        font-size: 0.8rem;
+        color: #8a8f98;
+        max-width: 72ch;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Client-side background removal — RMBG-1.4 (transformers.js) + black outline</h1>
+    <div id="status" class="loading">Loading…</div>
+    <button id="run" disabled>Run pipeline</button>
+    <p class="note">
+      Runs entirely in this browser: the model (~45 MB, quantized q8) is
+      downloaded once and cached by the browser; inference uses ONNX Runtime
+      Web (WASM, WebGPU when available). Images are the raw Perchance plugin
+      outputs (templates/) with different background colors.
+    </p>
+    <div id="cards"></div>
+
+    <script type="module" src="/src/poc/bg-removal-poc.ts"></script>
+  </body>
+</html>

@@ -70,6 +70,11 @@ cp -R rpg/src "$WORKTREE/src/rpg/src"
 # The Vite-emitted build/index.html is not part of the Perchance upload set —
 # the platform's *HTML* panel is driven by the root index.html instead.
 rm -f "$WORKTREE/src/rpg/build/index.html"
+# The ONNX Runtime wasm asset Vite emits from the transformers.js chunk is
+# never fetched at runtime (bg-removal.ts keeps the default jsdelivr
+# wasmPaths, verified 200) — drop it so the upload set stays lean.
+rm -f "$WORKTREE/src/rpg/build/assets"/*.wasm
+rmdir "$WORKTREE/src/rpg/build/assets" 2>/dev/null || true
 
 # 3b. Validate the upload set is COMPLETE. rpg.js lazy-loads three.js from
 # chunks/ (three-stage.ts dynamic import); if a referenced chunk is missing

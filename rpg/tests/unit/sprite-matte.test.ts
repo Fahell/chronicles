@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { applyMatteCleanup } from "../../src/scene/sprite-matte";
 
 /** Build a small RGBA buffer from rows of [r,g,b,a] quadruples. */
-function buffer(rows: number[][]): Uint8ClampedArray {
-  return new Uint8ClampedArray(rows.flat());
+function buffer(rows: number[][] | number[]): Uint8ClampedArray {
+  return new Uint8ClampedArray(rows.flat(2));
 }
 
 function alphaAt(data: Uint8ClampedArray, i: number): number {
@@ -40,7 +40,17 @@ describe("applyMatteCleanup", () => {
     // it must survive (opaque black clothing is never removed).
     const white = [255, 255, 255, 255];
     const dark = [8, 8, 8, 255];
-    const src = buffer([...white, ...white, ...white, ...white, ...dark, ...white, ...white, ...white, ...white]);
+    const src = buffer([
+      ...white,
+      ...white,
+      ...white,
+      ...white,
+      ...dark,
+      ...white,
+      ...white,
+      ...white,
+      ...white,
+    ]);
     const out = applyMatteCleanup(src, 3, 3);
     expect(alphaAt(out, 4)).toBe(255);
   });
@@ -53,9 +63,18 @@ describe("applyMatteCleanup", () => {
     const dark = [6, 6, 6, 255];
     const transparent = [0, 0, 0, 0];
     const src = buffer([
-      ...white, ...white, ...white, ...white,
-      ...transparent, ...dark, ...dark, ...white,
-      ...white, ...white, ...white, ...white,
+      ...white,
+      ...white,
+      ...white,
+      ...white,
+      ...transparent,
+      ...dark,
+      ...dark,
+      ...white,
+      ...white,
+      ...white,
+      ...white,
+      ...white,
     ]);
     const out = applyMatteCleanup(src, 4, 3);
     expect(alphaAt(out, 5)).toBe(0); // outer dark band (touches transparency) → spill

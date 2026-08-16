@@ -16,6 +16,8 @@
  * canvas wrapper `cleanSpriteMatte` converts a dataUrl in the browser.
  */
 
+import { filterSmallComponents } from "./sprite-outline";
+
 export interface MatteOptions {
   /**
    * Alpha (0..1) below which a pixel is fully trimmed to transparent.
@@ -29,6 +31,12 @@ export interface MatteOptions {
    * pixel is treated as black-background spill. Default 24 (near-black).
    */
   spillLuma?: number;
+  /**
+   * Minimum size (ratio of total pixels) for a connected alpha component to
+   * survive; smaller detached remnants (removal speckles) are dropped.
+   * Default 0.001 (0.1%).
+   */
+  minComponentRatio?: number;
 }
 
 /** Pure RGBA pass over a pixel buffer (mutates nothing; returns a copy). */
@@ -38,7 +46,7 @@ export function applyMatteCleanup(
   height: number,
   options: MatteOptions = {},
 ): Uint8ClampedArray {
-  const { fringeAlpha = 0.35, spillLuma = 24 } = options;
+  const { fringeAlpha = 0.35, spillLuma = 24, minComponentRatio = 0.001 } = options;
   const fringe = Math.round(fringeAlpha * 255);
   const out = new Uint8ClampedArray(data);
 
@@ -55,6 +63,7 @@ export function applyMatteCleanup(
   // dark pixel is removed only when it touches the ORIGINAL transparency —
   // the removal cannot cascade inward and eat dark clothing band by band.
   const base = out.slice();
+  const minArea = Math.max(1, Math.round(width * height * minComponentRatio));
   const transparentAt = (x: number, y: number) => {
     if (x < 0 || y < 0 || x >= width || y >= height) return true;
     return base[(y * width + x) * 4 + 3] === 0;
@@ -75,6 +84,19 @@ export function applyMatteCleanup(
         out[i + 3] = 0;
       }
     }
+  }
+
+  // Pass 3 — drop detached remnants (removal speckles) that pass 1/2 leave
+  // behind: they are bright (not spill) and above the fringe alpha, so they
+  // survive until here. Zeroing small disconnected components keeps them out
+  // of both the sprite and the outline (POC finding, sample B).
+  const alphaMask = new Uint8ClampedArray(width * height);
+  for (let i = 0; i < width * height; ++i) {
+    alphaMask[i] = (out[i * 4 + 3] ?? 0) > 0 ? 1 : 0;
+  }
+  const kept = filterSmallComponents(alphaMask, width, height, minArea);
+  for (let i = 0; i < kept.length; ++i) {
+    if (!kept[i]) out[i * 4 + 3] = 0;
   }
 
   return out;

@@ -1,6 +1,7 @@
 import { render } from "preact";
 
 import { openPlainsManifest } from "./scene/manifest/openPlains";
+import { preloadBackgroundRemoval } from "./services/bg-removal";
 import { bootServices } from "./services/boot";
 import { App } from "./ui/App";
 import "./style.css";
@@ -15,6 +16,13 @@ if (!mount) {
 }
 
 const services = bootServices();
+
+// Start the RMBG-1.4 model download at boot (prod only) so sprite removal
+// never blocks the UI; remove() awaits it if a sprite is generated first
+// (wait-queue semantics — vn-rpg-spec §4.1). Dev keeps the mock cut-outs.
+if (services.mode === "prod") {
+  void preloadBackgroundRemoval();
+}
 
 // The stage lives OUTSIDE the Preact mount: render() diffs the mount's subtree,
 // and the three.js canvas must never be reconciled by Preact.

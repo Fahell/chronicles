@@ -57,10 +57,12 @@ Do all of this **before writing any code**:
   generation.
 - **Stack:** **APPROVED** (`tech-spec.md` §2): TypeScript (strict), pnpm,
   Vite, Preact + signals, **three.js** (lazy async chunk; type-C scene
-  baseline) + **PixiJS v8** (2D overlay stack), Dexie/IndexedDB, i18next,
-  Biome, Vitest (test tiers per `tech-spec.md` §8), E2E via Chrome DevTools
-  MCP + WebMCP harness; CI via GitHub Actions once pushed. Exact versions are
-  re-pinned at setup (`research-resolutions.md` §5.2).
+  baseline) + **PixiJS v8** (2D overlay stack), **@huggingface/transformers**
+  (client-side RMBG-1.4 background removal — lazy chunk, prod sprites only,
+  `vn-rpg-spec.md` §4.1), Dexie/IndexedDB, i18next, Biome, Vitest (test
+  tiers per `tech-spec.md` §8), E2E via Chrome DevTools MCP + WebMCP
+  harness; CI via GitHub Actions once pushed. Exact versions are re-pinned
+  at setup (`research-resolutions.md` §5.2).
   Perchance's list syntax (pjs) is used only at the platform boundary (see
   "Technology Decisions").
 - **Platform reference:** `PERCHANCE-GUIDE.md` at the repo root is the in-depth
@@ -125,11 +127,13 @@ Why:
 
 - **TypeScript-first; stack APPROVED** (`tech-spec.md` §2): TypeScript
   (strict), pnpm, Vite, Preact + signals, three.js (lazy async chunk) +
-  PixiJS v8 (2D overlay stack), Dexie/IndexedDB, i18next, Biome, Vitest
-  (tiered tests per §8). Perchance's list syntax is avoided inside the app
-  because it is not valid TS/JS and reproducing the engine in local mocks is
-  impractical; anything pjs can do (weighted random selection, alternation,
-  ranges, templates) is done in the app codebase instead.
+  PixiJS v8 (2D overlay stack), @huggingface/transformers (lazy chunk;
+  RMBG-1.4 background removal for prod sprites), Dexie/IndexedDB, i18next,
+  Biome, Vitest (tiered tests per §8). Perchance's list syntax is avoided
+  inside the app because it is not valid TS/JS and reproducing the engine in
+  local mocks is impractical; anything pjs can do (weighted random
+  selection, alternation, ranges, templates) is done in the app codebase
+  instead.
 - **Perchance layer = plugin imports only.** `main.pjs` should contain nothing
   beyond the plugin imports:
   ```

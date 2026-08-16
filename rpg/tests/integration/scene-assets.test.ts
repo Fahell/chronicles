@@ -40,10 +40,17 @@ describe("resolveSceneTextures (fake-indexeddb)", () => {
     expect(textures.floor).toMatch(/^data:image\//);
     expect(textures.backdrop).not.toBe(textures.floor);
 
-    // Actor portraits resolved per characterId, at portrait resolution.
-    expect(textures.actors["npc/elder"]).toMatch(/^data:image\//);
-    expect(textures.actors.player).toMatch(/^data:image\//);
-    expect(textures.actors["npc/elder"]).not.toBe(textures.actors.player);
+    // Actor textures resolved per characterId: the cut-out sprite plus its
+    // black outline plane (both data URLs — node no-op guards keep them
+    // identical to the mock's output in this environment).
+    const elder = textures.actors["npc/elder"];
+    const player = textures.actors.player;
+    expect(elder).toBeDefined();
+    expect(player).toBeDefined();
+    expect(elder?.sprite ?? "").toMatch(/^data:image\//);
+    expect(elder?.outline ?? "").toMatch(/^data:image\//);
+    expect(player?.sprite ?? "").toMatch(/^data:image\//);
+    expect(elder?.sprite).not.toBe(player?.sprite);
 
     // Planes request landscape 768×512 (1:1 with the 3:2 frame) and NO
     // background removal; characters request portrait 512×768 WITH it.
@@ -58,7 +65,8 @@ describe("resolveSceneTextures (fake-indexeddb)", () => {
     // Second call hits the cache (same seeds).
     const again = await resolveSceneTextures(openPlainsManifest, assets);
     expect(again.backdrop).toBe(textures.backdrop);
-    expect(again.actors["npc/elder"]).toBe(textures.actors["npc/elder"]);
+    expect(again.actors["npc/elder"]?.sprite).toBe(elder?.sprite);
+    expect(again.actors["npc/elder"]?.outline).toBe(elder?.outline);
 
     await assets.close();
   });

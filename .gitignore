@@ -13,6 +13,11 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# The ONNX Runtime wasm asset Vite emits from transformers.js (lazy chunk).
+# Never fetched at runtime (bg-removal uses the jsdelivr CDN wasmPaths,
+# verified available) and 23.5 MB — keep it out of git and the ship.
+rpg/build/assets/
+
 # Graphify — generated artifacts (knowledge graph)
 graphify-out/
 raw/

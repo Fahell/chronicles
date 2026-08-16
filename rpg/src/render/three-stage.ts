@@ -1,5 +1,5 @@
 import type { Mesh, MeshBasicMaterial } from "three";
-import type { SceneTextures } from "../scene/assets";
+import type { ActorTextures, SceneTextures } from "../scene/assets";
 import type { ActorPlacement, SceneLayout } from "../scene/layout";
 import type { Stage } from "./stage";
 import { SCENE_FRAME, sceneFrameViewport } from "./viewport";
@@ -97,7 +97,7 @@ export async function createThreeStage(
   );
   scene.add(backdrop);
 
-  const actorMeshes = new Map<string, { sprite: Mesh; shadow: Mesh }>();
+  const actorMeshes = new Map<string, { sprite: Mesh; shadow: Mesh; outline: Mesh | null }>();
 
   const loader = new THREE.TextureLoader();
   const size = { width: 0, height: 0 };
@@ -125,6 +125,20 @@ export async function createThreeStage(
     });
   }
 
+  // Outline planes start invisible and appear once their texture resolves
+  // (a MeshBasicMaterial without a map renders solid white — never show that).
+  function applyOutlineTexture(outline: Mesh, dataUrl: string) {
+    loader.load(dataUrl, (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.magFilter = THREE.NearestFilter;
+      texture.minFilter = THREE.NearestFilter;
+      (outline.material as MeshBasicMaterial).map = texture;
+      (outline.material as MeshBasicMaterial).needsUpdate = true;
+      outline.visible = true;
+      markDirty();
+    });
+  }
+
   return {
     get width() {
       return size.width;
@@ -138,9 +152,10 @@ export async function createThreeStage(
       applyTexture(ground, textures.floor);
       markDirty();
     },
-    setActors(actors: ActorPlacement[], textures?: Record<string, string>) {
+    setActors(actors: ActorPlacement[], textures?: Record<string, ActorTextures>) {
       for (const actor of actorMeshes.values()) {
         scene.remove(actor.sprite, actor.shadow);
+        if (actor.outline) scene.remove(actor.outline);
       }
       actorMeshes.clear();
 
@@ -171,7 +186,29 @@ export async function createThreeStage(
             depthWrite: false,
           }),
         );
+        sprite.renderOrder = 1; // drawn AFTER the outline plane (same position)
         sprite.position.set(actor.position.x, actor.position.y, actor.position.z);
+
+        // Black outline plane (vn-rpg-spec §4.1): the dilated silhouette
+        // texture renders behind the sprite — same position, renderOrder 0,
+        // depthWrite off on both, so only the ring outside the sprite shows.
+        let outline: Mesh | null = null;
+        const texturesFor = textures?.[actor.characterId];
+        if (texturesFor) {
+          outline = new THREE.Mesh(
+            new THREE.PlaneGeometry(spriteWidth, spriteHeight),
+            new THREE.MeshBasicMaterial({
+              transparent: true,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            }),
+          );
+          outline.visible = false; // until the outline texture resolves
+          outline.renderOrder = 0;
+          outline.position.copy(sprite.position);
+          scene.add(outline);
+          applyOutlineTexture(outline, texturesFor.outline);
+        }
 
         const shadow = new THREE.Mesh(
           new THREE.CircleGeometry(0.42 * actor.scale, 24),
@@ -181,22 +218,25 @@ export async function createThreeStage(
         shadow.position.set(actor.position.x, 0.03, actor.position.z);
 
         scene.add(sprite, shadow);
-        actorMeshes.set(actor.characterId, { sprite, shadow });
+        actorMeshes.set(actor.characterId, { sprite, shadow, outline });
 
         // Real generated portrait (512×768) replaces the placeholder when it
         // arrives — async, so the scene mounts instantly and swaps in.
-        const dataUrl = textures?.[actor.characterId];
-        if (dataUrl) {
-          applyTexture(sprite, dataUrl);
+        if (texturesFor) {
+          applyTexture(sprite, texturesFor.sprite);
         }
       }
       markDirty();
     },
     setActiveSpeaker(characterId: string | null) {
-      for (const [id, { sprite }] of actorMeshes) {
+      for (const [id, { sprite, outline }] of actorMeshes) {
         const active = id === characterId;
         (sprite.material as MeshBasicMaterial).opacity = active ? 1 : 0.55;
         (sprite.material as MeshBasicMaterial).transparent = true;
+        if (outline) {
+          (outline.material as MeshBasicMaterial).opacity = active ? 1 : 0.55;
+          (outline.material as MeshBasicMaterial).transparent = true;
+        }
       }
       markDirty();
     },
@@ -215,9 +255,12 @@ export async function createThreeStage(
     tick() {
       if (!dirty) return;
       dirty = false;
-      // Actors face the camera (billboard).
-      for (const { sprite } of actorMeshes.values()) {
+      // Actors face the camera (billboard) — outline planes track the sprite.
+      for (const { sprite, outline } of actorMeshes.values()) {
         sprite.lookAt(camera.position.x, sprite.position.y, camera.position.z);
+        if (outline) {
+          outline.lookAt(camera.position.x, outline.position.y, camera.position.z);
+        }
       }
       renderer.render(scene, camera);
     },

@@ -236,12 +236,39 @@ type A**.
   close the gap: (a) sprite prompts ask for a **solid pure black background**
   (easiest case for the removal model; any residual spill is near-black);
   (b) every generated portrait passes through a client-side matte cleanup
-  (`scene/sprite-matte.ts`) that trims barely-transparent fringe and removes
-  dark pixels **adjacent to transparency** only — opaque dark clothing is
-  never touched. The sprite material also sets `alphaTest` (residual
+  (`scene/sprite-matte.ts`) that trims barely-transparent fringe, removes
+  dark pixels **adjacent to transparency** only (opaque dark clothing is
+  never touched), and drops **detached remnants** below a minimum component
+  size (speckle filter). The sprite material also sets `alphaTest` (residual
   semi-transparent pixels are discarded, not blended dark against the
-  scene). A future option is a heavier external remover (e.g. pyodide/
-  python) — deferred.
+  scene).
+- **Client-side background removal (prod) — replaces the platform's dirty
+  removal:** in production, character sprites are generated RAW (no
+  `removeBackground`) on the solid-black background and removed in the
+  browser by **RMBG-1.4 (IS-Net) via @huggingface/transformers + ONNX
+  Runtime Web** (WASM; WebGPU where available) — `services/bg-removal.ts`.
+  Design: lazy chunk (never in the initial bundle), **preload at boot**
+  (prod, fire-and-forget) and a **wait queue** — a sprite generated before
+  the model is ready simply awaits it. `numThreads=1` + `proxy=false` keeps
+  it robust inside the Perchance iframe (no SharedArrayBuffer / workers).
+  If the model fails to load (e.g. its CDN is unreachable on the platform),
+  the pipeline **falls back to the platform's `removeBackground`** (different
+  cache key → fresh generation). Dev keeps the mock cut-outs (no model
+  download).
+  ⚠️ **License:** RMBG-1.4 is source-available for **non-commercial** use;
+  a commercial game needs a BRIA license or a permissively-licensed
+  alternative (e.g. `isnet-general-use` / `modnet` / rembg's distilled
+  model) — evaluate before any commercial milestone. Validated locally
+  (`templates/` samples): clean cut-outs; ~45 MB model (q8, cached); WASM
+  inference ~35–40 s per 512×768 sprite single-thread (WebGPU drops this to
+  <1 s — follow-up).
+- **Black outline (borda preta):** every sprite also gets a **solid black
+  border** so it stands out against the scene (`scene/sprite-outline.ts`):
+  the alpha silhouette is grown by N px (separable box dilation, crisp for
+  pixel art) and rendered as a black plane **behind** the sprite in the 3D
+  stage (renderOrder 0 vs sprite 1, depthWrite off). Detached removal specks
+  are filtered out before dilation so they never become floating blocks.
+  Outline radius is a pipeline parameter (default 5 px).
 - **Dev discipline:** only a few real images are generated per test round —
   just enough to validate the implementation, never throwaway art at scale.
 - **NPC pose sets:** each NPC's sprite set is composed of **poses**, gated by

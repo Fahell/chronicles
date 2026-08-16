@@ -1,0 +1,7 @@
+# Node-only dependencies of @huggingface/transformers (used only for its
+# Node.js runtime). The game app runs in the browser, so their postinstall
+# scripts (binary downloads / codegen) are deliberately not built.
+allowBuilds:
+  onnxruntime-node: false
+  protobufjs: false
+  sharp: false

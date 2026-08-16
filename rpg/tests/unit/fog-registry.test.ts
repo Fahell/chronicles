@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createEffects } from "../../src/effects";
-import { fogParams } from "../../src/effects/fog";
+import { attachEffectCanvas, fogParams } from "../../src/effects/fog";
 
 describe("fog effect", () => {
   it("coerces fog params with defaults", () => {
@@ -38,5 +38,15 @@ describe("fog effect", () => {
       height: 600,
     });
     expect(effects).toEqual([]);
+  });
+
+  it("attachEffectCanvas appends the canvas to the container (round-9: fog rendered off-DOM)", () => {
+    // Round-8 finding #12: createFogEffect styled app.canvas but never
+    // appended it (pixi v8 does not auto-append) — the fog rendered to a
+    // detached canvas. The append is the fix.
+    const container = { appendChild: vi.fn() } as unknown as HTMLElement;
+    const canvas = {} as HTMLCanvasElement;
+    attachEffectCanvas(container, canvas);
+    expect(container.appendChild).toHaveBeenCalledWith(canvas);
   });
 });

@@ -45,6 +45,17 @@ function makeFogTexture(color: number): Texture {
   return Texture.from(canvas);
 }
 
+/**
+ * Appends an effect canvas to its container. Exported for unit tests — the
+ * append is the round-9 fix: pixi v8 never auto-appends, so the fog was
+ * rendering to a detached canvas (round-8 finding #12). The three.js canvas
+ * is appended by the stage first, so effects mount after it and paint above
+ * the 3D frame.
+ */
+export function attachEffectCanvas(container: HTMLElement, canvas: HTMLCanvasElement): void {
+  container.appendChild(canvas);
+}
+
 interface FogBlob {
   sprite: Sprite;
   baseX: number;
@@ -65,6 +76,7 @@ interface FogBlob {
 export async function createFogEffect(
   viewport: { width: number; height: number },
   rawParams: Record<string, unknown>,
+  container: HTMLElement,
 ): Promise<StageEffect> {
   const params = fogParams({ params: rawParams });
 
@@ -81,6 +93,9 @@ export async function createFogEffect(
   const canvas = app.canvas;
   canvas.style.position = "absolute";
   canvas.style.pointerEvents = "none";
+  // Round-9 fix: pixi v8 does not auto-append — mount the canvas inside the
+  // scene container so the fog actually displays (was rendering off-DOM).
+  attachEffectCanvas(container, canvas);
 
   const root = new Container();
   root.alpha = params.opacity;

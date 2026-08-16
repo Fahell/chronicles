@@ -132,6 +132,29 @@ export async function resolveSceneTextures(
 }
 
 /**
+ * Resolves ONE character bust portrait (round 10, vn-rpg-spec §3.7): the
+ * portrait is generated on a PURE WHITE background and is NEVER
+ * background-removed — the white is the frame backing inside the dialogue
+ * box (portraits skip the RMBG pipeline entirely; the raw asset is the final
+ * asset). Same pixel-art style as the sprite, pose `portrait`, 512×768.
+ * The seed matches the character's sprite seed so re-rolls regenerate both
+ * together (round-10 owner decision).
+ */
+export async function resolvePortrait(
+  assets: AssetCache,
+  req: { entity: string; seed: string; prompt: string },
+): Promise<string> {
+  const cached = await assets.getOrGenerate({
+    entity: req.entity,
+    pose: "portrait",
+    prompt: req.prompt,
+    seed: req.seed,
+    resolution: "512x768",
+  });
+  return cached.dataUrl;
+}
+
+/**
  * Resolves ONE character sprite end-to-end (raw → cut-out → outline):
  * - prod: raw generation (no plugin removal — the platform's is dirty, round
  *   3) on the solid-black prompt background; client-side RMBG-1.4 via the

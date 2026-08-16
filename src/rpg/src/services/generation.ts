@@ -24,12 +24,23 @@ export type GenerationLogEntry =
   | { kind: "regenerate"; key: string; chars: number; at: number };
 
 /**
- * Cache key: mode | entity | pose | seed | prompt-hash.
+ * Cache key: mode | entity | pose | seed | prompt-hash | resolution | negativePrompt.
  * Changing any component (including the prompt) busts the key
  * (tech-spec §6.1: "changing a prompt busts the cache by key change").
+ * resolution/negativePrompt are generation-affecting params, so they must
+ * bust the key too — otherwise a stale generation (e.g. 512×512 default
+ * vs. the 768×512 landscape fix) would keep being served from cache.
  */
 export function assetCacheKey(mode: RuntimeMode, req: AssetRequest): string {
-  return [mode, req.entity, req.pose, req.seed, fnv1a(req.prompt)].join("|");
+  return [
+    mode,
+    req.entity,
+    req.pose,
+    req.seed,
+    fnv1a(req.prompt),
+    req.resolution ?? "",
+    req.negativePrompt ?? "",
+  ].join("|");
 }
 
 /**

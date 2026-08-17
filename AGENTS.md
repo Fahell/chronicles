@@ -26,9 +26,12 @@ Do all of this **before writing any code**:
      `rpg/package.json` (`dev`, `build`, `analyze`, `typecheck`, `lint`,
      `test`/`test:unit`/`test:integration`/`test:e2e`, `format`).
 3. **Consult the knowledge graph first:** if `graphify-out/graph.json`
-   exists, run `graphify query "<question>"` / `graphify god-nodes` before
-   reading files — it maps the specs and code without burning context.
-   Rebuild it with `./graphify.sh` after specs change (it sources `.env`).
+   exists, run `graphify query <symbol>` — note `query` matches **symbol
+   names** (e.g. `BootServices`, `fog`), not free-form questions — and
+   `graphify god-nodes` before reading files (full rules in the `## graphify`
+   section). Always go through `./graphify.sh`: it sources `.env`, forwards
+   any graphify subcommand unchanged (`./graphify.sh query BootServices`),
+   and runs an incremental rebuild with no subcommand or `--force`.
 4. **Read the specs relevant to the task** (index below) before designing.
    The specs are the contract; code follows them, and spec changes are
    deliberate.
@@ -63,7 +66,7 @@ Do all of this **before writing any code**:
 - **Re-roll:** `resolveCharacterSprite` with a fresh seed (cache bust) →
   `stage.updateActor(characterId, textures)`.
 
-## Spec index (all at the repo root)
+## Spec index (all specs live in `docs/specs/` — refer to them by short name below)
 
 | Spec | Covers |
 | --- | --- |
@@ -105,7 +108,7 @@ Do all of this **before writing any code**:
   at setup (`research-resolutions.md` §5.2).
   Perchance's list syntax (pjs) is used only at the platform boundary (see
   "Technology Decisions").
-- **Platform reference:** `PERCHANCE-GUIDE.md` at the repo root is the in-depth
+- **Platform reference:** `docs/guides/PERCHANCE-GUIDE.md` is the in-depth
   guide to how the Perchance platform works. Read it when you need platform
   details (load order, plugins, pjs syntax, gotchas).
 
@@ -126,7 +129,7 @@ The local repo root mirrors the Perchance generator root. Content types:
 | `index.html` | **Symbolic file.** Its content is copy-pasted into the Perchance *HTML* panel. **The current content is example/placeholder only** — do not treat it as the real project; the real shell is written later. |
 | `rpg/` | The actual game app (typed codebase; **stack approved** — see Tech spec §2). Maps to the `src/rpg/` tree on the platform. `rpg/build/` is the committed ship artifact. Game-layer modules: `rpg/src/game/` (save slots + store, payload builder, session, narrator, screen router, dialogue state), `rpg/src/content/` (seed content: archetypes, user background templates, NPC pool 3×3), `rpg/src/effects/` (fog + registry), `rpg/src/ui/screens/` (title, wizard, load, settings, credits, help, game). |
 | `README.md` | **Ships to Perchance** (platform-facing orientation doc). See "Ship Policy" below. |
-| `PERCHANCE-GUIDE.md`, `AGENTS.md`, docs | **Local-only** documentation (never uploaded). |
+| `AGENTS.md`, `docs/` | **Local-only** documentation (never uploaded): specs in `docs/specs/`, guides in `docs/guides/`, implementation plans in `docs/superpowers/plans/`. |
 | `test-prompt.txt` | **Transient handoff artifact** (English, generated on demand): the runtime-test prompt handed to the Perchance AI agent. See "Development Workflow". |
 
 **How the symbolic files work:** edit them in this repo (so they are version
@@ -152,7 +155,7 @@ curated set is ever uploaded to Perchance:
 | `README.md` | platform `src/README.md` | Orientation doc for the Perchance AI agent: what the project is, the repo↔platform mapping, how to run runtime tests. |
 
 **Everything else stays local-only** (still git-tracked, never uploaded):
-`AGENTS.md`, `PERCHANCE-GUIDE.md`, config files (`package.json`, `tsconfig.json`,
+`AGENTS.md`, `docs/` (specs, guides, plans), config files (`package.json`, `tsconfig.json`,
 CI, linters), tests, and any other dev documentation.
 
 Why:
@@ -221,6 +224,14 @@ origin+hash of the community installs (recovery reference).
 - `./graphify.sh` — rebuild/query the **knowledge graph** (sources `.env` for
   the Gemini key; never run the CLI directly without it). Consult the graph
   before reading specs/code when possible.
+- `./scripts/graphify-viz.sh` — serve the graph visualization on a **fixed
+  port (8000**, tmux session `graphify-viz`) for VS Code port forwarding;
+  refresh the viz first with `./graphify.sh cluster-only .`.
+- A graphify **post-commit hook** (`.git/hooks/`, via `graphify hook
+  install`) auto-rebuilds the code graph after each commit — AST-only, runs
+  detached, log at `~/.cache/graphify-rebuild.log`. It survives VM restarts:
+  the pinned uv interpreter (`/tmp/cloudshell-tools/uv-tools/...`) is
+  recreated by the bootstrap each boot.
 - `rg` — ripgrep (fast project search; the `code_search` tool wraps it).
 - **pnpm scripts** (`rpg/package.json`): `dev`, `build`, `analyze` (bundle
   treemap → `rpg/reports/`, gitignored), `typecheck`, `lint`/`lint:fix`,
@@ -257,7 +268,8 @@ is marker-gated (`/tmp/cloudshell-bootstrap.done`) and versioned
 4. Record the pinned version here and in `README.md` when relevant.
 
 Provisioned tools and pins: ripgrep `14.1.0`, playwright `1.62.0`, btop
-(latest), graphify `0.9.43` (via `uv tool install "graphifyy[svg,gemini]"`).
+(latest), graphify (latest — installed unpinned via `uv tool install
+  "graphifyy[svg,gemini]"`; set `GRAPHIFY_VERSION=0.9.43` to pin a version).
 
 Notes:
 
@@ -269,6 +281,15 @@ Notes:
 - The Graphify Gemini key lives in the repo's `.env` (gitignored, local-only,
   survives resets with `$HOME`). The CLI does **not** read `.env`
   automatically — `./graphify.sh` sources it.
+
+**Port forwarding (VS Code Remote):** most listening ports on this host are
+infrastructure, not the app — Google/GKE: `900` (metadata), `922`/`2222`
+(sshd), `970` (editor-proxy), `980`/`981`/`8998` (node services in other pods);
+VS Code Server/Pylance: `37581`/`39913`/`46491`/`53581` (127.0.0.1). Project
+ports: `5173` (Vite dev) and `8000` (Graphify viz, `./scripts/graphify-viz.sh`).
+`~/.vscode-server/data/User/settings.json` labels these in the Forwarded Ports
+panel, ignores the infra ones, and disables `remote.restoreForwardedPorts` (no
+stale rows) — update it when adding project ports.
 
 ## Development Workflow
 
@@ -473,3 +494,16 @@ Notes:
 
 - Commit messages in English (see Git & GitHub above).
 - Keep `rpg/` self-contained; use relative imports only.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

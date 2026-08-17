@@ -41,12 +41,59 @@ interface PngLike {
 /** The ready-to-use removal function: dataUrl → PNG dataUrl (alpha cut out). */
 export type BackgroundRemover = (dataUrl: string) => Promise<string>;
 
+/**
+ * The two ORT files the wasm backend needs: the wasm binary (fetched as
+ * data — cross-origin fetch is fine) and the factory .mjs (the proxy worker's
+ * script — see `bootstrapWasmPaths`). Matches the transformers.web build
+ * (verified in its dist: ort-wasm-simd-threaded.asyncify.{mjs,wasm}).
+ */
+export function wasmFactoryFiles(): { wasm: string; mjs: string } {
+  return {
+    wasm: `${ORT_WASM_PATHS}ort-wasm-simd-threaded.asyncify.wasm`,
+    mjs: `${ORT_WASM_PATHS}ort-wasm-simd-threaded.asyncify.mjs`,
+  };
+}
+
+/**
+ * Bootstraps the ORT wasm factory as a same-origin blob URL (round-10 fix).
+ *
+ * The Perchance generator iframe blocks `new Worker()` from cross-origin URLs
+ * (proven on-platform: only blob/same-origin workers spawn). ORT's proxy
+ * worker script is the wasm factory (.mjs); with `wasmPaths` as a plain CDN
+ * string that script URL is cross-origin → the worker dies at spawn →
+ * "no available backend found. ERR: [wasm] [object Event]" → every sprite
+ * falls back to the platform removal. Fetching the factory from the CDN and
+ * handing ORT a blob URL makes the worker script same-origin (allowed). The
+ * .wasm binary stays on the CDN — it is fetched (never worker-spawned), and
+ * cross-origin fetch with CORS is fine.
+ *
+ * @returns the wasmPaths object to hand to transformers.js
+ */
+export async function bootstrapWasmPaths(): Promise<{
+  wasm: string;
+  mjs: string;
+}> {
+  const files = wasmFactoryFiles();
+  const response = await fetch(files.mjs);
+  if (!response.ok) {
+    throw new Error(`bg-removal: wasm factory fetch failed (${response.status})`);
+  }
+  const factoryBlob = await response.blob();
+  return { wasm: files.wasm, mjs: URL.createObjectURL(factoryBlob) };
+}
+
 /** Loose view over the transformers.js module — keeps the custom-model glue
  * typed without fighting the library's wide public types. */
 interface TransformersModule {
   env: {
     backends: {
-      onnx: { wasm?: { numThreads?: number; proxy?: boolean; wasmPaths?: string } };
+      onnx: {
+        wasm?: {
+          numThreads?: number;
+          proxy?: boolean;
+          wasmPaths?: string | { wasm: string; mjs: string };
+        };
+      };
     };
   };
   AutoModel: {
@@ -122,15 +169,18 @@ async function createRemover(): Promise<BackgroundRemover> {
   // no SharedArrayBuffer / cross-origin isolation required (numThreads=1),
   // and the heavy inference no longer blocks the UI (removal-pipeline-spec
   // §4 — research: ORT docs confirm the proxy worker works without COI).
-  // The engine itself comes from the jsdelivr CDN (ORT_WASM_PATHS) — the
-  // Vite-bundled copy is excluded from the Perchance ship (round-6 root cause).
+  // The engine comes from the jsdelivr CDN (ORT_WASM_PATHS) — the Vite-bundled
+  // copy is excluded from the Perchance ship (round-6 root cause). Round-10
+  // fix: the factory .mjs (the proxy worker script) must be a same-origin
+  // blob — the iframe blocks cross-origin `new Worker()` — so we bootstrap it
+  // as a blob URL instead of handing ORT the raw CDN path.
   const onnxEnv = mod.env.backends.onnx;
   if (onnxEnv?.wasm) {
     onnxEnv.wasm.numThreads = 1;
     onnxEnv.wasm.proxy = true;
-    onnxEnv.wasm.wasmPaths = ORT_WASM_PATHS;
+    onnxEnv.wasm.wasmPaths = await bootstrapWasmPaths();
     console.log(
-      "[rpg] bg-removal: proxy worker active (wasm proxy=true, numThreads=1, wasmPaths=CDN)",
+      "[rpg] bg-removal: proxy worker active (wasm proxy=true, numThreads=1, factory blob-bootstrapped)",
     );
   }
 

@@ -167,6 +167,24 @@ export function pickNpc(rng: () => number = Math.random): NpcDefinition {
   return NPC_POOL[index]!;
 }
 
+/**
+ * Picks `count` DISTINCT NPCs (round 12: 2 co-present in the scene). Falls
+ * back to Math.random when fewer distinct draws are possible than requested.
+ */
+export function pickNpcs(count: number, rng: () => number = Math.random): NpcDefinition[] {
+  const picked: NpcDefinition[] = [];
+  const used = new Set<string>();
+  let guard = 0;
+  while (picked.length < count && guard < 100) {
+    const npc = pickNpc(rng);
+    guard++;
+    if (used.has(npc.id)) continue;
+    used.add(npc.id);
+    picked.push(npc);
+  }
+  return picked;
+}
+
 export function npcById(id: string): NpcDefinition | undefined {
   return NPC_POOL.find((n) => n.id === id);
 }

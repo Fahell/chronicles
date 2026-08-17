@@ -7,7 +7,12 @@
 export interface TextScriptEntry {
   /** Substring (case-insensitive) or regex matched against the instruction. */
   match: string | RegExp;
-  reply: string;
+  /**
+   * The reply — or a queue of replies consumed one per matching call (used
+   * to script re-call sequences, e.g. malformed-then-valid). When a queue is
+   * exhausted the next matching entry (or the default reply) is used.
+   */
+  reply: string | string[];
 }
 
 export interface TextScript {

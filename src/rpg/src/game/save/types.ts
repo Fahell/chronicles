@@ -11,10 +11,16 @@ export type SlotId = string;
 /** Scene pointer stored per save (tech-spec §7.2). */
 export interface SaveScene {
   sceneId: string;
-  /** Picked NPC id from the seed pool (content/npcPool.ts). */
+  /** Picked primary NPC id from the seed pool (content/npcPool.ts). */
   npcId: string;
+  /** Optional second co-present NPC id (round 12 — 2 NPCs in the scene). */
+  secondNpcId?: string;
+  /** In-game day (day-cycle-spec §3). */
   day: number;
+  /** Current period (morning/afternoon/night, day-cycle-spec §3). */
   period: string;
+  /** Interactions consumed in the current period (day clock budget). */
+  scenesInPeriod: number;
 }
 
 /** A full game snapshot (tech-spec §7.2 save v1). */

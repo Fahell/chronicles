@@ -1,5 +1,6 @@
 import type { NpcDefinition } from "../../content/npcPool";
 import type { SceneManifest } from "../../scene/types";
+import type { DayState } from "../day/clock";
 import { dialogueInstruction } from "../dialogue/prompts";
 import { type Identity, summarizeAppearance } from "../identity";
 
@@ -31,17 +32,25 @@ export interface ConversationTurn {
 export interface NarratorContext {
   scene: SceneManifest;
   user: Identity;
-  npc: NpcDefinition;
+  /** All NPCs present in the scene (1..2, round 12). */
+  npcs: NpcDefinition[];
   /** English name of the player's language (e.g. "Spanish"). */
   language: string;
+  /** In-game time of day (day-cycle-spec §3) — injected as a named section. */
+  day: DayState;
 }
 
 export interface NpcContext {
   scene: SceneManifest;
+  /** The NPC this payload belongs to. */
   npc: NpcDefinition;
+  /** The other NPC(s) present (appearance only — backgrounds stay private, §2.1). */
+  coPresent: NpcDefinition[];
   user: Identity;
   conversation: ConversationTurn[];
   language: string;
+  /** In-game time of day (day-cycle-spec §3) — injected as a named section. */
+  day: DayState;
 }
 
 /**
@@ -107,14 +116,28 @@ function renderConversation(turns: ConversationTurn[]): string {
 }
 
 function sceneContext(scene: SceneManifest): string {
+  // narrative-spec §2.2: payloads receive the authored visual descriptions,
+  // NEVER the raw image-generation prompts ("never send the recipe"). The
+  // prompts are image-pipeline inputs (AssetCache); leaking them into the
+  // payload burned ~3k chars of the 24k budget and injected art meta-details
+  // ("Three.js floor plane", "do not include…") into the character's head
+  // (round-10 validation finding).
   const parts = [scene.backdrop.description];
-  if (scene.backdrop.prompt) parts.push(`Backdrop art prompt: ${scene.backdrop.prompt}`);
-  if (scene.floor?.prompt) parts.push(`Floor art prompt: ${scene.floor.prompt}`);
+  if (scene.floor?.description) parts.push(scene.floor.description);
   return parts.join("\n");
 }
 
 function userSummary(user: Identity): string {
   return `${user.name} — ${summarizeAppearance(user)}`;
+}
+
+/** Time-of-day named section (day-cycle-spec §3 — never summarized). */
+function timeOfDaySection(day: DayState): PayloadSection {
+  return {
+    name: "TIME OF DAY",
+    content: `It is ${day.period} of day ${day.day} (${day.scenesInPeriod} interaction${day.scenesInPeriod === 1 ? "" : "s"} so far in this period).`,
+    summarizable: false,
+  };
 }
 
 /** Composes the sections into the single instruction string (byte-identical). */
@@ -127,19 +150,21 @@ function compose(sections: PayloadSection[], language: string): string {
 
 /** The narrator's named sections (world voice — none are summarizable). */
 export function buildNarratorSections(ctx: NarratorContext): PayloadSection[] {
+  const present = ctx.npcs.map((n) => `${n.name}, a ${n.type}`).join("; ");
   return [
     {
       name: "System",
       content:
-        "You are the world narrator of a visual-novel RPG. Describe the scene in 2-3 sentences of vivid, grounded prose: where the player is, the atmosphere, and the person present. Do not role-play as any character and do not repeat the player's name more than once.",
+        "You are the world narrator of a visual-novel RPG. Describe the scene in 2-3 sentences of vivid, grounded prose: where the player is, the atmosphere, and the people present. Do not role-play as any character and do not repeat the player's name more than once.",
       summarizable: false,
     },
     { name: "SCENE", content: sceneContext(ctx.scene), summarizable: false },
     {
       name: "PRESENT",
-      content: `The player: ${userSummary(ctx.user)}\nAlso present: ${ctx.npc.name}, a ${ctx.npc.type}.`,
+      content: `The player: ${userSummary(ctx.user)}\nPresent: ${present}.`,
       summarizable: false,
     },
+    timeOfDaySection(ctx.day),
   ];
 }
 
@@ -158,10 +183,15 @@ export function buildNpcSections(ctx: NpcContext): PayloadSection[] {
     },
     {
       name: "WHO YOU ARE TALKING TO",
-      content: `A stranger: ${userSummary(ctx.user)}. They are a stranger to you — do not assume shared history or knowledge of their past.`,
+      content: `The player, a stranger: ${userSummary(ctx.user)}. They are a stranger to you — do not assume shared history or knowledge of their past.${
+        ctx.coPresent.length > 0
+          ? `\nAlso present: ${ctx.coPresent.map((n) => `${n.name}, a ${n.type}`).join("; ")}.`
+          : ""
+      }`,
       summarizable: false,
     },
     { name: "WHERE YOU ARE", content: sceneContext(ctx.scene), summarizable: false },
+    timeOfDaySection(ctx.day),
     {
       name: "CONVERSATION SO FAR",
       content: renderConversation(trimConversation(ctx.conversation)),

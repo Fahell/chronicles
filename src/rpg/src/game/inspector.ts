@@ -1,6 +1,7 @@
 import { archetypeById } from "../content/archetypes";
 import type { NpcDefinition } from "../content/npcPool";
 import type { SceneManifest } from "../scene/types";
+import type { DayState } from "./day/clock";
 import { type Identity, summarizeAppearance } from "./identity";
 import {
   buildNarratorInstruction,
@@ -27,7 +28,7 @@ import {
 /** The window-summary trigger (two-tier summarization, day-cycle-spec §6). */
 export const INSPECTOR_WINDOW_TRIGGER = 22_000;
 
-export type InspectorVoiceId = "npc" | "narrator" | "user";
+export type InspectorVoiceId = "npc" | "npc2" | "narrator" | "user";
 
 export interface InspectorVoicePanel {
   /** Display label for the voice selector. */
@@ -54,15 +55,19 @@ export interface InspectorState {
   sceneId: string;
   day: number;
   period: string;
-  voices: Record<InspectorVoiceId, InspectorVoicePanel>;
+  /** Present voices: npc (+ npc2 when a second NPC is in the scene), narrator, user. */
+  voices: Partial<Record<InspectorVoiceId, InspectorVoicePanel>>;
 }
 
 export interface InspectorContext {
   scene: SceneManifest;
-  npc: NpcDefinition;
+  /** All NPCs present (1..2) — the first is the primary NPC voice. */
+  npcs: NpcDefinition[];
   user: Identity;
   conversation: ConversationTurn[];
   language: string;
+  /** In-game time of day (day-cycle-spec §3). */
+  day: DayState;
 }
 
 function panel(
@@ -89,7 +94,6 @@ function panel(
 
 /** Builds the inspector state for the current session (tech-spec §6.4 v1). */
 export function buildInspectorState(ctx: InspectorContext): InspectorState {
-  const npcSections = buildNpcSections(ctx);
   const narratorSections = buildNarratorSections(ctx);
 
   const userArchetype = archetypeById(ctx.user.archetypeId);
@@ -108,35 +112,48 @@ export function buildInspectorState(ctx: InspectorContext): InspectorState {
   ];
   const userInstruction = userSections.map((s) => `${s.name}\n${s.content}`).join("\n\n");
 
+  const voices: InspectorState["voices"] = {};
+  ctx.npcs.forEach((npc, i) => {
+    const id = i === 0 ? "npc" : "npc2";
+    const npcCtx = {
+      scene: ctx.scene,
+      npc,
+      coPresent: ctx.npcs.filter((other) => other.id !== npc.id),
+      user: ctx.user,
+      conversation: ctx.conversation,
+      language: ctx.language,
+      day: ctx.day,
+    };
+    voices[id] = panel(
+      npc.name,
+      buildNpcSections(npcCtx),
+      buildNpcInstruction(npcCtx),
+      npc.spritePrompt,
+      ctx.scene.backdrop.description,
+      npc.backgroundPayload,
+    );
+  });
+  voices.narrator = panel(
+    "Narrator",
+    narratorSections,
+    buildNarratorInstruction(ctx),
+    null,
+    ctx.scene.backdrop.description,
+    null,
+  );
+  voices.user = panel(
+    ctx.user.name,
+    userSections,
+    userInstruction,
+    userArchetype?.spritePrompt ?? null,
+    userArchetype?.appearanceSummary ?? summarizeAppearance(ctx.user),
+    ctx.user.backgroundPayload,
+  );
+
   return {
     sceneId: ctx.scene.id,
-    day: 1,
-    period: "dusk",
-    voices: {
-      npc: panel(
-        ctx.npc.name,
-        npcSections,
-        buildNpcInstruction(ctx),
-        ctx.npc.spritePrompt,
-        ctx.scene.backdrop.description,
-        ctx.npc.backgroundPayload,
-      ),
-      narrator: panel(
-        "Narrator",
-        narratorSections,
-        buildNarratorInstruction(ctx),
-        null,
-        ctx.scene.backdrop.description,
-        null,
-      ),
-      user: panel(
-        ctx.user.name,
-        userSections,
-        userInstruction,
-        userArchetype?.spritePrompt ?? null,
-        userArchetype?.appearanceSummary ?? summarizeAppearance(ctx.user),
-        ctx.user.backgroundPayload,
-      ),
-    },
+    day: ctx.day.day,
+    period: ctx.day.period,
+    voices,
   };
 }

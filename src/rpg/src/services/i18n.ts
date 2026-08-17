@@ -24,6 +24,15 @@ const en = {
     talkTo: "Talk to {{name}}",
     reRoll: "Re-roll sprite",
     devInspector: "Dev",
+    sleep: "Rest / end the day",
+  },
+  day: {
+    recapTitle: "Day {{day}} ends.",
+    closer: "You grew closer to {{name}}.",
+    apart: "You grew apart from {{name}}.",
+    unchanged: "Your bond with {{name}} is unchanged.",
+    memory: "{{name}} remembers: {{memory}}",
+    noScoring: "{{name}}'s day could not be scored.",
   },
   dialogue: {
     continue: "Continue",
@@ -100,6 +109,9 @@ const en = {
     refresh: "Refresh",
     copyPayload: "Copy payload",
     copied: "Copied!",
+    logs: "Logs",
+    entriesFor: "raw entries for {{name}}",
+    logsEmpty: "No log entries yet — talk to the NPC to record the day.",
   },
   credits: {
     title: "Credits",

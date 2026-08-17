@@ -2,12 +2,12 @@ import { useState } from "preact/hooks";
 
 import { ARCHETYPES, archetypeById } from "../../content/archetypes";
 import { backgroundTemplateById, USER_BACKGROUND_TEMPLATES } from "../../content/backgrounds";
-import { pickNpc } from "../../content/npcPool";
+import { pickNpcs } from "../../content/npcPool";
 import { SPRITE_NEGATIVE_PROMPT } from "../../content/sprite";
 import { buildIdentity, type Identity } from "../../game/identity";
 import { ensurePortrait, PLAYER_PORTRAIT_KEY } from "../../game/portraits";
 import type { SaveGame } from "../../game/save/types";
-import { startSession } from "../../game/session";
+import { initialSaveScene, startSession } from "../../game/session";
 import { navigate } from "../../game/state/screens";
 import { resolveCharacterSprite } from "../../scene/assets";
 import type { BootServices } from "../../services/boot";
@@ -84,11 +84,15 @@ export function NewGameWizard({ services, onBack }: NewGameWizardProps) {
   }
 
   async function finish(slotId: string, identity: Identity) {
-    const npc = pickNpc();
+    // Round 12: two distinct co-present NPCs (the second one is optional on
+    // legacy saves but new games always pick a pair).
+    const picked = pickNpcs(2);
+    const npc = picked[0]!;
+    const npc2 = picked[1];
     const save: SaveGame = {
       slotId,
       identity,
-      scene: { sceneId: "scene.open.plains", npcId: npc.id, day: 1, period: "dusk" },
+      scene: initialSaveScene("scene.open.plains", npc.id, npc2?.id),
       progress: { talkedTo: [] },
       flags: {},
       updatedAt: Date.now(),

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 
 import { runNarratorOpening } from "../../game/narrator";
-import { sessionSignal } from "../../game/session";
+import { dayStateFromSave, sessionSignal } from "../../game/session";
 import { navigate } from "../../game/state/screens";
 import type { Stage } from "../../render/stage";
 import type { BootServices } from "../../services/boot";
@@ -71,6 +71,22 @@ export function GameScreen({ services }: GameScreenProps) {
       window.removeEventListener("resize", onResize);
       stage.destroy();
     };
+  }, [stage]);
+
+  // Day-cycle §4: log the scene entry (time/place marker) once the stage is up.
+  useEffect(() => {
+    if (!stage || !session) return;
+    const day = dayStateFromSave(session.save.scene);
+    void services.logs.append({
+      slotId: session.save.slotId,
+      characterId: session.npc.id,
+      type: "scene",
+      owner: "world",
+      dayId: day.day,
+      period: day.period,
+      text: `Entered ${session.save.scene.sceneId} (day ${day.day}, ${day.period}).`,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
 
   // Narrator opening once the stage is up (session is stable here).

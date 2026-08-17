@@ -5,7 +5,13 @@ import { buildIdentity } from "../../src/game/identity";
 import type { SaveGame } from "../../src/game/save/types";
 import { startSession } from "../../src/game/session";
 import { dialogueMachine, dialogueVisible } from "../../src/game/state/dialogue";
-import { closePause, openPause, pauseOpen, quitToTitle } from "../../src/game/state/pause";
+import {
+  closePause,
+  openPause,
+  pauseOpen,
+  quitToTitle,
+  shouldTogglePause,
+} from "../../src/game/state/pause";
 import { navigate, screenSignal } from "../../src/game/state/screens";
 
 function makeSave(): SaveGame {
@@ -20,7 +26,8 @@ function makeSave(): SaveGame {
       sceneId: "scene.open.plains",
       npcId: "npc/knight-lost-battle",
       day: 1,
-      period: "dusk",
+      period: "afternoon",
+      scenesInPeriod: 0,
     },
     progress: { talkedTo: [] },
     flags: {},
@@ -34,6 +41,16 @@ describe("pause menu (round 10)", () => {
     expect(pauseOpen.value).toBe(true);
     closePause();
     expect(pauseOpen.value).toBe(false);
+  });
+
+  it("Esc routing: pause only claims Esc when no dialogue is open (round-10 dual-Esc fix)", () => {
+    // No dialogue open + key not consumed elsewhere → pause toggles.
+    expect(shouldTogglePause(false, false)).toBe(true);
+    // Dialogue open → Esc belongs to the dialogue; the pause must NOT fire.
+    expect(shouldTogglePause(true, false)).toBe(false);
+    // Already consumed by another handler → never toggles pause.
+    expect(shouldTogglePause(false, true)).toBe(false);
+    expect(shouldTogglePause(true, true)).toBe(false);
   });
 
   it("quitToTitle resets the session and dialogue state and navigates to title", () => {

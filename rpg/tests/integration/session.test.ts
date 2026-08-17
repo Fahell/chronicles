@@ -23,7 +23,13 @@ describe("session", () => {
     const save = {
       slotId: "slot-1",
       identity,
-      scene: { sceneId: "scene.open.plains", npcId: npc.id, day: 1, period: "dusk" },
+      scene: {
+        sceneId: "scene.open.plains",
+        npcId: npc.id,
+        day: 1,
+        period: "afternoon",
+        scenesInPeriod: 0,
+      },
       progress: { talkedTo: [] },
       flags: {},
       updatedAt: 1,
@@ -37,6 +43,58 @@ describe("session", () => {
     expect(manifest.effects.some((e) => e.kind === "fog")).toBe(true);
     expect(session.npc.id).toBe(npc.id);
     expect(session.save.slotId).toBe("slot-1");
+  });
+
+  it("a save with a secondNpcId yields two NPCs and a 3-actor manifest (round 12)", () => {
+    const npc = NPC_POOL[2]!;
+    const npc2 = NPC_POOL[5]!;
+    const save = {
+      slotId: "slot-1",
+      identity,
+      scene: {
+        sceneId: "scene.open.plains",
+        npcId: npc.id,
+        secondNpcId: npc2.id,
+        day: 1,
+        period: "afternoon",
+        scenesInPeriod: 0,
+      },
+      progress: { talkedTo: [] },
+      flags: {},
+      updatedAt: 1,
+    };
+    const session = startSession(save);
+    expect(session.npc.id).toBe(npc.id);
+    expect(session.npc2?.id).toBe(npc2.id);
+    const manifest = parseSceneManifest(session.buildManifest());
+    expect(manifest.actors.map((a) => a.characterId)).toEqual(["player", npc.id, npc2.id]);
+    // the second NPC stands on the opposite side of the player
+    const a1 = manifest.actors[1]!;
+    const a2 = manifest.actors[2]!;
+    expect(a1.position.x).toBeLessThan(0);
+    expect(a2.position.x).toBeGreaterThan(0);
+  });
+
+  it("a legacy save without secondNpcId keeps a single-NPC session (compat)", () => {
+    const npc = NPC_POOL[0]!;
+    const save = {
+      slotId: "slot-1",
+      identity,
+      scene: {
+        sceneId: "scene.open.plains",
+        npcId: npc.id,
+        day: 1,
+        period: "afternoon",
+        scenesInPeriod: 0,
+      },
+      progress: { talkedTo: [] },
+      flags: {},
+      updatedAt: 1,
+    };
+    const session = startSession(save);
+    expect(session.npc2).toBeNull();
+    const manifest = parseSceneManifest(session.buildManifest());
+    expect(manifest.actors.map((a) => a.characterId)).toEqual(["player", npc.id]);
   });
 
   it("userActor and npcActor produce stable actor specs", () => {
@@ -61,7 +119,7 @@ describe("session", () => {
     const save = {
       slotId: "slot-1",
       identity,
-      scene: { sceneId: "s", npcId: "npc/ghost", day: 1, period: "dusk" },
+      scene: { sceneId: "s", npcId: "npc/ghost", day: 1, period: "afternoon", scenesInPeriod: 0 },
       progress: { talkedTo: [] },
       flags: {},
       updatedAt: 1,

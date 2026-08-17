@@ -23,7 +23,13 @@ function save(slotId: string, name: string, updatedAt: number) {
   return {
     slotId,
     identity: identity(name),
-    scene: { sceneId: "scene.open.plains", npcId: "npc/knight-1", day: 1, period: "dusk" },
+    scene: {
+      sceneId: "scene.open.plains",
+      npcId: "npc/knight-1",
+      day: 1,
+      period: "afternoon",
+      scenesInPeriod: 0,
+    },
     progress: { talkedTo: [] },
     flags: {},
     updatedAt,

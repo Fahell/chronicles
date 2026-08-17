@@ -1,3 +1,5 @@
+import { LogStore } from "../game/logs/store";
+import { RelationshipStore } from "../game/relationships/store";
 import { SaveStore } from "../game/save/store";
 import type { Stage } from "../render/stage";
 import { loadScene as loadSceneImpl } from "../scene/loader";
@@ -18,6 +20,10 @@ export interface BootServices {
   assets: AssetCache;
   /** Save-slot persistence (tech-spec §7.2). */
   saves: SaveStore;
+  /** Per-character raw log + day summaries (day-cycle-spec §4). */
+  logs: LogStore;
+  /** Relationship web (relationships-spec §2, §8). */
+  bonds: RelationshipStore;
   /** Loads a scene into the given container (type C slice). */
   loadScene: (
     manifest: unknown,
@@ -56,13 +62,18 @@ export function bootServices(): BootServices {
   const runtime = createPlatformRuntime(root, mode);
   const assets = new AssetCache(mode, runtime.image);
   // Same mode-scoped DB name → shares the underlying IndexedDB with the
-  // asset/cutout tables (Dexie supports multiple connections per DB).
-  const saves = new SaveStore(new RpgDatabase(mode));
+  // asset/cutout tables (Dexie supports multiple connections per DB). The
+  // save/log/relationship stores share one connection for the session
+  // tables (save v3, relationships/characterLogs/daySummaries v4).
+  const db = new RpgDatabase(mode);
+  const saves = new SaveStore(db);
+  const logs = new LogStore(db);
+  const bonds = new RelationshipStore(db);
   const loadScene = (
     manifest: unknown,
     container: HTMLElement,
     viewport: { width: number; height: number },
   ) => loadSceneImpl(manifest, { assets, container, viewport });
 
-  return { mode, mocked, runtime, assets, saves, loadScene };
+  return { mode, mocked, runtime, assets, saves, logs, bonds, loadScene };
 }

@@ -48,6 +48,24 @@ function matches(entry: { match: string | RegExp }, input: string): boolean {
 }
 
 /**
+ * Resolves the reply for a call: first matching entry, consuming one from a
+ * reply queue (scripted re-call sequences); falls through when a queue is
+ * exhausted, then to the default reply.
+ */
+function resolveReply(script: TextScript, instruction: string): string {
+  for (const entry of script.entries) {
+    if (!matches(entry, instruction)) continue;
+    if (Array.isArray(entry.reply)) {
+      const next = entry.reply.shift();
+      if (next !== undefined) return next;
+      continue;
+    }
+    return entry.reply;
+  }
+  return script.defaultReply;
+}
+
+/**
  * Deterministic, controllable mock of the platform plugins (tech-spec §6.2).
  * - generateImage → seeded placeholder (canvas/SVG data URL)
  * - generateText → scripted replies (incl. choice-format payloads)
@@ -95,8 +113,7 @@ export function createMockHarness(options: MockOptions = {}): MockHarness {
         failText = false;
         throw new Error("mock generateText: injected failure");
       }
-      const entry = script.entries.find((e) => matches(e, opts.instruction));
-      const text = entry?.reply ?? script.defaultReply;
+      const text = resolveReply(script, opts.instruction);
       record({
         kind: "text",
         input: opts.instruction,

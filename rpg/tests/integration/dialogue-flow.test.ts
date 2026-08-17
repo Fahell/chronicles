@@ -12,6 +12,8 @@ const user = buildIdentity({
   background: { kind: "template", templateId: "bt1" },
 });
 const npc = NPC_POOL[0]!;
+const npc2 = NPC_POOL[1]!;
+const day = { day: 1, period: "afternoon" as const, scenesInPeriod: 0 };
 
 describe("multi-turn dialogue loop (service level)", () => {
   it("a choice reply parses and the follow-up generation sees the grown conversation", async () => {
@@ -23,9 +25,11 @@ describe("multi-turn dialogue loop (service level)", () => {
       instruction: buildNpcInstruction({
         scene: openPlainsManifest,
         npc,
+        coPresent: [npc2],
         user,
         conversation,
         language: "English",
+        day,
       }),
     });
     const turn1 = parseChoices((opening as { generatedText: string }).generatedText);
@@ -40,9 +44,11 @@ describe("multi-turn dialogue loop (service level)", () => {
       instruction: buildNpcInstruction({
         scene: openPlainsManifest,
         npc,
+        coPresent: [npc2],
         user,
         conversation,
         language: "English",
+        day,
       }),
     });
     const followText = (follow as { generatedText: string }).generatedText;
@@ -53,9 +59,11 @@ describe("multi-turn dialogue loop (service level)", () => {
     const instruction2 = buildNpcInstruction({
       scene: openPlainsManifest,
       npc,
+      coPresent: [npc2],
       user,
       conversation,
       language: "English",
+      day,
     });
     expect(instruction2).toContain(turn1.options[0]!);
     expect(instruction2).toContain("player");

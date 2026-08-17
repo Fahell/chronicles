@@ -8,7 +8,7 @@ import { navigate } from "./screens";
 /**
  * In-game pause menu v1 (vn-rpg-spec §8.2): Save / Settings / Quit-to-title,
  * opened with Esc (dual behavior — Esc closes the dialogue first when one is
- * open; the App handler checks `e.defaultPrevented`).
+ * open; the App handler checks the dialogue state).
  */
 
 /** True while the pause overlay is open. */
@@ -24,6 +24,21 @@ export function closePause(): void {
 
 export function togglePause(): void {
   pauseOpen.value = !pauseOpen.value;
+}
+
+/**
+ * Esc routing (round-10 fix): with a dialogue open, Esc belongs to the
+ * dialogue (it closes the dialogue); the pause menu only claims Esc when no
+ * dialogue is open. Pure — unit-testable without DOM.
+ *
+ * Why a state check instead of `e.defaultPrevented`: the DialogueBox
+ * registers its Esc handler only when the dialogue opens — AFTER the App's
+ * mount-time listener — so the pause handler fires first and
+ * `defaultPrevented` is still false when it runs. Gate on the dialogue
+ * state instead (deterministic, order-independent).
+ */
+export function shouldTogglePause(dialogueOpen: boolean, defaultPrevented: boolean): boolean {
+  return !defaultPrevented && !dialogueOpen;
 }
 
 /**

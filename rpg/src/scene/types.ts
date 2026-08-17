@@ -76,6 +76,8 @@ export const sceneManifestSchemaV1 = object({
       assetKey: optional(string()),
       /** Ground image generation prompt (type C). */
       prompt: optional(string()),
+      /** Visual description of the ground for the narrator payload (narrative-spec §2.2: payloads get descriptions, never the raw art prompt). */
+      description: optional(string()),
       /** Ground plane placement (type C). */
       depth: optional(number()),
       scale: optional(number()),

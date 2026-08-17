@@ -1,7 +1,7 @@
 import type { BootServices } from "../services/boot";
 import { currentLanguage, englishName, t } from "../services/i18n";
 import { buildNarratorInstruction } from "./payload/builder";
-import type { GameSession } from "./session";
+import { dayStateFromSave, type GameSession } from "./session";
 import { dialoguePending, dialogueVisible, pendingSpeaker, showTurn } from "./state/dialogue";
 
 /**
@@ -17,8 +17,9 @@ export async function runNarratorOpening(
   const instruction = buildNarratorInstruction({
     scene: session.buildManifest(),
     user: session.save.identity,
-    npc: session.npc,
+    npcs: session.npc2 ? [session.npc, session.npc2] : [session.npc],
     language,
+    day: dayStateFromSave(session.save.scene),
   });
 
   dialoguePending.value = true;

@@ -1,39 +1,46 @@
-# Round 10 — Runtime validation prompt (fixes + new feats)
+# Round 12 — Runtime validation prompt (fixes + day-cycle feats + 2-NPC scene)
 
 You are validating the latest build of **Chronicles** (a visual-novel RPG built
-on this Perchance generator). This round ships the **round-9 fixes** together
-with **three new features** — one combined round, one report.
+on this Perchance generator). This round ships the **round-11 fixes** together
+with the **day-cycle milestone** — one combined round, one report.
 
-**Changes since round 9:**
-1. **ORT proxy worker fixed** (round-9 fix, shipped now): client-side RMBG-1.4
-   runs for real — expect `model ready` + `inference done` on the platform, no
-   `[wasm] [object Event]`.
-2. **Fog fixed** (round-9): the PixiJS canvas is now inside the scene
-   container — expect a drifting haze over the frame.
-3. **Sprite grounding fixed** (round-9): sprites generate on pure white with
-   the ground shadow baked in; the code shadow plane was removed.
-4. **NEW — Pause menu v1** (vn-rpg-spec §8.2): Esc opens a pause overlay with
-   **Save / Settings / Quit to title**. Esc is dual: with a dialogue open, Esc
-   closes the dialogue first (as before); with no dialogue open, Esc toggles
-   the pause. **Save** writes to the AUTOSAVE slot directly (no picker).
-   **Quit** asks "Save before quitting?" (Yes/No/Cancel).
-5. **NEW — Speaker portraits in the dialogue box** (vn-rpg-spec §3.7): the box
-   shows a **bust portrait** of whoever is speaking — NPC **and** user — in a
-   frame. Portraits are generated on a **pure white background and are NOT
-   background-removed** (the white is the frame backing). The portrait loads
-   **async** (generated together with the sprite, never blocking it). A sprite
-   **re-roll regenerates the portrait together** with the sprite.
-6. **NEW — Free-form player action** (round-10 owner decision): when an NPC
-   turn offers choices, a fixed **"Write your own action…"** option is always
-   present. Selecting it opens an input box (player portrait + text field, max
-   300 chars) where the player types their own action; submitting shows the
-   player's turn with their portrait and the NPC follows up. If a turn has no
-   choices, the flow is unchanged (Continue → turn ends, Leave closes).
-7. **NEW — Dev context inspector v1** (tech-spec §6.4): a debug panel showing
-   per-voice payload sections (NPC / narrator / user), the image prompt, visual
-   description, background payload version, counts and a budget bar vs the
-   ~24k window. **Off by default** — enabled by opening the generator with
-   `?inspector=1` in the URL. A discreet **Dev** button appears in the HUD.
+**Changes since round 10:**
+1. **Client-side RMBG fixed** (round-11 fix, re-attempted): the ORT proxy
+   worker now bootstraps its factory as a **same-origin blob** (fetch the
+   factory `.mjs` from the jsdelivr CDN → `URL.createObjectURL` →
+   `wasmPaths: { wasm: CDN, mjs: blobURL }`). Expect `model ready` +
+   `inference done` on the platform and `cutout-cache: hit` on warm loads —
+   the round-9/10 gate (`no available backend found` / `[wasm] [object Event]`)
+   must be gone.
+2. **Payload fixed** (round-11): the scene art prompts no longer leak into the
+   NPC/narrator payloads — `WHERE YOU ARE` / `SCENE` carry only the authored
+   visual descriptions (narrative-spec §2.2, "never send the recipe").
+3. **Esc dual behavior fixed** (round-11): with a dialogue open, Esc closes
+   the dialogue only — it must NOT also open the pause.
+4. **Fog redesigned** (round-11): a low creeping fog band anchored at the
+   bottom of the frame (dense at the characters' feet, fading toward the
+   horizon) + a subtle veil at the horizon line — NOT a full-frame whitewash.
+   The sky stays clear; characters keep contrast.
+5. **NEW — In-game day clock** (day-cycle-spec §3): days with
+   **Morning / Afternoon / Night** periods; each period holds up to **3
+   interactions** (dialogue turns); when a period's budget is spent the clock
+   advances; when Night's budget is spent the day ends. A **"Rest / end the
+   day"** button in the HUD ends the day by choice. The current period is
+   injected into NPC/narrator payloads as a named **TIME OF DAY** section.
+6. **NEW — Relationship web** (relationships-spec §2/§5): directed bonds
+   between the user and each NPC (A→B may differ from B→A), intensity
+   −100..+100, with named tiers (Enemy … Intimate). Persists in IndexedDB.
+7. **NEW — Per-character raw log** (day-cycle-spec §4): every dialogue turn
+   and player action is appended to the NPC's character log (append-only,
+   tagged by type/day/period). Visible in the dev inspector **Logs tab**.
+8. **NEW — End-of-day processing run** (day-cycle-spec §5): when the day ends
+   (Rest or Night exhaustion), one batched LLM call per up-to-2 NPCs scores
+   the day (user→NPC and NPC→user, bounded ±5/day), stores a **day summary**
+   per NPC, applies the deltas to the relationship web, and shows a discreet
+   **recap** ("You grew closer to X." — no raw numbers).
+9. **NEW — Second co-present NPC** (round-12 decision): the scene now has the
+   player + **two** NPCs. Each NPC knows the other is present (appearance
+   only — backgrounds stay private). The HUD has **two** "Talk to …" buttons.
 
 Do the checks **in order**, driving the actual UI. The AI plugins are real
 here — generations take time; the loading indicators are part of what we
@@ -47,128 +54,147 @@ platform↔code mapping.
   pixi chunks. Missing chunk → `Failed to fetch dynamically imported module`
   — STOP and report "upload incomplete".
 - The local wasm asset is intentionally NOT uploaded (ONNX Runtime is pinned
-  to the jsdelivr CDN via `wasmPaths`). A 404 for it is a REGRESSION.
+  to the jsdelivr CDN via `wasmPaths`). A 404 for it is a REGRESSION — but
+  note the factory is now fetched as a blob (see §1).
 
-## 1. Boot & title (quick)
+## 1. Boot & title — RMBG gate
 
-- Reload. Title renders (light paper look, "CHRONICLES", NEW GAME / LOAD GAME /
-  SETTINGS / CREDITS / HELP). LOAD GAME disabled without saves.
-- Console at boot: `proxy worker active (… wasmPaths=CDN)` → `model ready (… ms)`.
+- Reload. Title renders (light paper look, "CHRONICLES"). LOAD GAME enabled if
+  old saves exist (expected — prior rounds wrote slots).
+- Console at boot: `proxy worker active (wasm proxy=true, numThreads=1,
+  wasmPaths=CDN)` → **`model ready (… ms)`** and — after the first sprite —
+  **`inference done (… ms)`**. Look for a new log line mentioning the
+  **blob-bootstrapped factory** (e.g. `factory blob-bootstrapped`).
   **NO `no available backend found` / `[wasm] [object Event]`** — the
-  round-9 blocker gate.
+  round-9/10 blocker gate.
+- No `Backdrop art prompt` / `Floor art prompt` anywhere in console.
 
 ## 2. Wizard → sprite + portrait
 
-- **NEW GAME** → name → **Next** → click an archetype. Sprite + RMBG run
-  (`model ready`, `inference done`, `cutout-cache: miss <id> → removing`).
-  - The **bust portrait** also resolves **async** — it must NOT add wait time
-    to the sprite (it fires in parallel). Console may show a second
-    `generateImage` call for the portrait (pose `portrait`, no removal).
-  - Sprite quality: clean cut-out, no mottle/dark halo, baked shadow under the
-    character, black outline clean.
+- **NEW GAME** → name → **Next** → click an archetype. Sprite + client-side
+  RMBG run (`model ready`, `inference done`, `cutout-cache: miss <id> →
+  removing`). The **bust portrait** resolves async (must NOT add wait time).
+  - Sprite quality: clean cut-out, no mottle/dark halo, baked shadow under
+    the character, black outline clean.
 - Background → review → **Create**. Save created; the game scene loads.
 
-## 3. Scene — fog + grounding (round-9 fixes regression)
+## 3. Scene — TWO NPCs + fog + grounding
 
-- Fog drifts over the frame (two screenshots a few seconds apart — haze must
-  differ). Fog must NOT block clicks and must not hurt HUD readability.
-- Both characters stand grounded with the baked shadow under them; NO separate
-  code-drawn shadow ellipse.
-- Narrator opening plays (2-3 sentences, Leave closes).
+- The scene shows the player plus **two NPCs** (three characters total).
+  Confirm the second NPC has a sprite, stands on the opposite side of the
+  player from the first, and the HUD shows **two** "Talk to …" buttons.
+- **Fog**: a low band of haze near the ground — dense at the characters'
+  feet, fading upward. Two screenshots a few seconds apart: the haze must
+  drift. **The sky and upper frame must stay clear** (no full-frame white).
+  Characters must keep contrast.
+- Both characters stand grounded with the baked shadow; NO separate code-drawn
+  shadow ellipse.
+- Narrator opening plays (Leave closes).
 
-## 4. Dialogue + speaker portraits (the big new one)
+## 4. Dialogue with two NPCs + portraits + free-form
 
-- **Talk to <NPC>**: thinking line → in-character reply → choices as buttons.
-- **Portrait check:** during the NPC's turn, a **bust portrait in a frame**
-  appears for the NPC. When the player submits their own action (below), the
-  **player's portrait** appears instead. Only the current speaker's portrait
-  shows. The narrator has NO portrait (frame hidden).
-- **Free-form action:** when choices are shown, a **"Write your own action…"**
-  option is always present. Select it → an input box opens with the player's
-  portrait + text field. Type an action (e.g. "I draw my sword and step
-  closer.") and Send → the player's turn appears with their portrait → the NPC
-  replies (thinking → reply). Loop 2+ turns.
-  - Edge checks: empty input does nothing (no turn submitted); Cancel closes
-    the input back to the choices; Leave still always closes the dialogue;
-    the 300-char cap is enforced.
-  - If a turn has NO choices, the "Write your own action…" option is absent —
-    flow unchanged (Continue ends the turn, Leave closes).
-- **Pause menu:** while NOT in dialogue, press **Esc** → the pause overlay
-  opens with Save / Settings / Quit. Press Esc again → closes. **Save** →
-  "Saved." appears; the autosave slot is written (verify via Load later).
-  **Settings** → the Settings screen opens from the pause; its back button
-  returns to the pause menu (not the title). **Quit** → "Save before
-  quitting?" with Yes/No/Cancel — Yes saves then returns to title; No returns
-  to title without saving; Cancel stays.
-  - Esc dual behavior: WITH a dialogue open, Esc closes the dialogue — it must
-    NOT open the pause at the same time.
+- **Talk to NPC 1** → thinking → in-character reply → choices as buttons.
+  **Talk to NPC 2** → same, in character, and the NPC's payload knows the
+  other NPC is present (the reply may naturally reference the co-present
+  person — optional, not required).
+- **Portraits**: the current speaker's bust portrait shows in the frame (NPC
+  or player). The narrator has none.
+- **Free-form action:** "Write your own action…" is always present with
+  choices. Type an action → Send → player turn with portrait → the NPC
+  replies. Empty input does nothing; Cancel returns to choices; 300-char cap
+  enforced; Leave always closes. No-choice turns have no free-form option.
+- **Esc dual:** with a dialogue open, Esc closes the dialogue ONLY — the
+  pause must NOT open. With no dialogue open, Esc toggles the pause menu
+  (Save / Settings / Quit — spot-check one path).
 
-## 5. Re-roll regenerates sprite + portrait together
+## 5. Day clock + TIME OF DAY in payload
 
-- Click **Re-roll sprite**: new seed → new sprite generation (`cutout-cache:
-  miss …`, `inference done`) **and** a new portrait with the same seed.
-  Console shows both generations. The sprite AND the portrait visibly change.
+- The save shows **day 1 · afternoon** (new game). Each dialogue turn
+  consumes one interaction; after **3 turns in a period** the period advances
+  (afternoon → night). Verify via the load screen or the dev inspector header
+  after reloading (the clock persists in the save).
+- Open the dev inspector (`?inspector=1`, see §8): every voice's payload has
+  a **TIME OF DAY** section ("It is afternoon of day 1 (2 interactions so far
+  in this period)") marked **never summarized**.
+- Check the NPC payload contains NO art prompts (no "Backdrop art prompt",
+  no "Three.js floor plane", no "Do not include").
 
-## 6. Warm reload / cache (regression)
+## 6. End-of-day run (the new core) — Rest button
 
-- Reload WITHOUT clearing: fast, `cutout-cache: hit <id> (skip inference)`,
-  no model re-download, no `inference done`. Portraits serve from the asset
-  cache (no new portrait generation). Scene identical.
-- Then **LOAD GAME** → same scene loads fast.
+- With some conversation recorded (talk to both NPCs at least once), click
+  **"Rest / end the day"**:
+  - Console: one scoring call per batch of up-to-2 NPCs (the instruction
+    contains `world-scoring`, the day logs for **both** NPCs separated as
+    `NPC 1 — <name>` / `NPC 2 — <name>`, and the output is parsed into
+    per-NPC blocks `--- <name>`).
+  - A **recap** appears in the dialogue box: "Day N ends." + per-NPC lines
+    ("You grew closer to X." / "You grew apart from X." / unchanged) + "X
+    remembers: <blurb>". **No raw numbers** anywhere in the recap.
+  - The day advances to **day 2 · morning** (check the load screen / HUD).
+- **Relationship web persisted:** reload, open the inspector, and confirm via
+  the Logs tab (see §8) that the run wrote `relation-event` and `summary`
+  entries per NPC. (Raw bond values are internal — the recap is the only
+  player-facing signal.)
+- **Edge case:** if a day has NO conversation, Rest still works — the recap
+  shows the day ending with no bond lines (graceful).
+- **Batching edge (optional, time-permitting):** if the combined day logs were
+  huge, the run splits into one call per NPC — only checkable with very long
+  sessions; skip if not practical.
 
-## 7. Dev context inspector (?inspector=1)
+## 7. Warm reload / cache
 
-- Reload the generator with **`?inspector=1`** in the URL (keep the same page
-  parameters Perchance needs). A discreet **Dev** button appears in the HUD.
-- Click **Dev** → the inspector panel opens:
-  - **Voice selector** (dropdown): NPC (the current NPC's name), Narrator,
-    and the user's name. Switching voices swaps the sections.
-  - **Sections**: named payload sections exactly as built (System, WHO YOU
-    ARE, WHERE YOU ARE, CONVERSATION SO FAR for the NPC; SCENE / PRESENT for
-    the narrator; NAME / APPEARANCE / BACKGROUND for the user). The
-    **CONVERSATION SO FAR** section is highlighted as **summarizable**; all
-    others are marked **never summarized**.
-  - **Counts + budget bar**: per-section char counts and a bar vs 24,000 chars
-    with the window-summary trigger marker.
-  - **Copy payload** copies the selected voice's full instruction.
-  - **Refresh** re-reads the payload.
-- Report what each voice shows and whether the button/panel render correctly
-  with `?inspector=1` (and confirm the button is ABSENT without the param).
+- Reload WITHOUT clearing: fast, **`cutout-cache: hit <id> (skip inference)`**
+  for both NPC sprites (client-side RMBG now populates the cutout table),
+  no model re-download. Scene identical. Then **LOAD GAME** → same scene.
+- Report whether the day/period persisted (day 2 if you rested, else day 1).
 
-## 8. Stability & console
+## 8. Dev context inspector (?inspector=1) — now with Logs tab
+
+- Reload with **`?inspector=1`**. **Dev** button in the HUD.
+- **Voice selector**: the NPCs (both names), Narrator, and the user's name.
+  Sections per voice — including **TIME OF DAY** (never summarized) and the
+  NPC **CONVERSATION SO FAR** (summarizable). Budget bar vs 24,000 chars.
+  Copy payload / Refresh work.
+- **NEW — Logs tab**: click **Logs**. It lists the raw per-character entries:
+  scene entry (on load), each dialogue `turn` (owner npc) and each player
+  `action` (owner user), each with type · day/period · owner · char count ·
+  text. After a Rest, the day's `relation-event` and `summary` entries appear
+  too. Confirm the entries match what actually happened (turns you spoke,
+  actions you took).
+- Confirm the Dev button is ABSENT without the param.
+
+## 9. Stability & console
 
 - Collect the full console. Acceptable: favicon 404, transformers
   model-class warnings, WebGL/GPU driver warnings. Flag anything else
   (unhandled rejections, `Failed to fetch`, `[wasm]` errors, wizard errors).
-- Letterbox frame, HUD readability, sprites a reasonable size. **Screenshot**
-  the scene with a dialogue open (portrait visible) and include it.
+- Letterbox frame, HUD readability (now with 2 talk buttons + Rest), sprites
+  a reasonable size. **Screenshots**: (a) the scene with both NPCs visible,
+  (b) the dialogue box open with a portrait, (c) the fog band low on the
+  frame, (d) the inspector Logs tab.
 
 ## Report
 
 Structured, per check: **PASS / PARTIAL / FAIL / BLOCKED** + evidence
-(console lines, what you clicked, what happened). Include:
+(console lines verbatim, what you clicked, what happened). Include:
 1. Upload check + wasm/model URLs & status codes
 2. RMBG end-to-end: model times, per-sprite inference, loading stages, no
-   fallback warning (round-9 gate)
+   fallback warning, blob-bootstrapped factory line, cutout-cache hits
 3. Sprite quality + baked shadow
-4. Fog (two screenshots) + grounding (no code shadow)
-5. **Portraits**: NPC portrait in frame on NPC turns; player portrait in the
-   free-form input + player turn; narrator has none; async (no wait added);
-   white background preserved (no removal on portraits)
-6. **Free-form action**: option present with choices, absent without; input
-   box with portrait; submit → player turn → NPC reply; empty input ignored;
-   Cancel; 300 cap; multi-turn loop works
-7. **Pause menu**: Esc dual behavior (dialogue vs no dialogue), Save →
-   autosave ("Saved." + slot written), Settings from pause (back → pause),
-   Quit prompt (Yes/No/Cancel behaviors)
-8. Re-roll: sprite + portrait both regenerate and both change
-9. Warm reload + cut-out cache hits + portrait cache hits
-10. **Inspector (?inspector=1)**: Dev button present with param / absent
-    without; voice selector; sections + summarizable marker; budget bar;
-    Copy payload; Refresh; no console errors
-11. Visual: composition, letterbox, HUD, screenshots attached (scene +
-    dialogue with portrait)
-12. Full-console anomalies
+4. **Two-NPC scene**: 3 characters, 2 talk buttons, second NPC placement
+5. **Fog redesign**: low band at feet, clear sky, drift between screenshots
+6. **Payload**: TIME OF DAY section present; NO art prompts in any voice
+7. **Dialogue**: both NPCs in character, portraits, free-form action,
+   no-choice turn, Esc dual (dialogue vs pause)
+8. **Day clock**: day/period advance after 3 turns/period, persists on reload
+9. **End-of-day run**: Rest → batched scoring call (both NPCs), recap lines
+   (no raw numbers), day 2 morning, relation-event + summary entries in the
+   Logs tab, empty-day graceful path
+10. **Warm reload**: cutout-cache hits, no re-download, day/period persisted
+11. **Inspector**: voice selector with 2 NPCs, TIME OF DAY section, Logs tab
+    matches reality, Dev button gating
+12. Visual: composition, letterbox, HUD, screenshots attached
+13. Full-console anomalies
 
 End with a summary line: how many checks passed, and the single most
 important issue to fix (if any). Do NOT modify the code — report only.

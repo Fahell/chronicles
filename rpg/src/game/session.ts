@@ -5,14 +5,18 @@ import { type NpcDefinition, npcById } from "../content/npcPool";
 import { SPRITE_NEGATIVE_PROMPT } from "../content/sprite";
 import { buildOpenPlainsManifest } from "../scene/manifest/openPlains";
 import type { SceneManifest } from "../scene/types";
+import { type DayState, initialDayState, normalizePeriod } from "./day/clock";
 import type { Identity } from "./identity";
 import type { ConversationTurn } from "./payload/builder";
-import type { SaveGame } from "./save/types";
+import type { SaveGame, SaveScene } from "./save/types";
 
-/** A live game session: the loaded save + its NPC + the scene manifest. */
+/** A live game session: the loaded save + its NPCs + the scene manifest. */
 export interface GameSession {
   save: SaveGame;
+  /** Primary NPC (always present). */
   npc: NpcDefinition;
+  /** Second co-present NPC — null on legacy single-NPC saves (round 12). */
+  npc2: NpcDefinition | null;
   /** The dynamic scene manifest (base scene + user/NPC actors). */
   buildManifest(): SceneManifest;
 }
@@ -69,7 +73,7 @@ export function npcPortraitSeed(npcId: string, sceneId: string): string {
   return `${sceneId}:${npcId}:idle:v1`;
 }
 
-/** Builds a session from a loaded save; throws if the NPC id is unknown. */
+/** Builds a session from a loaded save; throws if an NPC id is unknown. */
 export function startSession(save: SaveGame): GameSession {
   // A fresh session always starts with an empty conversation — reset before
   // validation so a failed start cannot leak prior turns.
@@ -78,11 +82,46 @@ export function startSession(save: SaveGame): GameSession {
   if (!npc) {
     throw new Error(`Session: unknown NPC id "${save.scene.npcId}" in save slot ${save.slotId}`);
   }
+  const npc2 = save.scene.secondNpcId ? (npcById(save.scene.secondNpcId) ?? null) : null;
   const session: GameSession = {
     save,
     npc,
-    buildManifest: () => buildOpenPlainsManifest(userActor(save.identity), npcActor(npc)),
+    npc2,
+    buildManifest: () => {
+      const actors = [userActor(save.identity), npcActor(npc)];
+      if (npc2) actors.push(npcActor(npc2));
+      return buildOpenPlainsManifest(actors);
+    },
   };
   sessionSignal.value = session;
   return session;
+}
+
+/** The in-game clock state of a save (normalizes legacy stubs, §3). */
+export function dayStateFromSave(scene: SaveScene): DayState {
+  return {
+    day: scene.day > 0 ? scene.day : 1,
+    period: normalizePeriod(scene.period),
+    scenesInPeriod: scene.scenesInPeriod ?? 0,
+  };
+}
+
+/** The day state a brand-new game starts with. */
+export function initialSaveScene(sceneId: string, npcId: string, secondNpcId?: string): SaveScene {
+  const day = initialDayState();
+  return {
+    sceneId,
+    npcId,
+    ...(secondNpcId ? { secondNpcId } : {}),
+    day: day.day,
+    period: day.period,
+    scenesInPeriod: day.scenesInPeriod,
+  };
+}
+
+/** Replaces the active session's save (clock advances, pause saves, …). */
+export function updateSessionSave(next: SaveGame): void {
+  const session = sessionSignal.value;
+  if (!session) return;
+  sessionSignal.value = { ...session, save: next };
 }

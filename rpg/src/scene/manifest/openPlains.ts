@@ -39,6 +39,10 @@ export const openPlainsBase = {
   floor: {
     assetKey: "scenes/open-plains/floor",
     prompt: groundPrompt,
+    // Visual description for the narrator payload (narrative-spec §2.2: the
+    // payload receives descriptions, never the raw art prompt).
+    description:
+      "A broad grassy meadow floor with sparse pale-gold flowers, cool blue-green twilight shadows.",
     // Far edge lands at -10.05 — 0.05 behind the backdrop plane (-10) — so
     // the floor meets the backdrop with no seam (see layout.ts invariants).
     depth: -2.35,
@@ -48,12 +52,19 @@ export const openPlainsBase = {
   camera: { mode: "fixed", fov: 52, height: 2, pitch: 2 },
 } as const satisfies Omit<SceneManifest, "actors">;
 
-/** Builds the open-plains manifest with session actors (user + picked NPC). */
-export function buildOpenPlainsManifest(
-  userActor: SceneManifest["actors"][number],
-  npcActor: SceneManifest["actors"][number],
-): SceneManifest {
-  return { ...openPlainsBase, actors: [userActor, npcActor] };
+/**
+ * Builds the open-plains manifest with session actors (user + 1..2 NPCs,
+ * round 12: a second co-present NPC). Positions: the player center, the
+ * primary NPC left, the second NPC right (when present).
+ */
+export function buildOpenPlainsManifest(actors: SceneManifest["actors"][number][]): SceneManifest {
+  const placed = actors.map((actor, i) => {
+    if (i === 0) return { ...actor, position: { x: 0.1, z: -0.9 }, scale: 0.95 };
+    // NPC 1 left, NPC 2 right — mirror across the player so both are framed.
+    const side = i === 1 ? -1 : 1;
+    return { ...actor, position: { x: side * 2.2, z: -3.8 }, scale: 0.9 };
+  });
+  return { ...openPlainsBase, actors: placed };
 }
 
 // Default actors kept for backward compatibility (scene-c tests, POC, and
